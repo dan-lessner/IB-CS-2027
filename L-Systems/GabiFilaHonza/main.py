@@ -57,8 +57,3 @@ for c in instr:
             t.setx(x.pop())
             t.sety(y.pop())
             t.setheading(face.pop())
-
-print("ahoj honzo")
-print("Hello World")
-
-cau cau 
