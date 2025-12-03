@@ -1,12 +1,30 @@
 # Pracuje tady někdo?? halo tady sokoli orel, ano zacina se tu pracovat, opakuji prace zacina, zacina, prepinam
-print("hello world")
+iterations = int(input("iterations: "))
+angle = int(input("angle (degrees): "))
+axiom = input("axiom: ")
+rule_input = input("rule (e.g. F=F+F--F+F): ")
 
-import math
-import random
+# Parse the rule
+rule_key, rule_value = rule_input.split("=")
 
-axiom = input("Axiom desired:")
-angle_given = int(input("Your desired angle:"))
-iteration = int(input("Iteration desired:"))
+# Generate the L-system string
+current = axiom
+for i in range(iterations):
+    next_string = ""
+    for char in current:
+        if char == rule_key:
+            next_string += rule_value
+        else:
+            next_string += char
+    current = next_string
 
-#constants would be  inn
-#nikdy nikdo
+print("\nFinal L-system string after", iterations, "iterations:")
+print(current)
+
+# Legend for commands
+print("\nLegend:")
+print(f"+ : turn right {angle} degrees")
+print(f"- : turn left {angle} degrees")
+print("F : move forward")
+print("[ : push position")
+print("] : pop position")
