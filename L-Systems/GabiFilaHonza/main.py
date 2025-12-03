@@ -35,6 +35,8 @@ def rewrite(string, arr, rules):
 for i in range(iterations):
     rewrite(instr, letters, rules)
 
+print(instr)
+
 x = []
 y = []
 face = []
