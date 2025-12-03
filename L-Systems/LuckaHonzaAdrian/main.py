@@ -10,3 +10,6 @@ iteration = int(input("Iteration desired:"))
 
 #constants would be  inn
 #nikdy nikdo
+
+
+#guys nejak si locknete ten document jinak vam tu furt budu psat 
