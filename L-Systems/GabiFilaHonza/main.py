@@ -40,18 +40,22 @@ print(instr)
 x = []
 y = []
 face = []
+t.speed(0)
+t.showturtle()
+t.screensize(30000, 30000)
 
 for c in instr:
     match c:
         case "F":
-            t.forward(100)
+            t.forward(5)
         case "-":
             t.left(ang)
         case "+":
             t.right(ang)
         case "[":
             x.append(t.xcor)
-            y.append(t.ycor)
+            y.append
+            (t.ycor)
             face.append(t.heading())
         case "]":
             t.setx(x.pop())
