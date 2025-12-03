@@ -1,3 +1,6 @@
+# Pracuje tady někdo??
+print("hello world")
+
 import math
 import random
 
