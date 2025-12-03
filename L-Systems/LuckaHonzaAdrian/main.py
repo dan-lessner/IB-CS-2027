@@ -1,4 +1,4 @@
-# Pracuje tady někdo??
+# Pracuje tady někdo?? halo tady sokoli orel, ano zacina se tu pracovat, opakuji prace zacina, zacina, prepinam
 print("hello world")
 
 import math
