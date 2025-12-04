@@ -1,8 +1,6 @@
-print= "hello world"
-print(print)
+axiom = "F"
+rules = {"F": "F+F-F-F+F"}
+angle = 90
+iterations = 4
 
-print("Hello group") 
-#guys zkousim jestli to vidite 
 
-
-# ahoj kamaradi tady jarek
