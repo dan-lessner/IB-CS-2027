@@ -41,7 +41,7 @@ x = []
 y = []
 face = []
 t.speed(0)
-t.showturtle()
+t.hideturtle()
 t.screensize(30000, 30000)
 
 for c in instr:
@@ -53,9 +53,8 @@ for c in instr:
         case "+":
             t.right(ang)
         case "[":
-            x.append(t.xcor)
-            y.append
-            (t.ycor)
+            x.append(t.xcor())
+            y.append(t.ycor())
             face.append(t.heading())
         case "]":
             t.setx(x.pop())
