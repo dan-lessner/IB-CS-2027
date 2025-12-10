@@ -18,10 +18,10 @@ for i in range(len(letters)):
 print(letters, rules)
 
 
-def rewrite(string, arr, rules):
-    global instr
+def rewrite(string, arr, rules): #funkce 
+    global instr #celková proměna 
     
-    letters = [i for i in arr]
+    letters = [i for i in arr] #arr písmena
     instructions = []
     for a in string:
         if a in letters:
@@ -36,29 +36,27 @@ for i in range(iterations):
     rewrite(instr, letters, rules)
 
 print(instr)
-
+# visual moment
 x = []
 y = []
 face = []
+t.speed(0)
+t.hideturtle()
+t.screensize(30000, 30000)
 
 for c in instr:
     match c:
         case "F":
-            t.forward(100)
+            t.forward(5)
         case "-":
             t.left(ang)
         case "+":
             t.right(ang)
         case "[":
-            x.append(t.xcor)
-            y.append(t.ycor)
+            x.append(t.xcor())
+            y.append(t.ycor())
             face.append(t.heading())
         case "]":
             t.setx(x.pop())
             t.sety(y.pop())
             t.setheading(face.pop())
-
-print("ahoj honzo")
-print("Hello World")
-
-
