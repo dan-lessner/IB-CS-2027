@@ -1,12 +1,33 @@
-ruleDic = {"X":">[-FX]+FX"}
-cmdDic = {"F":"turtle.fd(Distance/10)", "-":"turtle.left(Angle)","+":"turtle.right(Angle)","<":"Distance = Distance / distMult",">":"Distance = Distance * distMult","[":"storeState()", "]":"accessState()"}
-Axiom = "FX"
-current = Axiom
-depth = 4
 import turtle
-Angle = 30
-Distance = 1000  
-distMult = 0.7
+cmdDic = {"F":"turtle.fd(Distance/10)", "-":"turtle.left(Angle)","+":"turtle.right(Angle)","<":"Distance = Distance / distMult",">":"Distance = Distance * distMult","[":"storeState()", "]":"accessState()"}
+
+with open("L-Systems/VikiChrisTom/DataDump.txt","r") as file:
+    lines = file.readlines()
+    
+for i in range(len(lines)):
+    lines[i] = lines[i].strip()
+        
+lines.pop(-1)
+
+print(lines)
+
+ruleDic = {}
+
+
+depth = int(lines[0])
+Angle = int(lines[1])
+Distance = int(lines[2]) 
+distMult = float(lines[3])
+Axiom = lines[4]
+for i in range(0,int((len(lines)-5)/2),2):
+    
+    ruleDic.update({lines[i-2]:lines[i-1]})
+    
+current = Axiom
+
+print(ruleDic)
+
+
 stateStack = []
 
 width = 2000
@@ -20,15 +41,15 @@ storeInput = input('Want to change save? Y/N ')
 
 if  storeInput== 'Y':
     file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","w")
-    file.write(input("Depth: ") + "/n")
-    file.write(input("Angle: ") + "/n")
-    file.write(input("Distance: ") + "/n")
-    file.write(input("DistMult: ") + "/n")
-    file.write(input("Axiom: ") + "/n")
+    file.write(input("Depth: ") + "\n ")
+    file.write(input("Angle: ") + "\n ")
+    file.write(input("Distance: ") + "\n ")
+    file.write(input("DistMult: ") + "\n ")
+    file.write(input("Axiom: ") + "\n ")
     while True:
-        if input("New Rule? Y/N") == "Y":
-            file.write(input("Name: ") + "/n")
-            file.write(input("Rule: ") + "/n")
+        if input("New Rule? Y/N: ") == "Y":
+            file.write(input("Name: ") + "\n ")
+            file.write(input("Rule: ") + "\n ")
         else:
             break
     print("finished!!!!")
@@ -40,6 +61,8 @@ else:
 file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","r")
 content = file.read()
 print(content)
+file.seek(0)
+print(file.readlines())
 file.close()
 
 class state:
