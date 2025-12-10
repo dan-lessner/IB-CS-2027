@@ -42,7 +42,6 @@ y = []
 face = []
 t.speed(0)
 t.hideturtle()
-t.screensize(30000, 30000)
 
 for c in instr:
     match c:
