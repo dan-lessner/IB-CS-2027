@@ -60,3 +60,5 @@ for c in instr:
             t.setx(x.pop())
             t.sety(y.pop())
             t.setheading(face.pop())
+
+t.mainloop()
