@@ -58,10 +58,10 @@ print(ruleDic)
 
 stateStack = []
 
-width = 2000
-height = 2000
+width = 5000
+height = 5000
 turtle.tracer(1)
-turtle.speed(1)
+turtle.speed(100)
 turtle.setup(width,height)
 turtle.screensize(width*2,height*2)
 
