@@ -19,9 +19,9 @@ print(letters, rules)
 
 
 def rewrite(string, arr, rules): #funkce 
-    global instr #celková proměna 
+    global instr #celková proměnná
     
-    letters = [i for i in arr] #arr písmena
+    letters = [i for i in arr] #array s písmenami
     instructions = []
     for a in string:
         if a in letters:
@@ -36,13 +36,12 @@ for i in range(iterations):
     rewrite(instr, letters, rules)
 
 print(instr)
-# visual moment
+
 x = []
 y = []
 face = []
 t.speed(0)
 t.hideturtle()
-t.screensize(30000, 30000)
 
 for c in instr:
     match c:
@@ -60,3 +59,5 @@ for c in instr:
             t.setx(x.pop())
             t.sety(y.pop())
             t.setheading(face.pop())
+
+t.mainloop()
