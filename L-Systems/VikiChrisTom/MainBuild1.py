@@ -1,6 +1,34 @@
 import turtle
 cmdDic = {"F":"turtle.fd(Distance/10)", "-":"turtle.left(Angle)","+":"turtle.right(Angle)","<":"Distance = Distance / distMult",">":"Distance = Distance * distMult","[":"storeState()", "]":"accessState()"}
 
+storeInput = input('Want to change save? Y/N ')
+
+if  storeInput== 'Y':
+    file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","w")
+    file.write(input("Depth: ") + "\n ")
+    file.write(input("Angle: ") + "\n ")
+    file.write(input("Distance: ") + "\n ")
+    file.write(input("DistMult: ") + "\n ")
+    file.write(input("Axiom: ") + "\n ")
+    while True:
+        if input("New Rule? Y/N: ") == "Y":
+            file.write(input("Name: ") + "\n ")
+            file.write(input("Rule: ") + "\n ")
+        else:
+            break
+    print("finished!!!!")
+    file.close()
+elif storeInput == 'N':
+    print("continuing")
+else:
+    print("wrong input, but fuck it we ball! :)")
+file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","r")
+content = file.read()
+print(content)
+file.seek(0)
+print(file.readlines())
+file.close()
+
 with open("L-Systems/VikiChrisTom/DataDump.txt","r") as file:
     lines = file.readlines()
     
@@ -37,33 +65,7 @@ turtle.speed(1)
 turtle.setup(width,height)
 turtle.screensize(width*2,height*2)
 
-storeInput = input('Want to change save? Y/N ')
 
-if  storeInput== 'Y':
-    file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","w")
-    file.write(input("Depth: ") + "\n ")
-    file.write(input("Angle: ") + "\n ")
-    file.write(input("Distance: ") + "\n ")
-    file.write(input("DistMult: ") + "\n ")
-    file.write(input("Axiom: ") + "\n ")
-    while True:
-        if input("New Rule? Y/N: ") == "Y":
-            file.write(input("Name: ") + "\n ")
-            file.write(input("Rule: ") + "\n ")
-        else:
-            break
-    print("finished!!!!")
-    file.close()
-elif storeInput == 'N':
-    print("continuing")
-else:
-    print("wrong input, but fuck it we ball! :)")
-file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","r")
-content = file.read()
-print(content)
-file.seek(0)
-print(file.readlines())
-file.close()
 
 class state:
     def __init__(self,heading,pos,length):
