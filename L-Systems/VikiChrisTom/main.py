@@ -50,7 +50,7 @@ def draw_with_turtle(instructions, step_size=10, angle=90):
     t.color('green')
     t.shape("turtle")
     screen = turtle.Screen()
-    turtle.TurtleScreen._RUNNING=True10
+    turtle.TurtleScreen._RUNNING=True
     
 
     for char in instructions:
