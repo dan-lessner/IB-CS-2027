@@ -1,10 +1,8 @@
 import turtle
 
-
 iterations = int(input("Number of iterations: ")) #users input
 angle = int(input("Angle: "))
 axiom = input("Axiom: ")
-
 print("Letters used (e.g. F X): ", end="")
 letters = input().split()
 
