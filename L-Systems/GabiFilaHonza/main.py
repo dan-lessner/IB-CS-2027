@@ -1,48 +1,78 @@
 import turtle as t
 
-print("# of iterations:", end=" ")
-iterations = int(input())
-print("angle:", end=" ")
-ang = int(input())
-print("Axiom:", end=" ")
-instr = str(input())
-print("Letters used:", end=" ")
-letters = input().split()
+print("Add new shape? Y/N:", end=" ")
+ans = input()
+if ans == "Y":
+    print("Name of the shape:", end=" ") #end=" " -> the code continues writing on the same line
+    name = input()
+    print("# of iterations:", end=" ")
+    iterations = int(input())
+    print("angle:", end=" ")
+    ang = int(input())
+    print("Axiom:", end=" ")
+    instr = str(input())
+    print("Letters used:", end=" ")
+    letters = input().split()
 
-rules = []
+    rules = []
 
-for i in range(len(letters)):
-    print("Rule: ", letters[i], "=", end=" ")
-    rules.append(input())
+    for i in range(len(letters)):
+        print("Rule: ", letters[i], "=", end=" ")
+        rules.append(input())
 
-print(letters, rules)
+    print(letters, rules)
 
 
-def rewrite(string, arr, rules): #funkce 
-    global instr #celková proměna 
+    def rewrite(string, arr, rules): #funkce 
+        global instr #celková proměnná
+        
+        letters = [i for i in arr] #array s písmenami
+        instructions = []
+        for a in string:
+            if a in letters:
+                instructions.append(rules[letters.index(a)])
+            else:
+                instructions.append(a)    
+        instr = ("".join(map(str, instructions)))
+        return
     
-    letters = [i for i in arr] #arr písmena
-    instructions = []
-    for a in string:
-        if a in letters:
-            instructions.append(rules[letters.index(a)])
-        else:
-            instructions.append(a)    
-    instr = ("".join(map(str, instructions)))
-    return
-            
-                
-for i in range(iterations):
-    rewrite(instr, letters, rules)
+    Franta = [name, iterations, ang, instr, letters, rules]
 
-print(instr)
-# visual moment
+    with open("mem.txt", "a") as w:
+        w.write(name)
+        w.write(iterations)
+        w.write(ang)
+        for a in instr:
+            w.write(a, end=", ")
+        w.write("")
+        for a in letters:
+            w.write(a, end=", ")
+        w.write("")
+        for a in rules:
+            w.write(a, end=", ")
+        w.write("")
+
+if ans == "N":
+    shapes = []
+    with open("mem.txt", "r") as f:
+        lines = f.readlines()
+    
+    
+    print("Name of the shape?", end=" ")
+    name = input()
+
+
+
+for i in range(iterations):
+        rewrite(instr, letters, rules)
+
+
+
 x = []
 y = []
 face = []
 t.speed(0)
 t.hideturtle()
-t.screensize(30000, 30000)
 
 for c in instr:
     match c:
@@ -60,3 +90,5 @@ for c in instr:
             t.setx(x.pop())
             t.sety(y.pop())
             t.setheading(face.pop())
+
+t.mainloop()
