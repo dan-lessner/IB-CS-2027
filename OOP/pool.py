@@ -3,8 +3,8 @@ import random
 import math
 
 WIDTH, HEIGHT = 600, 400
-R = 15
-FRICTION = 0.995
+R = 5
+FRICTION = 0.9
 DT = 1
 
 class Ball:
