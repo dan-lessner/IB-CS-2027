@@ -6,9 +6,8 @@ for i in inputString:
     if i in operationList:
         temp1 = ''.join([stack[-2],i,stack[-1]])
         stack = stack[0:-2]
-        print(eval(temp1))
         stack.append(str(eval(temp1)))
     else:
         stack.append(i)
-print (stack)
+print ("result is: " + str(stack[0]))
     
