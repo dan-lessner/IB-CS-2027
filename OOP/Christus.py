@@ -3,7 +3,7 @@ import math
 
 WIDTH, HEIGHT = 600, 400
 R = 10
-FRICTION = 0.985
+FRICTION = 0.99
 DT = 1
 mouseX = 0
 mouseY = 0
@@ -53,9 +53,12 @@ class Ball:
             compY = 0
         
         #print(mouseX,mouseY,angle)
-        #print(mouseX-compX,mouseY-compY)
+        print(2*(mouseX-compX),2*(mouseY-compY))
         #print(compX,compY)
-        c.coords(line,mouseX-compX,mouseY-compY,self.x,self.y)
+        lineX = self.x - ((mouseX-compX) - self.x)
+        lineY = self.y - ((mouseY-compY) - self.y)
+        
+        c.coords(line,lineX,lineY,self.x,self.y)
         c.itemconfig(line, fill = 'red')
         #c.coords(rect,self.x,self.y,compX,compY)
         
