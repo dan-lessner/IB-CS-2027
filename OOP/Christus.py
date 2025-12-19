@@ -1,16 +1,27 @@
 import tkinter as tk
-import random
 import math
 
 WIDTH, HEIGHT = 600, 400
-R = 5
-FRICTION = 0.9
+R = 10
+FRICTION = 0.985
 DT = 1
 mouseX = 0
 mouseY = 0
+line = 0
+#rect = 0
+compX = 0
+compY = 0
+
+root = tk.Tk()
+c = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="darkgreen")
+c.pack()
 
 class Ball:
     def __init__(self, canvas, x, y, color):
+        global line 
+        global rect
+        line = c.create_line(0,0,0,0)
+        #rect = c.create_rectangle(0,0,0,0)
         self.canvas = canvas
         self.x = x
         self.y = y
@@ -18,26 +29,55 @@ class Ball:
         self.vy = 0
         self.id = canvas.create_oval(x-R, y-R, x+R, y+R, fill=color)
         canvas.tag_bind(self.id, "<B1-Motion>", self.hit)
-        canvas.tag_bind(self.id, "<Buttonrelease-1>",self.launch)
+        canvas.tag_bind(self.id, "<Button-1>",self.hit)
+        canvas.tag_bind(self.id, "<ButtonRelease-1>",self.launch)
+        
 
     def hit(self, event):
+        global compX
+        global compY
         global mouseX
         global mouseY
+        maxLength = 100
         mouseX = event.x
         mouseY = event.y
-        print(mouseX,mouseY)
+        X = mouseX - self.x
+        Y = mouseY - self.y
+        angle = math.atan2(Y,X)
+        hypot = math.hypot(X,Y)
+        if hypot > maxLength:
+            compX = X - math.cos(angle)*maxLength
+            compY = Y - math.sin(angle)*maxLength
+        else:
+            compX = 0
+            compY = 0
+        
+        #print(mouseX,mouseY,angle)
+        #print(mouseX-compX,mouseY-compY)
+        #print(compX,compY)
+        c.coords(line,mouseX-compX,mouseY-compY,self.x,self.y)
+        c.itemconfig(line, fill = 'red')
+        #c.coords(rect,self.x,self.y,compX,compY)
+        
         
         
     
     def launch(self,event):
+        global line
+        global compX
+        global compY
         global mouseX
         global mouseY
-        X = self.x - mouseX
-        Y = self.y - mouseY
-        speed = math.hypot(X,Y)
+        X = (self.x - (mouseX - compX))
+        Y = (self.y - (mouseY - compY))
+        speed = math.hypot(X,Y)/5
         angle = math.atan2(Y,X)
         self.vx = math.cos(angle) * speed
         self.vy = math.sin(angle) * speed
+
+        c.coords(line,0,0,0,0)
+        
+        
 
     def move(self):
         self.x += self.vx * DT
@@ -109,9 +149,7 @@ def tick():
     root.after(16, tick)
 
 
-root = tk.Tk()
-c = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="darkgreen")
-c.pack()
+
 
 balls = [
     Ball(c, 150, 200, "white"),
