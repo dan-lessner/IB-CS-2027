@@ -5,18 +5,18 @@ WIDTH, HEIGHT = 600, 400
 BALL_RADIUS = 15
 BALL_SPEED = 6
 DANGER_SIZE = 30
-DANGER_TIME = 5000  # 5 seconds
+DANGER_TIME = 5000  #5seconds
 
 root = tk.Tk()
 root.title("Horizontal Dodge Balls")
 canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="lightblue")
 canvas.pack()
 
-# horizontal lines for balls
+#horizontal lines for balls
 ball_lines = [100, 170, 240, 310]
 colors = ["white", "pink", "lavender", "lightyellow"]
 
-# create balls
+#create balls
 balls = []
 for y, color in zip(ball_lines, colors):
     x = random.randint(50, WIDTH-50)
@@ -24,20 +24,20 @@ for y, color in zip(ball_lines, colors):
     balls.append({
         "x": x,
         "y": y,
-        "vx": BALL_SPEED,  # start moving right
+        "vx": BALL_SPEED,  #start moving right
         "id": ball_id
     })
 
-# dangerous object
+#dangerous object
 danger_x = random.randint(0, WIDTH-DANGER_SIZE)
-danger_y = random.choice(ball_lines) - DANGER_SIZE//2  # appear only on a ball line
+danger_y = random.choice(ball_lines) - DANGER_SIZE//2  #appear only on a ball line
 danger_id = canvas.create_rectangle(
     danger_x, danger_y,
     danger_x+DANGER_SIZE, danger_y+DANGER_SIZE,
     fill="orange"
 )
 
-# game over flag
+#game over flag
 game_over = False
 
 def reverse_balls(event):
@@ -59,10 +59,10 @@ def tick():
         return
 
     for b in balls:
-        # move horizontally
+        #move horizontally
         b["x"] += b["vx"]
 
-        # bounce walls
+        #bounce walls
         if b["x"]-BALL_RADIUS < 0:
             b["x"] = BALL_RADIUS
             b["vx"] = -b["vx"]
@@ -74,7 +74,7 @@ def tick():
         canvas.coords(b["id"], b["x"]-BALL_RADIUS, b["y"]-BALL_RADIUS,
                       b["x"]+BALL_RADIUS, b["y"]+BALL_RADIUS)
 
-        # check collision with dangerous object
+        #check collision with dangerous object
         if (danger_x < b["x"] < danger_x + DANGER_SIZE) and (danger_y < b["y"] < danger_y + DANGER_SIZE):
             canvas.delete(danger_id)
             canvas.create_text(WIDTH//2, HEIGHT//2, text="BOOM!", fill="white", font=("Arial", 32, "bold"))
