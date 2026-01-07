@@ -33,7 +33,3 @@ print("F : move forward")
 print("[ : push position")
 print("] : pop position")
 
-
-
-
-
