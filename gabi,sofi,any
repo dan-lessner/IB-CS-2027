@@ -23,11 +23,11 @@ def start_game(level):
         ball_speed = 8
         danger_time = 2000
 
-    canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="darkgreen")
+    canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="beige")
     canvas.pack()
 
     ball_lines = [100, 170, 240, 310]
-    colors = ["white", "red", "yellow", "blue"]
+    colors = ["white", "lavender", "lightpink", "lightblue"]
 
     balls = []
     for y, color in zip(ball_lines, colors):
