@@ -1,0 +1,111 @@
+import tkinter as tk
+import random
+
+WIDTH, HEIGHT = 600, 400
+BALL_RADIUS = 15
+DANGER_SIZE = 30
+
+root = tk.Tk()
+root.title("Level Select")
+
+#game start
+def start_game(level):
+    menu.destroy()
+
+    # difficulty settings
+    if level == 1:      # Easy
+        ball_speed = 4
+        danger_time = 6000
+    elif level == 2:    # Medium
+        ball_speed = 6
+        danger_time = 4000
+    else:               # Hard
+        ball_speed = 8
+        danger_time = 2000
+
+    canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="beige")
+    canvas.pack()
+
+    ball_lines = [100, 170, 240, 310]
+    colors = ["white", "lavender", "lightpink", "lightblue"]
+
+    balls = []
+    for y, color in zip(ball_lines, colors):
+        x = random.randint(50, WIDTH-50)
+        ball = canvas.create_oval(
+            x-BALL_RADIUS, y-BALL_RADIUS,
+            x+BALL_RADIUS, y+BALL_RADIUS,
+            fill=color
+        )
+        balls.append({"x": x, "y": y, "vx": ball_speed, "id": ball})
+
+    danger_x = random.randint(0, WIDTH-DANGER_SIZE)
+    danger_y = random.choice(ball_lines) - DANGER_SIZE//2
+    danger = canvas.create_rectangle(
+        danger_x, danger_y,
+        danger_x+DANGER_SIZE, danger_y+DANGER_SIZE,
+        fill="orange"
+    )
+
+    game_over = False
+
+    def reverse(event):
+        for b in balls:
+            b["vx"] = -b["vx"]
+
+    def move_danger():
+        nonlocal danger_x, danger_y
+        if game_over:
+            return
+        danger_x = random.randint(0, WIDTH-DANGER_SIZE)
+        danger_y = random.choice(ball_lines) - DANGER_SIZE//2
+        canvas.coords(danger, danger_x, danger_y,
+                      danger_x+DANGER_SIZE, danger_y+DANGER_SIZE)
+        root.after(danger_time, move_danger)
+
+    def tick():
+        nonlocal game_over
+        if game_over:
+            return
+
+        for b in balls:
+            b["x"] += b["vx"]
+
+            if b["x"]-BALL_RADIUS < 0 or b["x"]+BALL_RADIUS > WIDTH:
+                b["vx"] = -b["vx"]
+
+            canvas.coords(
+                b["id"],
+                b["x"]-BALL_RADIUS, b["y"]-BALL_RADIUS,
+                b["x"]+BALL_RADIUS, b["y"]+BALL_RADIUS
+            )
+
+            if danger_x < b["x"] < danger_x+DANGER_SIZE and \
+               danger_y < b["y"] < danger_y+DANGER_SIZE:
+                canvas.delete(danger)
+                canvas.create_text(
+                    WIDTH//2, HEIGHT//2,
+                    text="BOOM!",
+                    fill="white",
+                    font=("Arial", 32, "bold")
+                )
+                game_over = True
+                return
+
+        root.after(16, tick)
+
+    canvas.bind("<Button-1>", reverse)
+    move_danger()
+    tick()
+
+#menu data
+menu = tk.Frame(root)
+menu.pack(expand=True)
+
+tk.Label(menu, text="Select Level", font=("Arial", 36)).pack(pady=20)
+
+tk.Button(menu, text="Easy", width=20, command=lambda: start_game(1)).pack(pady=5)
+tk.Button(menu, text="Medium", width=20, command=lambda: start_game(2)).pack(pady=5)
+tk.Button(menu, text="Hard", width=20, command=lambda: start_game(3)).pack(pady=5)
+
+root.mainloop()
