@@ -102,7 +102,7 @@ def start_game(level):
 menu = tk.Frame(root)
 menu.pack(expand=True)
 
-tk.Label(menu, text="Select Level", font=("Arial", 24)).pack(pady=20)
+tk.Label(menu, text="Select Level", font=("Arial", 36)).pack(pady=20)
 
 tk.Button(menu, text="Easy", width=20, command=lambda: start_game(1)).pack(pady=5)
 tk.Button(menu, text="Medium", width=20, command=lambda: start_game(2)).pack(pady=5)
