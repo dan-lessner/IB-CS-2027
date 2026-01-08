@@ -118,7 +118,7 @@ root = tk.Tk()
 root.title("Pool Game")
 root.state('zoomed')
 
-# --- CHANGED: c is the single canvas ---
+
 c = tk.Canvas(root, bg="darkgreen", highlightthickness=0)
 c.pack(fill="both", expand=True)
 
@@ -126,7 +126,7 @@ root.update()
 WIDTH = c.winfo_width()
 HEIGHT = c.winfo_height()
 
-# --- FIXED: Pocket coordinates with closing bracket ---
+
 POCKETS = [
     (0, 0), (WIDTH/2, 0), (WIDTH, 0),
     (0, HEIGHT/2), (WIDTH, HEIGHT/2),
