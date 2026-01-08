@@ -7,6 +7,7 @@ R = 20
 FRICTION = 0.985
 DT = 1
 
+<<<<<<< HEAD
 POCKET_R = 65
 POCKETS = [
     (0, 0),
@@ -34,6 +35,14 @@ class Ball:
         self.y = y
         self.vx = 0
         self.vy = 0
+=======
+class Snake:
+    def __init__(self, canvas):
+        self.canvas = canvas
+        self.direction = "Right"
+        self.body = [(10, 10), (9, 10), (8, 10)]  # grid positions
+        self.squares = []
+>>>>>>> 3641ebd4c50856f16b9c25c28514b823762e347f
 
         self.is_aiming = False
         self.aim_line = None
@@ -92,6 +101,7 @@ class Ball:
         self.x += self.vx * DT
         self.y += self.vy * DT
 
+<<<<<<< HEAD
         # Wall collisions
         if self.x - R < 0:
             self.x = R
@@ -169,11 +179,22 @@ def tick():
     for i in range(len(balls)):
         for j in range(i+1, len(balls)):
             balls[i].collide_with(balls[j])
+=======
+    
+    def collide_with(self, other):
+    
+
+    # kolize OOP style
+        for i in range(len(snakes)):
+            for j in range(i+1, len(snakes)):
+                snakes[i].collide_with(snakes[j])
+>>>>>>> 3641ebd4c50856f16b9c25c28514b823762e347f
 
     root.after(16, tick)
 
 
 
+<<<<<<< HEAD
 root = tk.Tk()
 root.title("Pool Game")
 
@@ -199,6 +220,13 @@ balls = [
     Ball(canvas, 1000, 346, "red"),
     Ball(canvas, 1000, 336, "yellow"),
     Ball(canvas, 1000, 316, "blue"),
+=======
+snakes = [
+    Snake(c),
+    Snake(c),
+    Snake(c),
+    Snake(c),
+>>>>>>> 3641ebd4c50856f16b9c25c28514b823762e347f
 ]
 
 tick()
