@@ -236,7 +236,7 @@ def tick():
 
 check_game_over()
 
-if balls = self.POCKETS
+if balls == self.POCKETS:
     print.canvas("GAME OVER SPEKU")
 
 root = tk.Tk()
