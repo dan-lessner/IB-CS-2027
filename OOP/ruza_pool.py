@@ -5,7 +5,7 @@ import math
 WIDTH, HEIGHT = 2560, 1664
 R = 20
 FRICTION = 0.985
-DT = 1
+DT = 30
 
 
 POCKET_R = 68
