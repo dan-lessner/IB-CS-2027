@@ -4,6 +4,37 @@ import random
 WIDTH, HEIGHT = 600, 400
 
 root = tk.Tk()
+root.title("My Aquarium")
 
-canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="blue")
+canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="blue")  # pozadí
 canvas.pack()
+
+colors = ["orange", "yellow", "pink", "green", "lavender"]  # barvičky rybiček
+fish_list = []
+
+# funkce na vytvoření ryby
+def create_fish(x, y, color):
+    body = canvas.create_oval(
+        x - 25, y - 12,
+        x + 25, y + 12,
+        fill=color, outline=""
+    )
+
+    tail = canvas.create_polygon(
+        x + 25, y,
+        x + 40, y - 12,
+        x + 40, y + 12,
+        fill=color, outline=""
+    )
+
+    return [body, tail]
+
+# vytvoření rybiček
+for color in colors:
+    x = random.randint(50, WIDTH - 100)
+    y = random.randint(50, HEIGHT - 50)
+
+    parts = create_fish(x, y, color)
+    fish_list.append({"x": x, "y": y, "parts": parts})
+
+root.mainloop()
