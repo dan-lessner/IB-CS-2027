@@ -2,14 +2,15 @@ import tkinter as tk
 import random
 
 WIDTH, HEIGHT = 600, 400
+FISH_SPEED = 3
 
 root = tk.Tk()
 root.title("My Aquarium")
 
-canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="blue")  # pozadí
+canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="blue")
 canvas.pack()
 
-colors = ["orange", "yellow", "pink", "green", "lavender"]  # barvičky rybiček
+colors = ["orange", "yellow", "pink", "green", "lavender"]
 fish_list = []
 
 # funkce na vytvoření ryby
@@ -35,6 +36,34 @@ for color in colors:
     y = random.randint(50, HEIGHT - 50)
 
     parts = create_fish(x, y, color)
-    fish_list.append({"x": x, "y": y, "parts": parts})
 
+    fish_list.append({
+        "x": x,
+        "y": y,
+        "vx": random.choice([-FISH_SPEED, FISH_SPEED]),
+        "vy": random.choice([-FISH_SPEED, FISH_SPEED]),
+        "parts": parts
+    })
+
+# animace rybiček
+def animate():
+    for fish in fish_list:
+        fish["x"] += fish["vx"]
+        fish["y"] += fish["vy"]
+
+        # odraz od levé a pravé zdi
+        if fish["x"] <= 25 or fish["x"] >= WIDTH - 25:
+            fish["vx"] *= -1
+
+        # odraz od horní a dolní zdi
+        if fish["y"] <= 12 or fish["y"] >= HEIGHT - 12:
+            fish["vy"] *= -1
+
+        # pohyb celé ryby
+        for part in fish["parts"]:
+            canvas.move(part, fish["vx"], fish["vy"])
+
+    root.after(30, animate)
+
+animate()
 root.mainloop()
