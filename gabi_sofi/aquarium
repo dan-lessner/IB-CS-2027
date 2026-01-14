@@ -7,10 +7,10 @@ FISH_SPEED = 3
 root = tk.Tk()
 root.title("My Aquarium")
 
-canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="blue")
+canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="light blue")
 canvas.pack()
 
-colors = ["orange", "yellow", "pink", "green", "lavender"]
+colors = ["orange", "yellow", "pink", "green", "violet", "navy", "lime", "red", "dark red"]
 fish_list = []
 
 # funkce na vytvoření ryby
@@ -27,8 +27,21 @@ def create_fish(x, y, color):
         x + 40, y + 12,
         fill=color, outline=""
     )
+# vytvoření očiček
+    eye_white = canvas.create_oval(
+        x - 15, y - 6,
+        x - 7, y + 2,
+        fill="white", outline=""
+    )
 
-    return [body, tail]
+    eye_black = canvas.create_oval(
+        x - 12, y - 3,
+        x - 9, y,
+        fill="black", outline=""
+    )
+
+    return [body, tail, eye_white, eye_black]
+
 
 # vytvoření rybiček
 for color in colors:
