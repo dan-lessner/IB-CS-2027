@@ -1,0 +1,224 @@
+import tkinter as tk
+import random
+import math
+
+WIDTH, HEIGHT = 600, 400
+FISH_SIZE = 15
+fish_speed = 3
+
+
+class Fish:
+    def __init__(self, canvas, x, y, color, speed, min_size, max_size):
+        self.canvas = canvas
+        self.x = x
+        self.y = y
+        # Random initial velocities in both directions
+        self.vx = random.choice([-speed, speed])
+        self.vy = random.choice([-speed, speed])
+        self.color = color
+        self.min_size = min_size
+        self.max_size = max_size
+        self.size = (min_size + max_size) / 2  # Start at middle size
+        self.size_counter = random.randint(0, 100)  # Random starting point for size animation
+        self.size_speed = random.uniform(0.02, 0.05)  # Random speed for size change
+        self.change_direction_counter = 0
+        self.parts = self.create_fish()  # Store all parts of the fish
+    
+    def create_fish(self):
+        # Create a more defined fish with body, tail, eye, and fins
+        parts = {}
+        
+        # Body (oval)
+        body_length = self.size * 1.6
+        body_height = self.size * 0.8
+        parts['body'] = self.canvas.create_oval(
+            self.x - body_length/2, self.y - body_height/2,
+            self.x + body_length/2, self.y + body_height/2,
+            fill=self.color, outline="black", width=2
+        )
+        
+        # Tail (triangle pointing opposite to direction)
+        tail_size = self.size * 0.6
+        direction = 1 if self.vx >= 0 else -1
+        tail_x = self.x - direction * body_length/2
+        parts['tail'] = self.canvas.create_polygon(
+            tail_x, self.y,
+            tail_x - direction * tail_size, self.y - tail_size/2,
+            tail_x - direction * tail_size, self.y + tail_size/2,
+            fill=self.color, outline="black", width=2
+        )
+        
+        # Eye
+        eye_size = self.size * 0.15
+        eye_x = self.x + direction * body_length/3
+        parts['eye'] = self.canvas.create_oval(
+            eye_x - eye_size, self.y - eye_size,
+            eye_x + eye_size, self.y + eye_size,
+            fill="black", outline="white", width=1
+        )
+        
+        # Top fin
+        fin_size = self.size * 0.4
+        parts['top_fin'] = self.canvas.create_polygon(
+            self.x - body_length/4, self.y - body_height/2,
+            self.x, self.y - body_height/2 - fin_size,
+            self.x + body_length/4, self.y - body_height/2,
+            fill=self.color, outline="black", width=1
+        )
+        
+        # Bottom fin
+        parts['bottom_fin'] = self.canvas.create_polygon(
+            self.x - body_length/4, self.y + body_height/2,
+            self.x, self.y + body_height/2 + fin_size * 0.7,
+            self.x + body_length/4, self.y + body_height/2,
+            fill=self.color, outline="black", width=1
+        )
+        
+        return parts
+    
+    def update_size(self):
+        # Use sine wave to smoothly oscillate size between min and max
+        self.size_counter += self.size_speed
+        sine_value = math.sin(self.size_counter)
+        # Map sine value (-1 to 1) to size range (min_size to max_size)
+        self.size = (self.min_size + self.max_size) / 2 + \
+                    ((self.max_size - self.min_size) / 2) * sine_value
+    
+    def move(self):
+        # Update size dynamically
+        self.update_size()
+        
+        # Move in both directions
+        self.x += self.vx
+        self.y += self.vy
+        
+        # Calculate body dimensions for collision detection
+        body_length = self.size * 1.6
+        body_height = self.size * 0.8
+        
+        # Bounce off horizontal walls
+        if self.x - body_length/2 < 0 or self.x + body_length/2 > WIDTH:
+            self.vx = -self.vx
+        
+        # Bounce off vertical walls
+        if self.y - body_height/2 < 0 or self.y + body_height/2 > HEIGHT:
+            self.vy = -self.vy
+        
+        # Randomly change direction occasionally
+        self.change_direction_counter += 1
+        if self.change_direction_counter > random.randint(30, 100):
+            if random.random() < 0.3:  # 30% chance to change direction
+                self.vx = random.choice([-fish_speed, fish_speed])
+                self.vy = random.choice([-fish_speed, fish_speed])
+            self.change_direction_counter = 0
+    
+    def update_display(self):
+        # Determine direction fish is facing
+        direction = 1 if self.vx >= 0 else -1
+        
+        # Update body
+        body_length = self.size * 1.6
+        body_height = self.size * 0.8
+        self.canvas.coords(
+            self.parts['body'],
+            self.x - body_length/2, self.y - body_height/2,
+            self.x + body_length/2, self.y + body_height/2
+        )
+        
+        # Update tail (triangle pointing opposite to direction)
+        tail_size = self.size * 0.6
+        tail_x = self.x - direction * body_length/2
+        self.canvas.coords(
+            self.parts['tail'],
+            tail_x, self.y,
+            tail_x - direction * tail_size, self.y - tail_size/2,
+            tail_x - direction * tail_size, self.y + tail_size/2
+        )
+        
+        # Update eye
+        eye_size = self.size * 0.15
+        eye_x = self.x + direction * body_length/3
+        self.canvas.coords(
+            self.parts['eye'],
+            eye_x - eye_size, self.y - eye_size,
+            eye_x + eye_size, self.y + eye_size
+        )
+        
+        # Update top fin
+        fin_size = self.size * 0.4
+        self.canvas.coords(
+            self.parts['top_fin'],
+            self.x - body_length/4, self.y - body_height/2,
+            self.x, self.y - body_height/2 - fin_size,
+            self.x + body_length/4, self.y - body_height/2
+        )
+        
+        # Update bottom fin
+        self.canvas.coords(
+            self.parts['bottom_fin'],
+            self.x - body_length/4, self.y + body_height/2,
+            self.x, self.y + body_height/2 + fin_size * 0.7,
+            self.x + body_length/4, self.y + body_height/2
+        )
+    
+    def reverse(self):
+        self.vx = -self.vx
+        self.vy = -self.vy
+
+
+class ClownFish(Fish):
+    def __init__(self, canvas, x, y, speed):
+        # Size range: 12 to 22
+        super().__init__(canvas, x, y, "orange", speed, FISH_SIZE - 3, FISH_SIZE + 7)
+
+
+class BlueTang(Fish):
+    def __init__(self, canvas, x, y, speed):
+        # Size range: 10 to 20
+        super().__init__(canvas, x, y, "lightblue", speed, FISH_SIZE - 5, FISH_SIZE + 5)
+
+
+class Angelfish(Fish):
+    def __init__(self, canvas, x, y, speed):
+        # Size range: 15 to 25
+        super().__init__(canvas, x, y, "yellow", speed, FISH_SIZE, FISH_SIZE + 10)
+
+
+class Goldfish(Fish):
+    def __init__(self, canvas, x, y, speed):
+        # Size range: 13 to 23
+        super().__init__(canvas, x, y, "gold", speed, FISH_SIZE - 2, FISH_SIZE + 8)
+
+
+#game start
+def start_game():
+    canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="blue")
+    canvas.pack()
+
+    fish_lines = [100, 170, 240, 310]
+    fish_classes = [ClownFish, BlueTang, Angelfish, Goldfish]
+
+    fishes = []
+    for y, fish_class in zip(fish_lines, fish_classes):
+        x = random.randint(50, WIDTH-50)
+        fish = fish_class(canvas, x, y, fish_speed)
+        fishes.append(fish)
+
+    def reverse(event):
+        for fish in fishes:
+            fish.reverse()
+
+    def tick():
+        for fish in fishes:
+            fish.move()
+            fish.update_display()
+
+        root.after(16, tick)
+
+    canvas.bind("<Button-1>", reverse)
+    tick()
+
+#start game
+root = tk.Tk()
+start_game()
+root.mainloop()
