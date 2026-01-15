@@ -3,7 +3,7 @@ import random
 import math
 from turtle import position
 
-WIDTH, HEIGHT = 600, 400
+WIDTH, HEIGHT = 1200, 800
 FRICTION = 0.995
 DT = 1
 
@@ -123,9 +123,9 @@ canvas.pack()
 
 balls = [
     Ball(canvas, Vector(120, 200), 20, "white"),
-    Ball(canvas, Vector(220, 200), 18, "red"),
+    Ball(canvas, Vector(220, 200), 40, "red"),
     Ball(canvas, Vector(340, 200), 25, "yellow"),
-    Ball(canvas, Vector(480, 200), 20, "blue"),
+    Ball(canvas, Vector(480, 200), 55, "blue"),
 ]
 
 tick()
