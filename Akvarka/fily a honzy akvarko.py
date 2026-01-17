@@ -2,12 +2,11 @@ import tkinter as tk
 import random
 import math
 
-WIDTTH, HEIGHT = 2560, 1664
+WIDTH, HEIGHT = 2560, 1664
 DT = 1
 
-
 class Fish:
-    def __init__(self, x, y, angle, speed, ):
+    def __init__(self, x, y, angle, speed, Fishy_images ):
         self.x = x
         self.y = y
         self.angle = angle
@@ -43,14 +42,28 @@ class Fish:
 
         self.canvas.coords(self.id, self.x-R, self.y-R, self.x+R, self.y+R)
 
+root = tk.Tk()
+root.title("Akvarka Fily a Honzy")
+canvas = tk.Canvas(root, bg="white", highlightthickness=0)
+canvas.pack(fill="both", expand=True)
+
+canvas.create_rectangle(400, 400, 1200, 900 , fill="lightblue", outline="black")
 
 
-c = tk.Canvas(root, bg="white", highlightthickness=0)
-c.pack(fill="both", expand=True)
+def tick():
+    for b in Fishes[:]:
+        b.move()
+
+    for i in range(len(Fishes)):
+        for j in range(i+1, len(Fishes)):
+            Fishes[i].collide_with(Fishes[j])
 
 
+    root.after(16, tick)
 
 Fishy_images = []
 
 Fishes = []
 
+tick()
+root.mainloop()

@@ -77,6 +77,22 @@ def animate():
             canvas.move(part, fish["vx"], fish["vy"])
 
     root.after(30, animate)
+#kytičky
+def create_plant(x):
+    height = random.randint(40, 80)
+    width = 8
+
+    canvas.create_rectangle(
+        x - width // 2,
+        HEIGHT - height,
+        x + width // 2,
+        HEIGHT,
+        fill="darkgreen",
+        outline=""
+    )
+
+for x in range(30, WIDTH, 60):
+    create_plant(x)
 
 animate()
 root.mainloop()
