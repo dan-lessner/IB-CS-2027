@@ -10,8 +10,20 @@ root.title("My Aquarium")
 canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT, bg="light blue")
 canvas.pack()
 
+# sand at the bottom
+SAND_HEIGHT = 30
+
+canvas.create_rectangle(
+    0, HEIGHT - SAND_HEIGHT,
+    WIDTH, HEIGHT,
+    fill="#f2d7a1",
+    outline=""
+)
+
 colors = ["orange", "yellow", "pink", "green", "violet", "navy", "lime", "red", "dark red"]
 fish_list = []
+bubble_list = []
+
 
 # funkce na vytvoření ryby
 def create_fish(x, y, color):
@@ -76,23 +88,65 @@ def animate():
         for part in fish["parts"]:
             canvas.move(part, fish["vx"], fish["vy"])
 
-    root.after(30, animate)
-#kytičky
-def create_plant(x):
-    height = random.randint(40, 80)
-    width = 8
+         # pohyb bublinek
+    for bubble in bubble_list:
+        canvas.move(bubble["id"], 0, -bubble["speed"])
 
-    canvas.create_rectangle(
-        x - width // 2,
-        HEIGHT - height,
-        x + width // 2,
-        HEIGHT,
-        fill="darkgreen",
-        outline=""
-    )
+        x1, y1, x2, y2 = canvas.coords(bubble["id"])
+        if y2 < 0:
+            new_x = random.randint(20, WIDTH - 20)
+            new_y = HEIGHT
+            canvas.coords(
+                bubble["id"],
+                new_x - 4, new_y - 4,
+                new_x + 4, new_y + 4
+            )
+
+
+    root.after(30, animate)
+# kytičky – lepší vzhled
+def create_plant(x):
+    stem_count = random.randint(3, 6)
+
+    for i in range(stem_count):
+        height = random.randint(50, 90)
+        offset = random.randint(-10, 10)
+
+        canvas.create_line(
+            x + offset,
+            HEIGHT,
+            x + offset - random.randint(-15, 15),
+            HEIGHT - height,
+            smooth=True,
+            width=3,
+            fill="dark green"
+        )
 
 for x in range(30, WIDTH, 60):
     create_plant(x)
+
+# vytvoření bublinek
+for i in range(20):
+    x = random.randint(20, WIDTH - 20)
+    y = random.randint(HEIGHT - 40, HEIGHT)
+
+    bubble = canvas.create_oval(
+        x - 4, y - 4,
+        x + 4, y + 4,
+        fill="white",
+        outline=""
+    )
+
+    bubble_list.append({
+        "id": bubble,
+        "speed": random.uniform(0.5, 1.5)
+    })
+
+def drop_food(event):
+    x = random.randint(20, WIDTH - 20)
+    y = 0
+
+    
 
 animate()
 root.mainloop()
