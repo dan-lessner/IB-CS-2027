@@ -1,9 +1,9 @@
 import tkinter as tk
 import math
 
-WIDTH, HEIGHT = 600, 400
+WIDTH, HEIGHT = 1200, 800
 R = 10
-FRICTION = 0.99
+FRICTION = 0.975
 DT = 1
 mouseX = 0
 mouseY = 0
