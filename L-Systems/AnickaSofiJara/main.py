@@ -32,7 +32,6 @@ print()
 turtle.speed(1)  # drawing speed (1-10, 0 = fastest but no animation)
 turtle.showturtle()  # make turtle visible
 turtle.tracer(1)  # update screen after each drawing action
-turtle.pensize(3)  # make lines thicker
 stack = []
 
 distance = 40  # movement distance (increased for larger drawing)
