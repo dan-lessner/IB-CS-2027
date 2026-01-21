@@ -20,7 +20,7 @@ canvas.create_rectangle(
     outline=""
 )
 
-colors = ["orange", "yellow", "pink", "green", "violet", "navy", "lime", "red", "dark red"]
+colors = ["orange", "yellow", "pink", "green", "violet", "navy", "lime", "red", "dark red", "dark red", "dark red", "dark red"]
 fish_list = []
 bubble_list = []
 
