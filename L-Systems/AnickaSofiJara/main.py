@@ -29,12 +29,12 @@ print(current)
 print()
 
 
-turtle.speed(0) #drawing
-turtle.hideturtle()
-turtle.tracer(1)
+turtle.speed(1)  # drawing speed (1-10, 0 = fastest but no animation)
+turtle.showturtle()  # make turtle visible
+turtle.tracer(1)  # update screen after each drawing action
 stack = []
 
-distance = 10  # simplified movement distance
+distance = 40  # movement distance (increased for larger drawing)
 
 def store_state():
     stack.append((turtle.position(), turtle.heading()))
