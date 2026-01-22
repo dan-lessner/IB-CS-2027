@@ -2,55 +2,58 @@ import turtle
 cmdDic = {"F":"turtle.fd(Distance/10)", "-":"turtle.left(Angle)","+":"turtle.right(Angle)","<":"Distance = Distance / distMult",">":"Distance = Distance * distMult","[":"storeState()", "]":"accessState()"}
 
 storeInput = input('Want to change save? Y/N ')
-
-if  storeInput== 'Y':
-    file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","w")
-    file.write(input("Depth: ") + "\n ")
-    file.write(input("Angle: ") + "\n ")
-    file.write(input("Distance: ") + "\n ")
-    file.write(input("DistMult: ") + "\n ")
-    file.write(input("Axiom: ") + "\n ")
-    while True:
-        if input("New Rule? Y/N: ") == "Y":
-            file.write(input("Name: ") + "\n ")
-            file.write(input("Rule: ") + "\n ")
-        else:
-            break
-    print("finished!!!!")
+while True:
+    if  storeInput== 'Y':
+        file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","w")
+        file.write(input("Depth: ") + "\n ")
+        file.write(input("Angle: ") + "\n ")
+        file.write(input("Distance: ") + "\n ")
+        file.write(input("DistMult: ") + "\n ")
+        file.write(input("Axiom: ") + "\n ")
+        while True:
+            if input("New Rule? Y/N: ") == "Y":
+                file.write(input("Name: ") + "\n ")
+                file.write(input("Rule: ") + "\n ")
+            else:
+                break
+        print("finished!!!!")
+        file.close()
+    elif storeInput == 'N':
+        print("continuing")
+    else:
+        print("wrong input, but fuck it we ball! :)")
+    file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","r")
+    content = file.read()
+    print(content)
+    file.seek(0)
+    print(file.readlines())
     file.close()
-elif storeInput == 'N':
-    print("continuing")
-else:
-    print("wrong input, but fuck it we ball! :)")
-file = open("/Users/evastumpfova/Documents/GitHub/IB-CS-2027/L-Systems/VikiChrisTom/DataDump.txt","r")
-content = file.read()
-print(content)
-file.seek(0)
-print(file.readlines())
-file.close()
 
-with open("L-Systems/VikiChrisTom/DataDump.txt","r") as file:
-    lines = file.readlines()
-    
-for i in range(len(lines)):
-    lines[i] = lines[i].strip()
+    with open("L-Systems/VikiChrisTom/DataDump.txt","r") as file:
+        lines = file.readlines()
         
-lines.pop(-1)
+    for i in range(len(lines)):
+        lines[i] = lines[i].strip()
+            
+    lines.pop(-1)
 
-print(lines)
+    print(lines)
 
-ruleDic = {}
+    ruleDic = {}
 
-
-depth = int(lines[0])
-Angle = int(lines[1])
-Distance = int(lines[2]) 
-distMult = float(lines[3])
-Axiom = lines[4]
-for i in range(0,int((len(lines)-5)/2),2):
-    
-    ruleDic.update({lines[i-2]:lines[i-1]})
-    
+    try:
+        depth = int(lines[0])
+        Angle = int(lines[1])
+        Distance = int(lines[2]) 
+        distMult = float(lines[3])  
+        Axiom = lines[4]
+        for i in range(0,int((len(lines)-5)/2),2):
+            
+            ruleDic.update({lines[i-2]:lines[i-1]})
+        break
+    except TypeError:
+        print("Wrong save, wtf are you doing? \n please try again lmaoooo!")
+        
 current = Axiom
 
 print(ruleDic)
