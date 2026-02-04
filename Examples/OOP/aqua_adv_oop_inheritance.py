@@ -236,7 +236,6 @@ def animate():
     for e in entities:
         e.update(DT)
 
-    # cleanup (vše v jednom seznamu)
     entities[:] = [e for e in entities if e.alive]
 
     root.after(30, animate)
