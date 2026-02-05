@@ -37,6 +37,17 @@ def create_fish(x, y, color):
     eye_black = canvas.create_oval(x - 12, y - 3, x - 9, y, fill="black", outline="")
     return [body, tail, eye_white, eye_black]
 
+# 🔁 FLIP FUNCTION (NEW)
+def flip_fish(fish):
+    fish["dir"] *= -1
+    cx = fish["x"]
+
+    for part in fish["parts"]:
+        coords = canvas.coords(part)
+        for i in range(0, len(coords), 2):
+            coords[i] = 2 * cx - coords[i]
+        canvas.coords(part, coords)
+
 # vytvoření rybiček
 for color in colors:
     x = random.randint(50, WIDTH - 100)
@@ -48,7 +59,8 @@ for color in colors:
         "y": y,
         "vx": random.uniform(-1, 1),
         "vy": random.uniform(-1, 1),
-        "parts": parts
+        "parts": parts,
+        "dir": 1   # 1 = right, -1 = left
     })
 
 # kytičky
@@ -84,7 +96,7 @@ root.bind("<space>", drop_food)
 def animate():
     for fish in fish_list:
 
-        # separace ryb (vektorově)
+        # separace ryb
         for other in fish_list:
             if other is fish:
                 continue
@@ -97,7 +109,7 @@ def animate():
                 fish["vx"] += (dx / dist) * REPULSION_STRENGTH
                 fish["vy"] += (dy / dist) * REPULSION_STRENGTH
 
-        # přitahování k jídlu 
+        # přitahování k jídlu
         if food_list:
             food = food_list[0]
             dx = food["x"] - fish["x"]
@@ -117,8 +129,11 @@ def animate():
         fish["x"] += fish["vx"]
         fish["y"] += fish["vy"]
 
+        # 🧱 WALL COLLISION + TURNING
         if fish["x"] <= 25 or fish["x"] >= WIDTH - 25:
             fish["vx"] *= -1
+            flip_fish(fish)
+
         if fish["y"] <= 12 or fish["y"] >= HEIGHT - 12:
             fish["vy"] *= -1
 
