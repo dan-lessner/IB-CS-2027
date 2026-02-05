@@ -22,7 +22,7 @@ canvas.create_rectangle(
 colors = [
     "orange", "yellow", "pink", "green", "violet",
     "navy", "lime", "red", "dark red", "dark red",
-    "dark red", "dark red"
+    "dark red", "dark red", "cyan", "magenta", "gold"
 ]
 
 fish_list = []
