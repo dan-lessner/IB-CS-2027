@@ -33,15 +33,20 @@ class set :
             return True
         else:
             print('item not in set')
+    def setPrint (self):
+        returnList = []
+        for i in self.list:  
+            returnList.extend(i)
+        print(returnList)
+        return returnList
         
         
 mainSet = set(10)
 
-mainSet.add([1,3,1])
-
-mainSet.delete(1)
+mainSet.add([1,3,1,2,4,6,1])
 
 mainSet.search(1)
 
 mainSet.search(3)
 
+mainSet.setPrint()
