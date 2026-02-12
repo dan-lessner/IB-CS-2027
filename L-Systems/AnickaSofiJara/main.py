@@ -30,6 +30,7 @@ print()
 
 
 turtle.speed(1)  # drawing speed (1-10, 0 = fastest but no animation)
+turtle.color("red", "orange")  # turtle color: (pen_color, fill_color) - change colors here!
 turtle.showturtle()  # make turtle visible
 turtle.tracer(1)  # update screen after each drawing action
 stack = []
