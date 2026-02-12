@@ -5,7 +5,7 @@ class AutoAuto:
     def GetName(self) -> str:
         return ""
 
-    def PickMove(self, world, allowed_moves):
+    def PickMove(self, auto, world, allowed_moves):
         if allowed_moves is None:
             return None
         if len(allowed_moves) == 0:
