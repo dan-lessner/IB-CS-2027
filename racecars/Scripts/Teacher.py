@@ -10,16 +10,17 @@ class Auto(AutoAuto):
     def GetName(self) -> str:
         return "Random Driver"
 
-    def PickMove(self, auto, world, allowed_moves):
-        
-        if allowed_moves is None:
+    def PickMove(self, auto, world, targets, validity):
+        if targets is None or validity is None:
             return None
-        if len(allowed_moves) == 0:
+        if len(targets) == 0:
             return None
-        x = 0
-        for move in allowed_moves:
-            if move.x > x:
-                x = move.x
-                solution = move
-
-        return solution
+        best = None
+        i = 0
+        while i < len(targets):
+            if i < len(validity) and validity[i]:
+                t = targets[i]
+                if best is None or t.x > best.x:
+                    best = t
+            i += 1
+        return best
