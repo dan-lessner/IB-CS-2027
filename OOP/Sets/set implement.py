@@ -65,7 +65,7 @@ class set :
     
     
     #DIFF NEFUNGUJE
-    def difference(self,externalSet : object):
+    def difference(self,externalSet : object, returnLength : int):
         seenList = []
         tempList = []
         popList = []
@@ -78,16 +78,20 @@ class set :
         for i in range(len(tempList)):
             if tempList[i] not in seenList:
                 seenList.append(tempList[i])
-            else:
-                popList.append(i)
-        
-        print("poplist: " + str(popList))
-        print("temp: " + str(tempList))
+            elif tempList[i]  in seenList:
+                popList.append(tempList[i])
+
         for i in popList:
-            tempList.pop(i)
-            tempList = list(map(-1,tempList))
+            while True:
+                if i in tempList:
+                    tempList.remove(i)
+                else:
+                    break
         
         print('diffset: ' + str(tempList))
+        returnSet = set(returnLength)
+        returnSet.add(tempList)
+        return returnSet
         
 
                         
@@ -101,3 +105,4 @@ subSet = set(10)
 subSet.add([1,3,7,2,4,6,5])
 mainSet.add([1,3,1,2,4,6,1])
 
+mainSet.difference(subSet)
