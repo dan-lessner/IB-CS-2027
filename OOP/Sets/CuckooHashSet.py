@@ -53,7 +53,6 @@ class CuckooHashSet(AbstractSet):
                 cur, self.table2[i] = self.table2[i], cur
                 table = 1
 
-        # Too many displacements -> rehash (grow) and retry
         self._resize(self._capacity * 2)
         self.add(element)
 
@@ -68,7 +67,6 @@ class CuckooHashSet(AbstractSet):
             self.table2[i2] = None
             self._size -= 1
             return
-        raise KeyError("Element not found: {}".format(element))
 
     def size(self):
         return self._size
@@ -106,15 +104,4 @@ class CuckooHashSet(AbstractSet):
         self.table2 = [None] * self._capacity
         self._size = 0
         for x in old_items:
-            # reinsert
             self.add(x)
-
-
-if __name__ == "__main__":
-    s = CuckooHashSet(7)
-    for i in range(30):
-        s.add(i)
-    print("size:", s.size())
-    print(10 in list(s))
-    s.remove(10)
-    print("contains 10 after remove:", any(x == 10 for x in s))
