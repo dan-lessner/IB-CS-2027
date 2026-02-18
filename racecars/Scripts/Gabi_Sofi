@@ -1,6 +1,5 @@
 import random
-from simulation.script_api import AutoAuto
-
+from simulation.script_api.py import AutoAuto # type: ignore
 
 class Auto(AutoAuto):
     def __init__(self) -> None:
@@ -8,18 +7,17 @@ class Auto(AutoAuto):
         self.step = 0
 
     def GetName(self) -> str:
-        return "Lightining McQueen"
+        return "Lightning McQueen StepBot"
 
     def PickMove(self, auto, world, allowed_moves):
-        
-        if allowed_moves is None:
-            return None
-        if len(allowed_moves) == 0:
-            return None
-        x = 0
-        for move in allowed_moves:
-            if move.x > x:
-                x = move.x
-                solution = move
+        self.step += 1
 
-        return solution
+        if not allowed_moves:
+            return None
+
+        best = allowed_moves[0]
+        for move in allowed_moves:
+            if move.x > best.x:
+                best = move
+
+        return best
