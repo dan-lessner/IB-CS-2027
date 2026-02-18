@@ -112,7 +112,7 @@ class Auto(AutoAuto):
     def stop_dist(self, speed):
         return speed * (speed + 1) // 2
 
-    def PickMove(self, auto, world: WorldState, allowed_moves):
+    def PickMove(self, auto, world, targets, validity):
         current = (int(auto.pos.x), int(auto.pos.y))
         vx, vy = int(auto.vel.vx), int(auto.vel.vy)
         current_speed = max(abs(vx), abs(vy))
@@ -124,7 +124,17 @@ class Auto(AutoAuto):
         remaining = len(self.path) - 1 - current_index
         
         if remaining == 0:
-            return allowed_moves[0]
+            valid_indices = []
+            i = 0
+            while i < len(validity):
+                if validity[i]:
+                    valid_indices.append(i)
+                i += 1
+
+            if len(valid_indices) == 0:
+                return None
+
+            return targets[valid_indices[0]]
         
         next_pos = self.path[current_index + 1]
         path_dir = self.get_dir(current, next_pos)
@@ -156,8 +166,28 @@ class Auto(AutoAuto):
         target_x = current[0] + target_vx
         target_y = current[1] + target_vy
         
-        for move in allowed_moves:
-            if move.x == target_x and move.y == target_y:
-                return move
-        
-        raise RuntimeError(f"No move available to reach {next_pos} from {current}")
+        valid_indices = []
+        i = 0
+        while i < len(validity):
+            if validity[i]:
+                valid_indices.append(i)
+            i += 1
+
+        if len(valid_indices) == 0:
+            return None
+
+        best_mv = None
+        best_dist_sq = None
+        for i in valid_indices:
+            mv = targets[i]
+            if mv.x == target_x and mv.y == target_y:
+                return mv
+            dx = mv.x - target_x
+            dy = mv.y - target_y
+            dist_sq = dx * dx + dy * dy
+            if best_dist_sq is None or dist_sq < best_dist_sq:
+                best_dist_sq = dist_sq
+                best_mv = mv
+
+        # Fallback: return the closest valid move (or None if none)
+        return best_mv
