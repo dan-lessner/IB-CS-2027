@@ -13,9 +13,6 @@ class Auto(AutoAuto):
         if len(targets) == 0:
             return None
         
-        # Check if car has velocity - if zero, accelerate forward
-        has_velocity = auto.vel.vx != 0 or auto.vel.vy != 0
-        
         if has_velocity:
             # Maintain current velocity (ax=0, ay=0) - index 4
             forward_index = 4
