@@ -86,7 +86,7 @@ class Auto(AutoAuto):
         
         raise RuntimeError("No path to finish found!")
 
-    def PickMove(self, auto, world: WorldState, allowed_moves):
+    def PickMove(self, auto, world, targets, validity):
         current = (int(auto.pos.x), int(auto.pos.y))
         
         if self.path is None:
@@ -95,7 +95,18 @@ class Auto(AutoAuto):
         current_index = self.path.index(current)
         next_pos = self.path[current_index + 1]
         
-        for move in allowed_moves:
+        valid_indices = []
+        i = 0
+        while i < len(validity):
+            if validity[i]:
+                valid_indices.append(i)
+            i += 1
+
+        if len(valid_indices) == 0:
+            return None
+
+        for i in valid_indices:
+            move = targets[i]
             if (move.x, move.y) == next_pos:
                 return move
         
