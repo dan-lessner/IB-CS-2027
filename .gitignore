@@ -1,5 +1,7 @@
-__pycache__/
+*__pycache__*
 .myenv/
-.env
+.env/
+.venv/
 .vscode/
 .DS_Store
+*.pyc
