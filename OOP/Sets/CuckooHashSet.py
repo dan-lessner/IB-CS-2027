@@ -41,7 +41,6 @@ class CuckooHashSet(AbstractSet):
                     self.table1[i] = cur
                     self._size += 1
                     return
-                # kick out
                 cur, self.table1[i] = self.table1[i], cur
                 table = 2
             else:
