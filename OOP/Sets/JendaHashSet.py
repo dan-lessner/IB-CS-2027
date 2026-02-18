@@ -16,7 +16,7 @@ class SimpleHashSet(AbstractSet):
             return
         b.append(element)
         self._size += 1
-        if self._size > self._capacity * 1.5:
+        if self._size > self._capacity:
             self._resize(self._capacity * 2)
 
     def remove(self, element):
