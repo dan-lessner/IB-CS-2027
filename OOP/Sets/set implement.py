@@ -47,7 +47,7 @@ class set :
             print('item not in set')
             return False      
     
-    def setPrint (self):
+    def setStock (self):
         returnList = []
         for i in self.list:  
             returnList.extend(i)
@@ -60,20 +60,31 @@ class set :
     
     def combine(self,externalSet : object):
         returnSet = set(self.length)
-        returnSet.add(self.setPrint() + externalSet.setPrint())
+        returnSet.add(self.setStock() + externalSet.setStock())
         return returnSet
     
-    def setStock(self):
+    def setPrint(self):
         print(self.list)
     
-    #DIFF NEFUNGUJE
     def difference(self,externalSet : object):
         returnSet = set(self.length)
-        for i in self.setPrint():
+        for i in self.setStock():
             if externalSet.search(i) == False:
                 returnSet.add(i)
         return returnSet
-        
+    
+    def intersect(self,externalSet : object):
+        returnSet = set(self.length)
+        for i in self.setStock():
+            if externalSet.search(i) == True:
+                returnSet.add(i)
+        return returnSet
+    
+    def isSubset(self, externalSet : object):
+        if self.setStock() in externalSet.setStock():
+            return True
+        else:
+            return False
 
                         
                 
@@ -81,9 +92,13 @@ class set :
         
         
 mainSet = set(5)
-
+subSet = set(4) 
 mainSet.setStock()
+mainSet.setPrint()
 
 mainSet.add([1,3,1,2,4,6,1,7,8])
+subSet.add([1,3,1,2,4,6,1,])
 
-mainset.setStock()
+print(mainSet.isSubset(subSet))
+
+mainSet.setStock()
