@@ -17,9 +17,6 @@ class Vertex:
 
     def __repr__(self):
         return f"Vertex(x={self.x}, y={self.y})"
-    
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
 
 class Vector2i:
     def __init__(self, vx: int, vy: int):
