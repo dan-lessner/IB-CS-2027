@@ -3,43 +3,63 @@ from simulation.script_api import AutoAuto
 
 
 class Auto(AutoAuto):
+    def __init__(self):
+        self.last_move = None  # paměť posledního tahu
+
     def GetName(self) -> str:
-        return "AnickaTom"
+        return "Anna"
 
     def PickMove(self, auto, world, targets, validity):
-        # Make the car move forward
-        if targets is None:
+        if targets is None or len(targets) == 0:
             return None
-        if len(targets) == 0:
-            return None
-        
-        # Check if car has velocity
-        has_velocity = auto.vel.vx != 0 or auto.vel.vy != 0
 
-        # 🔁 místo jednoho směru teď máme PRIORITY pohybů
-        if has_velocity:
-            # preferujeme udržet směr, ale dovolíme i zatáčení
-            move_priority = [4, 7, 5, 8, 6, 3, 1, 0, 2]
-        else:
-            # když stojíme, zkusíme se rozjet různými směry
-            move_priority = [7, 5, 8, 4, 6, 3, 1, 0, 2]
+        # mapa opačných směrů (abychom se nevraceli)
+        opposite = {
+            0: 8, 1: 7, 2: 6,
+            3: 5, 4: None, 5: 3,
+            6: 2, 7: 1, 8: 0
+        }
 
-        # 🔍 vyber první validní move podle priority
+        best_target = None
+        best_score = -999999
+
         i = 0
-        while i < len(move_priority):
-            idx = move_priority[i]
-            if idx < len(targets):
-                if validity is None or (idx < len(validity) and validity[idx]):
-                    return targets[idx]
+        while i < len(targets):
+            if validity is None or (i < len(validity) and validity[i]):
+
+                score = 0
+
+                # ❌ nevracej se zpátky
+                if self.last_move is not None and opposite.get(self.last_move) == i:
+                    score -= 100
+
+                # ✔️ preferuj pokračování stejným směrem
+                if self.last_move is not None and i == self.last_move:
+                    score += 5
+
+                # ✔️ preferuj lehké zatáčky (sousední indexy)
+                if self.last_move is not None and abs(i - self.last_move) == 1:
+                    score += 2
+
+                # 👉 jemný bias doprava (k cíli)
+                if i in [7, 8, 6]:
+                    score += 1.5
+                if i in [0, 1, 2]:
+                    score -= 1
+
+                # trocha randomness, aby se nezaseklo
+                score += random.random() * 0.3
+
+                if score > best_score:
+                    best_score = score
+                    best_target = targets[i]
+                    best_index = i
+
             i += 1
-        
-        # fallback: první validní
-        if validity is not None:
-            i = 0
-            while i < len(validity):
-                if validity[i] and i < len(targets):
-                    return targets[i]
-                i += 1
-        
-        # úplný fallback
-        return targets[0] if len(targets) > 0 else None
+
+        if best_target is not None:
+            self.last_move = best_index
+            return best_target
+
+        # fallback
+        return targets[0]

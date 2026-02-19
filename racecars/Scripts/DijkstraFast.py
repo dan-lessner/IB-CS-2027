@@ -117,10 +117,29 @@ class Auto(AutoAuto):
         vx, vy = int(auto.vel.vx), int(auto.vel.vy)
         current_speed = max(abs(vx), abs(vy))
         
-        if self.path is None:
-            self.path = self.computepath(current[0], current[1], world)
-        
-        current_index = self.path.index(current)
+        attempts = 0
+        max_attempts = 2
+        while attempts < max_attempts:
+            if self.path is None or current not in self.path:
+                if self.path is not None:
+                    print(f"[DijkstraFast] Warning: deviated from path at {current}, recomputing path")
+                self.path = self.computepath(current[0], current[1], world)
+
+            try:
+                current_index = self.path.index(current)
+            except ValueError:
+                print(f"[DijkstraFast] Warning: current position {current} not on computed path, retrying")
+                self.path = self.computepath(current[0], current[1], world)
+                attempts += 1
+                continue
+            break
+
+        if current not in self.path:
+            print(f"[DijkstraFast] Warning: unable to place current {current} on path")
+            return None
+
+        if current_index >= len(self.path) - 1:
+            return None
         remaining = len(self.path) - 1 - current_index
         
         if remaining == 0:
@@ -176,18 +195,49 @@ class Auto(AutoAuto):
         if len(valid_indices) == 0:
             return None
 
-        best_mv = None
-        best_dist_sq = None
         for i in valid_indices:
             mv = targets[i]
             if mv.x == target_x and mv.y == target_y:
                 return mv
-            dx = mv.x - target_x
-            dy = mv.y - target_y
-            dist_sq = dx * dx + dy * dy
-            if best_dist_sq is None or dist_sq < best_dist_sq:
-                best_dist_sq = dist_sq
-                best_mv = mv
 
-        # Fallback: return the closest valid move (or None if none)
-        return best_mv
+        print(f"[DijkstraFast] Warning: exact calculated move ({target_x},{target_y}) not in valid moves, recomputing path")
+        self.path = self.computepath(current[0], current[1], world)
+
+        current_index = self.path.index(current)
+        if current_index >= len(self.path) - 1:
+            return None
+
+        next_pos = self.path[current_index + 1]
+        path_dir = self.get_dir(current, next_pos)
+
+        straight_length = self.straight_len(self.path, current_index)
+        vel_dir = (0 if vx == 0 else (1 if vx > 0 else -1),
+                   0 if vy == 0 else (1 if vy > 0 else -1))
+
+        if current_speed > 0 and vel_dir != path_dir:
+            target_speed = current_speed - 1
+        else:
+            max_safe_speed = 1
+            for s in range(1, 20):
+                if self.stop_dist(s) <= straight_length:
+                    max_safe_speed = s
+                else:
+                    break
+            if current_speed < max_safe_speed:
+                target_speed = current_speed + 1
+            elif current_speed > max_safe_speed:
+                target_speed = current_speed - 1
+            else:
+                target_speed = current_speed
+
+        target_vx = path_dir[0] * target_speed
+        target_vy = path_dir[1] * target_speed
+        target_x = current[0] + target_vx
+        target_y = current[1] + target_vy
+
+        for i in valid_indices:
+            mv = targets[i]
+            if mv.x == target_x and mv.y == target_y:
+                return mv
+
+        return None

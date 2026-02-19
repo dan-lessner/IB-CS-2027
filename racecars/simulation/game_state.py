@@ -10,7 +10,6 @@ _NOUNS = [
     "Comet", "Falcon", "Tiger", "Eagle", "Rocket", "Panther",
     "Wolf", "Viper", "Storm", "Blaze", "Arrow", "Bolt"
 ]
-
 class Vertex:
     def __init__(self, x: int, y: int):
         self.x = x
