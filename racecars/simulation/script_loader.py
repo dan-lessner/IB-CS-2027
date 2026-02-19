@@ -4,30 +4,48 @@ import importlib.util
 
 
 class ScriptInfo:
-    def __init__(self, name: str, path: str, auto_class):
+    def __init__(self, name: str, path: str, file_name: str):
         self.name = name
         self.path = path
-        self.auto_class = auto_class
+        self.file_name = file_name
+        self.auto_class = None
 
 
 def load_scripts_from_folder(folder_path: str):
-    _ensure_repo_root_on_sys_path()
     files = _find_script_files(folder_path)
     scripts = []
 
     index = 0
     while index < len(files):
         path = files[index]
-        module_name = _module_name_from_path(path, index)
-        module = _load_module(path, module_name)
-        if module is not None and hasattr(module, "Auto"):
-            auto_class = getattr(module, "Auto")
-            file_name = os.path.basename(path)
-            script_name = _filename_without_extension(file_name)
-            scripts.append(ScriptInfo(script_name, path, auto_class))
+        file_name = os.path.basename(path)
+        script_name = _filename_without_extension(file_name)
+        scripts.append(ScriptInfo(script_name, path, file_name))
         index += 1
 
     return scripts
+
+
+def load_auto_class(script_info: ScriptInfo):
+    if script_info is None:
+        return None
+    if script_info.auto_class is not None:
+        return script_info.auto_class
+
+    _ensure_repo_root_on_sys_path()
+    module_name = _module_name_from_path(script_info.path)
+    try:
+        module = _load_module(script_info.path, module_name)
+    except Exception:
+        return None
+    if module is None:
+        return None
+    if not hasattr(module, "Auto"):
+        return None
+
+    auto_class = getattr(module, "Auto")
+    script_info.auto_class = auto_class
+    return auto_class
 
 
 def _find_script_files(folder_path: str):
@@ -65,10 +83,21 @@ def _load_module(path: str, module_name: str):
     return module
 
 
-def _module_name_from_path(path: str, index: int) -> str:
+def _module_name_from_path(path: str) -> str:
     base = os.path.basename(path)
     name = _filename_without_extension(base)
-    return "script_" + name + "_" + str(index)
+    # Using full normalized path keeps module name stable and unique per file.
+    normalized = os.path.abspath(path).lower()
+    suffix = ""
+    i = 0
+    while i < len(normalized):
+        ch = normalized[i]
+        if ch.isalnum():
+            suffix = suffix + ch
+        else:
+            suffix = suffix + "_"
+        i += 1
+    return "script_" + name + "_" + suffix
 
 
 def _filename_without_extension(name: str) -> str:

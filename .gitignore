@@ -1,7 +1,7 @@
-__pycache__/
+*__pycache__*
 .myenv/
-.env
-.venv
+.env/
+.venv/
 .vscode/
 .DS_Store
-racecars/simulation/__pycache__/
+*.pyc

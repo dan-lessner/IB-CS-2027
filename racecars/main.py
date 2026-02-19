@@ -4,7 +4,7 @@ from simulation.game_state import GameState, create_cars_for_track
 from simulation.track_generator import generate_track
 from simulation.params import GameParams
 from simulation.manual_auto import MouseAuto
-from simulation.script_loader import load_scripts_from_folder
+from simulation.script_loader import load_scripts_from_folder, load_auto_class
 from simulation.performance import PerformanceTracker
 from ui.renderer import Renderer
 from ui.setup_dialog import SetupDialog
@@ -237,13 +237,22 @@ def _find_script_info(script_infos, name: str):
     if name is None:
         return None
     target = name.lower()
+    target_no_ext = _strip_py_extension(target)
     index = 0
     while index < len(script_infos):
         info = script_infos[index]
-        if info.name.lower() == target:
+        info_name = info.name.lower()
+        info_file = info.file_name.lower()
+        if info_name == target or info_file == target or info_name == target_no_ext:
             return info
         index += 1
     return None
+
+
+def _strip_py_extension(name: str) -> str:
+    if name.endswith(".py"):
+        return name[:-3]
+    return name
 
 
 def _assign_drivers(cars, controllers, script_infos):
@@ -261,14 +270,23 @@ def _assign_drivers(cars, controllers, script_infos):
             if info is None:
                 car.SetDriver(MouseAuto())
             else:
-                driver = info.auto_class()
-                car.SetDriver(driver)
-                name = ""
-                if hasattr(driver, "GetName"):
-                    name = driver.GetName()
-                if name == "":
-                    name = info.name
-                car.name = name
+                auto_class = load_auto_class(info)
+                if auto_class is None:
+                    car.SetDriver(MouseAuto())
+                else:
+                    try:
+                        driver = auto_class()
+                    except Exception:
+                        car.SetDriver(MouseAuto())
+                        index += 1
+                        continue
+                    car.SetDriver(driver)
+                    name = ""
+                    if hasattr(driver, "GetName"):
+                        name = driver.GetName()
+                    if name == "":
+                        name = info.name
+                    car.name = name
 
         index += 1
 
