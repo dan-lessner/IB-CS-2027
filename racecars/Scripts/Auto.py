@@ -14,13 +14,9 @@ class Auto(AutoAuto):
         return "Auto"
 
     def PickMove(self, auto, world, targets, validity):
-        if not validity:
+        if not validity or len(validity) == 0:
             return None
-        forward_moves = [move for move in validity if move == 'forward']
-        if forward_moves:
-            move = forward_moves[0]
-        else:
-            move = random.choice(validity)
+        move = random.choice(validity)
         self.last_move = move
         self.move_history.append(move)
         return move
