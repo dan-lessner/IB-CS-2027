@@ -1,0 +1,36 @@
+import random
+from simulation.script_api import AutoAuto
+
+
+class Auto(AutoAuto):
+
+
+    def __init__(self):
+        super().__init__()
+        self.last_move = None
+        self.move_history = []
+
+    def GetName(self) -> str:
+        return "Auto"
+
+    def PickMove(self, auto, world, targets, validity):
+        if not validity:
+            return None
+        forward_moves = [move for move in validity if move == 'forward']
+        if forward_moves:
+            move = forward_moves[0]
+        else:
+            move = random.choice(validity)
+        self.last_move = move
+        self.move_history.append(move)
+        return move
+
+    def make_decision(self):
+        pass
+
+    def get_move_history(self):
+        return self.move_history.copy()
+
+    def reset(self):
+        self.last_move = None
+        self.move_history = []
