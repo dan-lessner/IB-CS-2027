@@ -6,12 +6,23 @@ class Auto(AutoAuto):
     def GetName(self) -> str:
         return "Anna"
 
-    def PickMove(self, auto, world, targets, validity):
+   
         # Make the car move forward
-        if targets is None:
-            return None
-        if len(targets) == 0:
-            return None
+    def PickMove(self, auto, world, targets, validity):
+    # If no possible moves at all
+        if targets is None or len(targets) == 0:
+            print("No possible moves available.")
+            direction = input("Which direction should I try next? (x / y / xy): ")
+
+            if direction == "x":
+                return targets[7] if targets and len(targets) > 7 else None
+            elif direction == "y":
+                return targets[5] if targets and len(targets) > 5 else None
+            elif direction == "xy":
+                return targets[8] if targets and len(targets) > 8 else None
+            else: 
+                print("Invalid direction.")
+                return None
         
         # Check if car has velocity - if zero, accelerate forward
         has_velocity = auto.vel.vx != 0 or auto.vel.vy != 0
