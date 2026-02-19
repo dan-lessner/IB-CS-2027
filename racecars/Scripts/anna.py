@@ -5,52 +5,64 @@ from simulation.script_api import AutoAuto
 class Auto(AutoAuto):
     def GetName(self) -> str:
         return "Anna"
-
-   
-        # Make the car move forward
-    def PickMove(self, auto, world, targets, validity):
-    # If no possible moves at all
-        if targets is None or len(targets) == 0:
-            print("No possible moves available.")
-            direction = input("Which direction should I try next? (x / y / xy): ")
-
-            if direction == "x":
-                return targets[7] if targets and len(targets) > 7 else None
-            elif direction == "y":
-                return targets[5] if targets and len(targets) > 5 else None
-            elif direction == "xy":
-                return targets[8] if targets and len(targets) > 8 else None
-            else: 
-                print("Invalid direction.")
-                return None
+    
+    def _get_turn_options(self, vx, vy):
+        # Determine turn options based on current velocity
+        # When hitting a wall, turn perpendicular to current direction
         
-        # Check if car has velocity - if zero, accelerate forward
+        if vx > 0:  # Moving right
+            return [5, 3, 8, 6, 2, 0]  # Try down, up, then diagonals
+        elif vx < 0:  # Moving left
+            return [5, 3, 2, 0, 8, 6]  # Try down, up, then diagonals
+        elif vy > 0:  # Moving down
+            return [7, 1, 8, 2, 6, 0]  # Try right, left, then diagonals
+        elif vy < 0:  # Moving up
+            return [7, 1, 6, 0, 8, 2]  # Try right, left, then diagonals
+        else:  # No velocity (stopped)
+            return [7, 5, 8, 1, 3, 6, 2, 0]  # Try all directions
+
+    def PickMove(self, auto, world, targets, validity):
+        # If no possible moves at all
+        if targets is None or len(targets) == 0:
+            return None
+        
+        # Check if car has velocity
         has_velocity = auto.vel.vx != 0 or auto.vel.vy != 0
         
         if has_velocity:
-            # Maintain current velocity (ax=0, ay=0) - index 4
+            # Try to maintain current velocity (forward) - index 4
             forward_index = 4
+            if forward_index < len(targets):
+                if validity is None or (forward_index < len(validity) and validity[forward_index]):
+                    return targets[forward_index]
+            
+            # Forward move is invalid - we hit a wall! Turn
+            turn_options = self._get_turn_options(auto.vel.vx, auto.vel.vy)
+            i = 0
+            while i < len(turn_options):
+                idx = turn_options[i]
+                if idx < len(targets):
+                    if validity is None or (idx < len(validity) and validity[idx]):
+                        return targets[idx]
+                i += 1
         else:
-            # Car is stopped - accelerate forward (ax=1, ay=0) - index 7
-            # Or try (ax=0, ay=1) - index 5, or (ax=1, ay=1) - index 8
-            forward_index = 7  # Try accelerating in x direction first
+            # Car is stopped - start moving forward
+            forward_index = 7  # Try accelerating right first
+            if forward_index < len(targets):
+                if validity is None or (forward_index < len(validity) and validity[forward_index]):
+                    return targets[forward_index]
+            
+            # If right doesn't work, try other starting directions
+            start_options = [5, 8, 1, 3, 6, 2, 0]
+            i = 0
+            while i < len(start_options):
+                idx = start_options[i]
+                if idx < len(targets):
+                    if validity is None or (idx < len(validity) and validity[idx]):
+                        return targets[idx]
+                i += 1
         
-        # Try the preferred forward move
-        if forward_index < len(targets):
-            if validity is None or (forward_index < len(validity) and validity[forward_index]):
-                return targets[forward_index]
-        
-        # If preferred move not valid, try other forward options
-        forward_options = [4, 7, 5, 8, 6]  # maintain, x+, y+, xy+, x+y-
-        i = 0
-        while i < len(forward_options):
-            idx = forward_options[i]
-            if idx < len(targets):
-                if validity is None or (idx < len(validity) and validity[idx]):
-                    return targets[idx]
-            i += 1
-        
-        # Fallback: return first valid target or first target
+        # Fallback: return first valid target
         if validity is not None:
             i = 0
             while i < len(validity):
