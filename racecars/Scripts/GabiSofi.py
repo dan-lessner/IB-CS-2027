@@ -1,5 +1,6 @@
-from simulation.script_api import AutoAuto 
+from simulation.script_api import AutoAuto
 class Auto(AutoAuto):
+    
     def __init__(self) -> None:
         super().__init__()
         self.step = 0
@@ -7,12 +8,12 @@ class Auto(AutoAuto):
     def GetName(self) -> str:
         return "Lightning McQueen StepBot"
 
-def PickMove(self, auto, world, targets, validity):
+    def PickMove(self, auto, world, targets, validity):
         self.step += 1
-        print("krok ", self.step)
+        print("kroky:", self.step)
 
         if not targets:
-        return None
+            return None
 
         best = targets[0]
         for move in targets:
