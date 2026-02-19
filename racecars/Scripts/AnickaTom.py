@@ -4,41 +4,32 @@ from simulation.script_api import AutoAuto
 
 class Auto(AutoAuto):
     def GetName(self) -> str:
-        return "AnickaTom"
+        return "Anna"
 
     def PickMove(self, auto, world, targets, validity):
         if targets is None or len(targets) == 0:
             return None
 
-        best_target = None
-        best_score = -999999
+        # má auto rychlost?
+        has_velocity = auto.vel.vx != 0 or auto.vel.vy != 0
 
+        # ❗ KLÍČOVÁ ZMĚNA:
+        # forward (4) už není první, jinak nikdy nezatočíš
+        if has_velocity:
+            move_priority = [7, 5, 8, 6, 3, 1, 4, 0, 2]
+        else:
+            move_priority = [7, 5, 8, 4, 6, 3, 1, 0, 2]
+
+        # vyber první validní move podle priority
         i = 0
-        while i < len(targets):
-            if validity is None or (i < len(validity) and validity[i]):
-                t = targets[i]
-
-                # rozdíl pozice = kam se posuneme
-                dx = t.pos.x - auto.pos.x
-                dy = t.pos.y - auto.pos.y
-
-                # skóre = jak moc jdeme dopředu (větší = lepší)
-                score = dx * dx + dy * dy
-
-                # malý bonus za udržení směru (index 4), ale už není absolutní priorita
-                if i == 4:
-                    score += 0.1
-
-                if score > best_score:
-                    best_score = score
-                    best_target = t
-
+        while i < len(move_priority):
+            idx = move_priority[i]
+            if idx < len(targets):
+                if validity is None or (idx < len(validity) and validity[idx]):
+                    return targets[idx]
             i += 1
 
-        if best_target is not None:
-            return best_target
-
-        # fallback
+        # fallback: první validní
         if validity is not None:
             i = 0
             while i < len(validity):
@@ -46,4 +37,5 @@ class Auto(AutoAuto):
                     return targets[i]
                 i += 1
 
-        return targets[0]
+        # úplný fallback
+        re
