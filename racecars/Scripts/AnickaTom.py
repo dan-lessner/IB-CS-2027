@@ -4,7 +4,8 @@ from simulation.script_api import AutoAuto
 
 class Auto(AutoAuto):
     def __init__(self):
-        self.last_move = None  # paměť posledního tahu
+        self.last_move = None
+        self.visited = set()
 
     def GetName(self) -> str:
         return "Anna"
@@ -13,7 +14,9 @@ class Auto(AutoAuto):
         if targets is None or len(targets) == 0:
             return None
 
-        # mapa opačných směrů
+        current_pos = (auto.pos.x, auto.pos.y)
+        self.visited.add(current_pos)
+
         opposite = {
             0: 8, 1: 7, 2: 6,
             3: 5, 4: None, 5: 3,
@@ -22,44 +25,48 @@ class Auto(AutoAuto):
 
         best_target = None
         best_score = -999999
+        best_index = 0
 
-        i = 0
-        while i < len(targets):
-            if validity is None or (i < len(validity) and validity[i]):
+        for i in range(len(targets)):
+            if validity is not None and (i >= len(validity) or not validity[i]):
+                continue
 
-                score = 0
+            t = targets[i]
 
-                # nevracej se zpátky kokote
-                if self.last_move is not None and opposite.get(self.last_move) == i:
-                    score -= 100
+            # tady MUSÍ být pos
+            next_pos = (t.pos.x, t.pos.y)
 
-                # ✔️ preferuj pokračování stejným směrem
-                if self.last_move is not None and i == self.last_move:
-                    score += 5
+            score = 0
 
-                # ✔️ preferuj lehké zatáčky (sousední indexy)
-                if self.last_move is not None and abs(i - self.last_move) == 1:
-                    score += 2
+            # n návrat do stejného místa
+            if next_pos in self.visited:
+                score -= 5
 
-                # bias doprava (k cíli)
-                if i in [7, 8, 6]:
-                    score += 1.5
-                if i in [0, 1, 2]:
-                    score -= 1
+            # zákaz otočky
+            if self.last_move is not None and opposite.get(self.last_move) == i:
+                score -= 100
 
-                # trocha randomness, aby se kurva nesekal
-                score += random.random() * 0.3
+            # pokračuj stejným směrem
+            if self.last_move is not None and i == self.last_move:
+                score += 4
 
-                if score > best_score:
-                    best_score = score
-                    best_target = targets[i]
-                    best_index = i
+            # jemná zatáčka
+            if self.last_move is not None and abs(i - self.last_move) == 1:
+                score += 2
 
-            i += 1
+            # bias doprava (k cíli)
+            if i in [7, 8, 6]:
+                score += 2
+            if i in [0, 1, 2]:
+                score -= 1
 
-        if best_target is not None:
-            self.last_move = best_index
-            return best_target
+            # malé random aby se nezacyklil
+            score += random.random() * 0.2
 
-        # fallback
-        return targets[0]
+            if score > best_score:
+                best_score = score
+                best_target = t
+                best_index = i
+
+        self.last_move = best_index
+        return best_target
