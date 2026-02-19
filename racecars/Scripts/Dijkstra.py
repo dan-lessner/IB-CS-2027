@@ -88,13 +88,28 @@ class Auto(AutoAuto):
 
     def PickMove(self, auto, world, targets, validity):
         current = (int(auto.pos.x), int(auto.pos.y))
-        
-        if self.path is None:
-            self.path = self.computepath(current[0], current[1], world)
-        
-        current_index = self.path.index(current)
+        attempts = 0
+        max_attempts = 2
+        while attempts < max_attempts:
+            if self.path is None or current not in self.path:
+                if self.path is not None:
+                    print(f"[Dijkstra] Warning: deviated from path at {current}, recomputing path")
+                self.path = self.computepath(current[0], current[1], world)
+
+            try:
+                current_index = self.path.index(current)
+            except ValueError:
+                print(f"[Dijkstra] Warning: current position {current} not on computed path, retrying")
+                self.path = self.computepath(current[0], current[1], world)
+                attempts += 1
+                continue
+            break
+
+        if current_index >= len(self.path) - 1:
+            return None
+
         next_pos = self.path[current_index + 1]
-        
+
         valid_indices = []
         i = 0
         while i < len(validity):
@@ -109,5 +124,18 @@ class Auto(AutoAuto):
             move = targets[i]
             if (move.x, move.y) == next_pos:
                 return move
-        
-        raise RuntimeError(f"No move available to reach {next_pos} from {current}")
+
+        print(f"[Dijkstra] Warning: exact move to {next_pos} not available, recomputing path")
+        self.path = self.computepath(current[0], current[1], world)
+
+        current_index = self.path.index(current)
+        if current_index >= len(self.path) - 1:
+            return None
+
+        next_pos = self.path[current_index + 1]
+        for i in valid_indices:
+            move = targets[i]
+            if (move.x, move.y) == next_pos:
+                return move
+
+        return None
