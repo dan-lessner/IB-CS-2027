@@ -1,22 +1,25 @@
 from AbstractSet import AbstractSet
 
-
+# the set is essentially a list of 0 and 1 - when certain number N is in the set, the Nth position is 1 (indexed from 0)
 class Set(AbstractSet):
     def __init__(self):
-        self.data = [0]
-        self.max = 0
-        self.set_size = 0
+        self.data = [0]     # the list of 0s and 1s
+        self.max = 0        # largest number in the set (amount of 0s and 1s in the list)
+        self.set_size = 0   # amount of numbers in the set
 
     def add(self, element):
-        if self.max < element:
-            for i in range(element-self.size):
+        if self.max < element:    # adding 0s in case the number added is larger than the amount of 0s and 1s in the list (increasing the range of the list)
+            for i in range(element-self.max):
                 self.data.append(0)
             self.max = element
         self.data[element] = 1
         self.set_size += 1
 
     def remove(self, element):
-        self.data[element] = 0
+        if self.max < element:
+            raise ValueError("Value is not in the set")
+        else:
+            self.data[element] = 0
 
     def contains(self, element):
         if self.max < element:
@@ -58,3 +61,11 @@ class Set(AbstractSet):
                         inter_set.add(i)
         
         return inter_set.data
+    
+    def elements(self):
+        for i in range(len(self.data)):
+            if self.data[i] == 1:
+                yield i
+
+    def __iter__(self):
+        return
