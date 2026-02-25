@@ -438,7 +438,7 @@ def create_cars_for_track(track: Track, players: int) -> List[Car]:
     names = _generate_unique_names(count)
     cars: List[Car] = []
     for index in range(count):
-        cars.append(Car(index, names[index], start_positions[index], Vector2i(0, 0)))
+        cars.append(Car(index, names[index], start_positions[index], Vector2i(0, 0), None))
     return cars
 
 def _shuffle_vertices(vertices: List[Vertex]):
