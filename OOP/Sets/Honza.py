@@ -16,7 +16,7 @@ class Set(AbstractSet):
         self.set_size += 1
 
     def remove(self, element):
-        if self.max < element:
+        if self.max < element:   #showing error in case the number that is supposed to be removed is larger than the list of 0s and 1s
             raise ValueError("Value is not in the set")
         else:
             self.data[element] = 0

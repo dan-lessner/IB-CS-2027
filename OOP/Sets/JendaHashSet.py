@@ -1,5 +1,9 @@
 from AbstractSet import AbstractSet, BuiltInSet
 
+'''
+Jenda
+Each bucket is a list that can hold multiple elements. When adding an element, we compute its hash and determine the appropriate bucket. If the bucket already contains the element, we do nothing. We change the number of buckets and rehash when necessary.
+'''
 
 class SimpleHashSet(AbstractSet):
     def __init__(self, capacity=11):
@@ -35,17 +39,14 @@ class SimpleHashSet(AbstractSet):
             for x in b:
                 yield x
 
-    def __iter__(self):
-        return self.elements()
-
     def union(self, other):
-        for x in other:
+        for x in other.elements():
             self.add(x)
         return self
 
     def intersection(self, other):
         result = BuiltInSet()
-        for x in self:
+        for x in self.elements():
             if other.contains(x):
                 result.add(x)
         return result

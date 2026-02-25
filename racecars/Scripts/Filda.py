@@ -23,9 +23,7 @@ class Auto(AutoAuto):
         if len(allowed_moves) == 0:
             return auto.pos
 
-    
         index = -1
 
-        
         return allowed_moves[index]     
         
