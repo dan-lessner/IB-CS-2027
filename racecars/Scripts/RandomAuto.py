@@ -14,7 +14,7 @@ class Auto(AutoAuto):
                 valid_indices.append(i)
 
         if len(valid_indices) == 0:
-            self.logger.warning("None of the targets is valid, choosing random.", targets[4])
+            self.logger.warning(f"None of the targets (around {targets[4]}, from {auto.pos}) is valid, choosing random.")
             index = random.randint(0, len(targets) - 1)
             return targets[index]
 
