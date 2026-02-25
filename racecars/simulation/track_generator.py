@@ -1,7 +1,7 @@
 """Procedural track generator.
 
-The generator builds a centerline, thickens it into a road, and retries until the
-track is fully connected from start to finish.
+The generator builds a centerline, thickens it into a road, enforces a forward
+pass (without decreasing x), and retries until the track is fully connected.
 """
 
 import random
@@ -68,9 +68,17 @@ def generate_track(
         centerline = _generate_centerline(width, height, start_y, finish_y, turn_density, turn_sharpness)
         _apply_thickness(road_mask, width, height, centerline, track_width_mean, track_width_var, min_width, max_width)
         _ensure_start_finish(road_mask, width, height, start_y, finish_y, start_line_length)
+        forward_pass_ok = _prune_track_for_forward_pass(
+            road_mask,
+            width,
+            height,
+            start_y,
+            finish_y,
+            start_line_length
+        )
 
         # 3) Accept only tracks that are truly connected and usable.
-        if _track_is_valid(road_mask, width, height, start_y, finish_y, start_line_length):
+        if forward_pass_ok and _track_is_valid(road_mask, width, height, start_y, finish_y, start_line_length):
             return Track(width, height, road_mask, start_vertices, finish_line)
 
         last_track = Track(width, height, road_mask, start_vertices, finish_line)
@@ -367,6 +375,169 @@ def _ensure_start_finish(
     for y in range(finish_y, min(finish_y + line_length, height)):
         if 0 <= width - 1 < width:
             road_mask[width - 1][y] = True
+
+def _prune_track_for_forward_pass(
+    road_mask: List[List[bool]],
+    width: int,
+    height: int,
+    start_y: int,
+    finish_y: int,
+    line_length: int
+) -> bool:
+    """Simulate a run that never decreases x and prune dead-end nodes on the way."""
+    if width <= 0 or height <= 0:
+        return False
+
+    start_cell = _pick_forward_start_cell(road_mask, width, height, start_y, finish_y, line_length)
+    if start_cell is None:
+        return False
+
+    finish_mid_y = finish_y + (line_length // 2)
+    dead_end: List[List[bool]] = []
+    for _ in range(width):
+        dead_end_column: List[bool] = []
+        for _ in range(height):
+            dead_end_column.append(False)
+        dead_end.append(dead_end_column)
+
+    on_path: List[List[bool]] = []
+    for _ in range(width):
+        path_column: List[bool] = []
+        for _ in range(height):
+            path_column.append(False)
+        on_path.append(path_column)
+
+    stack = []
+    stack.append(start_cell)
+    start_x = start_cell[0]
+    start_cell_y = start_cell[1]
+    on_path[start_x][start_cell_y] = True
+
+    while len(stack) > 0:
+        current = stack[len(stack) - 1]
+        cx = current[0]
+        cy = current[1]
+
+        if _is_finish_cell(cx, cy, width, finish_y, line_length):
+            return True
+
+        next_cell = _pick_forward_neighbor(
+            road_mask,
+            width,
+            height,
+            cx,
+            cy,
+            finish_mid_y,
+            dead_end,
+            on_path
+        )
+
+        if next_cell is not None:
+            nx = next_cell[0]
+            ny = next_cell[1]
+            stack.append((nx, ny))
+            on_path[nx][ny] = True
+            continue
+
+        # No forward-safe move from this node. Remove it when possible and backtrack.
+        protected = _cell_is_protected(cx, cy, width, start_y, finish_y, line_length)
+        if not protected:
+            road_mask[cx][cy] = False
+        dead_end[cx][cy] = True
+        on_path[cx][cy] = False
+        stack.pop()
+
+    return False
+
+def _pick_forward_start_cell(
+    road_mask: List[List[bool]],
+    width: int,
+    height: int,
+    start_y: int,
+    finish_y: int,
+    line_length: int
+):
+    if width <= 0 or height <= 0:
+        return None
+
+    best = None
+    best_score = None
+    finish_mid_y = finish_y + (line_length // 2)
+    y_end = start_y + line_length
+    if y_end > height:
+        y_end = height
+
+    y = start_y
+    while y < y_end:
+        if road_mask[0][y]:
+            score = abs(y - finish_mid_y)
+            if best is None or score < best_score:
+                best = (0, y)
+                best_score = score
+        y += 1
+
+    return best
+
+def _pick_forward_neighbor(
+    road_mask: List[List[bool]],
+    width: int,
+    height: int,
+    x: int,
+    y: int,
+    finish_mid_y: int,
+    dead_end: List[List[bool]],
+    on_path: List[List[bool]]
+):
+    vertical_step = 1
+    if finish_mid_y < y:
+        vertical_step = -1
+
+    candidates = []
+    candidates.append((x + 1, y))
+    candidates.append((x, y + vertical_step))
+    candidates.append((x, y - vertical_step))
+
+    for candidate in candidates:
+        nx = candidate[0]
+        ny = candidate[1]
+        if nx < 0 or nx >= width:
+            continue
+        if ny < 0 or ny >= height:
+            continue
+        if nx < x:
+            continue
+        if not road_mask[nx][ny]:
+            continue
+        if dead_end[nx][ny]:
+            continue
+        if on_path[nx][ny]:
+            continue
+        return (nx, ny)
+
+    return None
+
+def _is_finish_cell(x: int, y: int, width: int, finish_y: int, line_length: int) -> bool:
+    if x != width - 1:
+        return False
+    if y < finish_y:
+        return False
+    if y >= finish_y + line_length:
+        return False
+    return True
+
+def _cell_is_protected(
+    x: int,
+    y: int,
+    width: int,
+    start_y: int,
+    finish_y: int,
+    line_length: int
+) -> bool:
+    if x == 0 and y >= start_y and y < start_y + line_length:
+        return True
+    if x == width - 1 and y >= finish_y and y < finish_y + line_length:
+        return True
+    return False
 
 def _track_is_valid(
     road_mask: List[List[bool]],
