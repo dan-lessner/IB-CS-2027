@@ -42,6 +42,7 @@ class Controller:
         car_id = self.game_state.current_player_idx
         targets, validity = self.get_targets_and_validity()
         if len(targets) == 0:
+
             raise RuntimeError("No targets generated for current turn.", car)
         world = build_world_state(self.game_state)
         car = self.game_state.cars[car_id]
@@ -54,6 +55,8 @@ class Controller:
         pickmove_failed = False
         try:
             target = car.PickMove(world, targets, validity)
+            if not isinstance(target,Vertex):
+                raise TypeError(f"PickMove() returned an invalid target (not a Vertex): {target}")         
         except Exception as ex:
             pickmove_failed = True
             car_logger.exception(

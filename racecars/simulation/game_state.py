@@ -64,7 +64,7 @@ class Segment:
         return f"Segment(start={self.start}, end={self.end})"
 
 class Car:
-    def __init__(self, car_id: int, name: str, pos: Vertex, vel: Vector2i):
+    def __init__(self, car_id: int, name: str, pos: Vertex, vel: Vector2i, logger):
         # One Car object stores everything needed to replay and score a single driver.
         self.id = car_id
         self.name = name
@@ -74,7 +74,7 @@ class Car:
         self.path: List[Segment] = []  # Path history for replay/logging
         self.trail: List[Tuple[int, int]] = []  # Initialize trail as an empty list
         self.driver = None
-        self.logger = None
+        self.logger = logger
         self._missing_driver_warning_emitted = False
 
     def __repr__(self):
