@@ -4,7 +4,7 @@ import math
 
 
 class Auto(AutoAuto):
-    def __init__(self):
+    def __init__(self, track):
         super().__init__()
         self.dist_to_finish = None
 

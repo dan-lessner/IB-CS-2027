@@ -27,7 +27,7 @@ class Auto(AutoAuto):
     def GetName(self) -> str:
         return "A* euclid"
     
-    def __init__(self):
+    def __init__(self, track):
         super().__init__()
         self.path = None
     
