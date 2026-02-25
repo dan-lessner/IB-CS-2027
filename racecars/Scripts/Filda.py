@@ -19,7 +19,7 @@ class Auto(AutoAuto):
         repeat = coords in self.history
         
         self.history.append(coords)
-        if len(self.history) > 5:
+        if len(self.history) > 10:
             self.history.pop(0)
 
         for i in range(len(targets)):
