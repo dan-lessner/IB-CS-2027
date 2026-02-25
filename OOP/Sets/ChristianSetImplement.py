@@ -1,6 +1,12 @@
 import mmh3
 import math
 
+#name: Christian
+#Class: 67F
+#Age: 67 years old
+#Project: Hash Set But Stupider than Jenda's
+#Short explanation: Uses hashing to get element bucket indexes instead of just searching thru a list, meaning that we always should have a O(1)
+#Long explanation: https://www.youtube.com/watch?v=xvFZjo5PgG0
 class set :
     def __init__(self,length):
         self.length = length
@@ -87,18 +93,4 @@ class set :
             return False
 
                         
-                
-        
-        
-        
-mainSet = set(5)
-subSet = set(4) 
-mainSet.setStock()
-mainSet.setPrint()
-
-mainSet.add([1,3,1,2,4,6,1,7,8])
-subSet.add([1,3,1,2,4,6,1,])
-
-print(mainSet.isSubset(subSet))
-
-mainSet.setStock()
+# Add ur code here ig:
