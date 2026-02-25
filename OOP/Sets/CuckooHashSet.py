@@ -27,12 +27,12 @@ class CuckooHashSet(AbstractSet):
         if self.contains(element):
             return
 
-        if self._size + 1 > self._capacity * 0.5:
+        if self._size > self._capacity:
             self._resize(self._capacity * 2)
 
         cur = element
         table = 1
-        max_kicks = max(50, self._capacity * 2)
+        max_kicks = max(100, self._capacity * 2)
 
         for _ in range(max_kicks):
             if table == 1:
@@ -82,12 +82,9 @@ class CuckooHashSet(AbstractSet):
         return self.elements()
 
     def union(self, other):
-        result = BuiltInSet()
-        for x in self:
-            result.add(x)
         for x in other:
-            result.add(x)
-        return result
+            self.add(x)
+        return self
 
     def intersection(self, other):
         result = BuiltInSet()

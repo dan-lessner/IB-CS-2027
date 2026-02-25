@@ -7,12 +7,12 @@ class Auto(AutoAuto):
     def GetName(self) -> str:
         return "Lightning McQueen StepBot"
 
-    def PickMove(self, auto, world, targets, validity):
+def PickMove(self, auto, world, targets, validity):
         self.step += 1
         print("krok ", self.step)
 
         if not targets:
-            return None
+        return None
 
         best = targets[0]
         for move in targets:
