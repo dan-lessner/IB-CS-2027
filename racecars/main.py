@@ -366,7 +366,7 @@ def _print_console_help():
     print("Console parameters:")
     print("  --players N or players=N")
     print("  --controllers list (example: --controllers mouse,Adam,Bara)")
-    
+    print("")
     print("  --width N or width=N")
     print("  --height N or height=N")
     print("  --track_width_mean N or track_width_mean=N")
@@ -374,12 +374,12 @@ def _print_console_help():
     print("  --turn_sharpness N or turn_sharpness=N")
     print("  --turn_density N or turn_density=N")
     print("  --seed N or --seed None")
-
+    print("")
     print("  --supress-log (disable all logging)")
     print("  --log-path PATH or log_path=PATH")
     print("  --log-level LEVEL (DEBUG|INFO|WARNING|ERROR|CRITICAL)")
     print("  --measure or measure=1")
-
+    print("")
     print("  --no-gui (start game directly)")
     print("  --list-params (show this list)")
 

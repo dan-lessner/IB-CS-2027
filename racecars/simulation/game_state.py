@@ -64,7 +64,7 @@ class Segment:
         return f"Segment(start={self.start}, end={self.end})"
 
 class Car:
-    def __init__(self, car_id: int, name: str, pos: Vertex, vel: Vector2i):
+    def __init__(self, car_id: int, name: str, pos: Vertex, vel: Vector2i, logger):
         # One Car object stores everything needed to replay and score a single driver.
         self.id = car_id
         self.name = name
@@ -74,7 +74,7 @@ class Car:
         self.path: List[Segment] = []  # Path history for replay/logging
         self.trail: List[Tuple[int, int]] = []  # Initialize trail as an empty list
         self.driver = None
-        self.logger = None
+        self.logger = logger
         self._missing_driver_warning_emitted = False
 
     def __repr__(self):
@@ -438,7 +438,7 @@ def create_cars_for_track(track: Track, players: int) -> List[Car]:
     names = _generate_unique_names(count)
     cars: List[Car] = []
     for index in range(count):
-        cars.append(Car(index, names[index], start_positions[index], Vector2i(0, 0)))
+        cars.append(Car(index, names[index], start_positions[index], Vector2i(0, 0), None))
     return cars
 
 def _shuffle_vertices(vertices: List[Vertex]):
