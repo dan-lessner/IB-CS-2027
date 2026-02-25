@@ -27,7 +27,7 @@ class Controller:
         target = Vertex(grid_x, grid_y)
         car = self.game_state.cars[self.game_state.current_player_idx]
         if car.driver is None:
-            _logger_for_car(car).warning("Click ignored because current car has no driver.")
+            car.logger.warning("Click ignored because current car has no driver.")
             return
         if hasattr(car.driver, "SetTarget"):
             car.driver.SetTarget(target)
@@ -42,11 +42,9 @@ class Controller:
         car_id = self.game_state.current_player_idx
         targets, validity = self.get_targets_and_validity()
         if len(targets) == 0:
-
             raise RuntimeError("No targets generated for current turn.", car)
         world = build_world_state(self.game_state)
         car = self.game_state.cars[car_id]
-        car_logger = _logger_for_car(car)
         tracker = self.game_state.performance
         start_time = None
         if tracker is not None and tracker.enabled:
@@ -55,11 +53,9 @@ class Controller:
         pickmove_failed = False
         try:
             target = car.PickMove(world, targets, validity)
-            if not isinstance(target,Vertex):
-                raise TypeError(f"PickMove() returned an invalid target (not a Vertex): {target}")         
         except Exception as ex:
             pickmove_failed = True
-            car_logger.exception(
+            car.logger.exception(
                 "PickMove() raised an exception (%s: %s). Applying safe fallback move.",
                 type(ex).__name__,
                 ex
@@ -120,7 +116,3 @@ class Controller:
         tracker.report_if_ready(self.game_state.cars)
 
 
-def _logger_for_car(car):
-    if hasattr(car, "logger") and car.logger is not None:
-        return car.logger
-    return _LOGGER
