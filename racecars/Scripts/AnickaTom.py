@@ -6,99 +6,95 @@ class Auto(AutoAuto):
     def __init__(self) -> None:
         super().__init__()
         self.last_positions = []
-        self.direction = (1, 0)  # preferred movement direction
+        self.direction = (1, 0)
 
     def GetName(self) -> str:
         return "Anna"
 
     def PickMove(self, auto, world, targets, validity):
-        # no possible moves
         if not targets:
             return None
 
-        current_x = auto.pos.x
-        current_y = auto.pos.y
+        cx = auto.pos.x
+        cy = auto.pos.y
 
-
-        # TRACK LAST POSITIONS
-
-        self.last_positions.append((current_x, current_y))
+        # -------------------------
+        # track recent positions
+        # -------------------------
+        self.last_positions.append((cx, cy))
         if len(self.last_positions) > 8:
             self.last_positions.pop(0)
 
-
-        # STUCK DETECTION
-
+        # -------------------------
+        # stuck detection
+        # -------------------------
         stuck = False
         if len(self.last_positions) == 8:
             xs = [p[0] for p in self.last_positions]
             ys = [p[1] for p in self.last_positions]
-
-            # very small movement window → stuck
             if (max(xs) - min(xs) < 2) and (max(ys) - min(ys) < 2):
                 stuck = True
 
-
-        # BUILD MOVE POOL
-
+        # -------------------------
+        # valid move pool
+        # -------------------------
         valid_moves = []
         for i in range(len(targets)):
             if validity is None or (i < len(validity) and validity[i]):
                 valid_moves.append((targets[i], i))
 
-        # if nothing valid, allow everything as fallback
         pool = valid_moves if valid_moves else [(targets[i], i) for i in range(len(targets))]
 
-
-        # CHECK FORWARD BLOCK
-        
-        forward_blocked = True
-        for move, i in valid_moves:
-            if move.x > current_x:
-                forward_blocked = False
-                break
-
-
-        # SCORE MOVES
-       
+        # -------------------------
+        # scoring
+        # -------------------------
         best_move = None
         best_score = float("-inf")
 
         for move, idx in pool:
-            dx = move.x - current_x
-            dy = move.y - current_y
+            dx = move.x - cx
+            dy = move.y - cy
 
-            # avoid zero movement unless absolutely necessary
             if dx == 0 and dy == 0:
                 continue
 
+            # normalize vectors for direction comparison
+            prev_dx, prev_dy = self.direction
+            prev_len = max((prev_dx**2 + prev_dy**2) ** 0.5, 0.001)
+            cur_len = max((dx**2 + dy**2) ** 0.5, 0.001)
+
+            ndx, ndy = dx / cur_len, dy / cur_len
+            pdx, pdy = prev_dx / prev_len, prev_dy / prev_len
+
+            # alignment = dot product (1 = straight, -1 = opposite)
+            alignment = ndx * pdx + ndy * pdy
+
             if stuck:
-                # escape mode → choose any strong movement
                 score = abs(dx) + abs(dy) + random.uniform(0, 2)
 
             else:
-                # prefer continuing same direction
-                momentum_bonus = 3 if (dx, dy) == self.direction else 0
+                # strong reward for going forward
+                forward_score = dx * 4
 
-                # diagonal movement bonus (helps cornering)
-                diagonal_bonus = 1.5 if abs(dx) > 0 and abs(dy) > 0 else 0
+                # penalize vertical drift
+                vertical_penalty = abs(dy) * 1.2
 
-                if forward_blocked:
-                    # when blocked, prioritize turning (vertical motion)
-                    score = abs(dx) + abs(dy) * 2
-                else:
-                    # prefer moving forward strongly
-                    score = (dx * 4) - (abs(dy) * 0.5)
+                # penalize turning (low alignment)
+                turn_penalty = (1 - alignment) * 3
 
-                score += momentum_bonus + diagonal_bonus
-                score += random.uniform(0, 0.2)
+                # tiny diagonal bonus (just to help corners)
+                diagonal_bonus = 0.5 if abs(dx) > 0 and abs(dy) > 0 else 0
+
+                score = forward_score - vertical_penalty - turn_penalty + diagonal_bonus
+
+                # slight randomness so ties don't lock
+                score += random.uniform(0, 0.1)
 
             if score > best_score:
                 best_score = score
                 best_move = move
                 self.direction = (dx, dy)
 
-        # safety fallback
         if best_move is None:
             return targets[0]
 
