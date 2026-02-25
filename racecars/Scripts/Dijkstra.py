@@ -84,58 +84,75 @@ class Auto(AutoAuto):
                     came_from[(nx, ny)] = (x, y)
                     heapq.heappush(heap, (new_dist, nx, ny))
         
-        raise RuntimeError("No path to finish found!")
+        return []  # No path found
 
     def PickMove(self, auto, world, targets, validity):
         current = (int(auto.pos.x), int(auto.pos.y))
-        attempts = 0
-        max_attempts = 2
-        while attempts < max_attempts:
-            if self.path is None or current not in self.path:
-                if self.path is not None:
-                    print(f"[Dijkstra] Warning: deviated from path at {current}, recomputing path")
-                self.path = self.computepath(current[0], current[1], world)
-
+        vx, vy = int(auto.vel.x), int(auto.vel.y)
+        current_speed = max(abs(vx), abs(vy))
+        
+        valid_moves = []
+        valid_move_map = {}
+        for i, is_valid in enumerate(validity):
+            if is_valid:
+                move = targets[i]
+                valid_moves.append(move)
+                valid_move_map[(move.x, move.y)] = move
+        
+        finish_set = {(v.x, v.y) for v in world.finish_vertices}
+        for move in valid_moves:
+            if (move.x, move.y) in finish_set:
+                return move
+        
+        if current_speed > 1:
+            for move in valid_moves:
+                move_vx = move.x - current[0]
+                move_vy = move.y - current[1]
+                move_speed = max(abs(move_vx), abs(move_vy))
+                if move_speed < current_speed:
+                    return move
+            return valid_moves[0]
+        
+        if self.path is None:
+            self.path = self.computepath(current[0], current[1], world)
+        
+        try:
+            current_index = self.path.index(current)
+        except ValueError:
+            print(f"[Dijkstra] Recomputing path: current {current} not on path")
+            self.path = self.computepath(current[0], current[1], world)
             try:
                 current_index = self.path.index(current)
             except ValueError:
-                print(f"[Dijkstra] Warning: current position {current} not on computed path, retrying")
-                self.path = self.computepath(current[0], current[1], world)
-                attempts += 1
-                continue
-            break
-
+                print(f"[Dijkstra] Warning: still not on path after recompute")
+                return valid_moves[0]
+        
         if current_index >= len(self.path) - 1:
-            return None
-
+            return valid_moves[0]
+        
         next_pos = self.path[current_index + 1]
-
-        valid_indices = []
-        i = 0
-        while i < len(validity):
-            if validity[i]:
-                valid_indices.append(i)
-            i += 1
-
-        if len(valid_indices) == 0:
-            return None
-
-        for i in valid_indices:
-            move = targets[i]
-            if (move.x, move.y) == next_pos:
-                return move
-
-        print(f"[Dijkstra] Warning: exact move to {next_pos} not available, recomputing path")
+        
+        if next_pos in valid_move_map:
+            return valid_move_map[next_pos]
+        
+        if current_speed > 0:
+            for move in valid_moves:
+                move_vx = move.x - current[0]
+                move_vy = move.y - current[1]
+                move_speed = max(abs(move_vx), abs(move_vy))
+                if move_speed < current_speed:
+                    return move
+        
+        print(f"[Dijkstra] Recomputing path: next step {next_pos} not reachable")
         self.path = self.computepath(current[0], current[1], world)
-
-        current_index = self.path.index(current)
-        if current_index >= len(self.path) - 1:
-            return None
-
-        next_pos = self.path[current_index + 1]
-        for i in valid_indices:
-            move = targets[i]
-            if (move.x, move.y) == next_pos:
-                return move
-
-        return None
+        
+        try:
+            current_index = self.path.index(current)
+            if current_index < len(self.path) - 1:
+                next_pos = self.path[current_index + 1]
+                if next_pos in valid_move_map:
+                    return valid_move_map[next_pos]
+        except ValueError:
+            pass
+        
+        raise RuntimeError(f"[Dijkstra] No valid move found for current {current} with velocity ({vx}, {vy})")
