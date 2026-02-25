@@ -14,6 +14,13 @@ class Auto(AutoAuto):
         pass
     def targetRayCastLength(self, auto, world, target, validity):
         rayCastVector = [target[0] -auto.pos.x,auto.pos.y - target[1]]
+        for i in range(999):
+            try:
+                if not world.road[auto.pos.x + i * rayCastVector[0]] [auto.pos.y + i * rayCastVector[1]]:
+                    pass
+            except:
+                break
+        
         
         
         
