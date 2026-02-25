@@ -1,14 +1,24 @@
-import mmh3
+from AbstractSet import AbstractSet
 import math
 
-class set :
+#name: Christian
+#Class: 67F
+#Age: 67 years old
+#Project: Hash Set But Stupider than Jenda's
+#Short explanation: Uses hashing to get element bucket indexes instead of just searching thru a list, meaning that we always should have a O(1)
+#Long explanation: https://www.youtube.com/watch?v=xvFZjo5PgG0
+
+class set (AbstractSet):
     def __init__(self,length):
         self.length = length
         self.list = [[] for _ in range(self.length)]
         self.population = 0
     
     def getIndex(self, element):
-        return (mmh3.hash(str(element))) % self.length
+        returnVar = 1
+        for x in list(str(element)):
+            returnVar *= ord(x)
+        return (returnVar % self.length)
     
     
     def resize(self, newCap):
@@ -30,7 +40,7 @@ class set :
         if self.population > self.length:
             self.resize(self.length * 1.2)
     
-    def delete(self,input):
+    def remove(self,input):
         if not isinstance(input,list):
             input = [input]
             
@@ -38,7 +48,7 @@ class set :
             hash = self.getIndex(i)
             self.list[hash] = list(filter((i).__ne__, self.list[hash]))
     
-    def search(self,input : int):
+    def contains(self,input : int):
         hash = self.getIndex(input)
         if input in self.list[hash]:
             print('item is present at' f'bucket: {hash} pos: {self.list[hash].index(input)} ')
@@ -47,7 +57,10 @@ class set :
             print('item not in set')
             return False      
     
-    def setStock (self):
+    def size (self):
+        return (self.length)
+    
+    def elements(self):
         returnList = []
         for i in self.list:  
             returnList.extend(i)
@@ -58,7 +71,7 @@ class set :
         for i in range(self.length):
             self.list.append([])
     
-    def combine(self,externalSet : object):
+    def union(self,externalSet : object):
         returnSet = set(self.length)
         returnSet.add(self.setStock() + externalSet.setStock())
         return returnSet
@@ -73,7 +86,7 @@ class set :
                 returnSet.add(i)
         return returnSet
     
-    def intersect(self,externalSet : object):
+    def intersection(self,externalSet : object):
         returnSet = set(self.length)
         for i in self.setStock():
             if externalSet.search(i) == True:
@@ -85,20 +98,17 @@ class set :
             return True
         else:
             return False
+    
+    def __iter__(self):
+        return iter(self.list)
+        
 
                         
-                
-        
-        
-        
+# Add ur code here ig:
+
 mainSet = set(5)
-subSet = set(4) 
-mainSet.setStock()
+mainSet.add([1,4,6,3,7,9,5,4,5,7,5,4])
+
 mainSet.setPrint()
 
-mainSet.add([1,3,1,2,4,6,1,7,8])
-subSet.add([1,3,1,2,4,6,1,])
-
-print(mainSet.isSubset(subSet))
-
-mainSet.setStock()
+print(mainSet.elements())
