@@ -41,6 +41,8 @@ class Controller:
 
         car_id = self.game_state.current_player_idx
         targets, validity = self.get_targets_and_validity()
+        if len(targets) == 0:
+            raise RuntimeError("No targets generated for current turn.", car)
         world = build_world_state(self.game_state)
         car = self.game_state.cars[car_id]
         car_logger = _logger_for_car(car)
