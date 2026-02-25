@@ -1,5 +1,9 @@
 from AbstractSet import AbstractSet, BuiltInSet
 
+'''
+Jenda
+Uses two hash tables and two hash functions. When a collision occurs in the first table, the existing element is "kicked out" and moved to the second table. If a collision occurs in the second table, the process repeats, potentially leading to multiple "kicks". To prevent infinite loops, we limit the number of kicks. If the limit is reached, we resize the tables and rehash all elements.
+'''
 
 class CuckooHashSet(AbstractSet):
     def __init__(self, initial_capacity=11):
@@ -78,17 +82,14 @@ class CuckooHashSet(AbstractSet):
             if x is not None:
                 yield x
 
-    def __iter__(self):
-        return self.elements()
-
     def union(self, other):
-        for x in other:
+        for x in other.elements():
             self.add(x)
         return self
 
     def intersection(self, other):
         result = BuiltInSet()
-        for x in self:
+        for x in self.elements():
             if other.contains(x):
                 result.add(x)
         return result
