@@ -3,63 +3,63 @@ from simulation.script_api import AutoAuto
 
 
 class Auto(AutoAuto):
-    def __init__(self):
-        self.last_move = None  # paměť posledního tahu
-
     def GetName(self) -> str:
         return "Anna"
 
+    def _get_turn_options(self, vx, vy):
+        if vx > 0:  # right
+            return [5, 3, 8, 6, 2, 0]
+        elif vx < 0:  # left
+            return [5, 3, 2, 0, 8, 6]
+        elif vy > 0:  # down
+            return [7, 1, 8, 2, 6, 0]
+        elif vy < 0:  # up
+            return [7, 1, 6, 0, 8, 2]
+        else:
+            return [7, 5, 1, 3, 8, 6, 2, 0]
+
     def PickMove(self, auto, world, targets, validity):
-        if targets is None or len(targets) == 0:
+        if not targets:
             return None
 
-        # mapa opačných směrů (abychom se nevraceli)
-        opposite = {
-            0: 8, 1: 7, 2: 6,
-            3: 5, 4: None, 5: 3,
-            6: 2, 7: 1, 8: 0
-        }
+        vx = auto.vel.vx
+        vy = auto.vel.vy
 
-        best_target = None
-        best_score = -999999
+        def is_valid(i):
+            return validity is None or (i < len(validity) and validity[i])
 
-        i = 0
-        while i < len(targets):
-            if validity is None or (i < len(validity) and validity[i]):
+        # =========================
+        # 1. IF MOVING → try keep direction
+        # =========================
+        if vx != 0 or vy != 0:
+            forward_index = 4  # keep velocity (0 acceleration)
 
-                score = 0
+            if forward_index < len(targets) and is_valid(forward_index):
+                return targets[forward_index]
 
-                # ❌ nevracej se zpátky
-                if self.last_move is not None and opposite.get(self.last_move) == i:
-                    score -= 100
+            # blocked → turn
+            turn_options = self._get_turn_options(vx, vy)
+            random.shuffle(turn_options)
 
-                # ✔️ preferuj pokračování stejným směrem
-                if self.last_move is not None and i == self.last_move:
-                    score += 5
+            for idx in turn_options:
+                if idx < len(targets) and is_valid(idx):
+                    return targets[idx]
 
-                # ✔️ preferuj lehké zatáčky (sousední indexy)
-                if self.last_move is not None and abs(i - self.last_move) == 1:
-                    score += 2
+        # =========================
+        # 2. IF STOPPED → MUST accelerate
+        # =========================
+        start_moves = [7, 5, 1, 3, 8, 6, 2, 0]  # everything except 4
+        random.shuffle(start_moves)
 
-                # 👉 jemný bias doprava (k cíli)
-                if i in [7, 8, 6]:
-                    score += 1.5
-                if i in [0, 1, 2]:
-                    score -= 1
+        for idx in start_moves:
+            if idx < len(targets) and is_valid(idx):
+                return targets[idx]
 
-                # trocha randomness, aby se nezaseklo
-                score += random.random() * 0.3
+        # =========================
+        # 3. LAST RESORT
+        # =========================
+        for i in range(len(targets)):
+            if is_valid(i):
+                return targets[i]
 
-                if score > best_score:
-                    best_score = score
-                    best_target = targets[i]
-                    best_index = i
-
-            i += 1
-
-        if best_target is not None:
-            self.last_move = best_index
-            return best_target
-
-        # fallback
-        return targets[0]
+        return None

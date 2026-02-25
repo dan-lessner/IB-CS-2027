@@ -30,10 +30,6 @@ class AbstractSet(ABC):
     def elements(self):
         pass
 
-    @abstractmethod
-    def __iter__(self):
-        pass
-
 
 class BuiltInSet(AbstractSet):
 
@@ -53,7 +49,7 @@ class BuiltInSet(AbstractSet):
         return len(self.data)
 
     def union(self, other):
-        result = StudentSet()
+        result = BuiltInSet()
 
         for x in self.data:
             result.add(x)
@@ -64,7 +60,7 @@ class BuiltInSet(AbstractSet):
         return result
 
     def intersection(self, other):
-        result = StudentSet()
+        result = BuiltInSet()
 
         for x in self.data:
             if other.contains(x):
