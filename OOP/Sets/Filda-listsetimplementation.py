@@ -1,3 +1,5 @@
+from AbstractSet import AbstractSet
+
 setlist1 = []
 frequency = {}
 
@@ -16,7 +18,7 @@ def add_set(item):
 def remove_set(item):
     if item not in frequency:
         frequency[item] = 0
-#adding a frequency count when in or not in even when deleting
+    #adding a frequency count when in or not in even when deleting
     if item not in setlist1:
         frequency[item] += 1
     if item in setlist1:

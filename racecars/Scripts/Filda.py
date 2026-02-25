@@ -21,7 +21,7 @@ class Auto(AutoAuto):
                     allowed_moves.append(targets[i])
 
         if len(allowed_moves) == 0:
-            return None
+            return auto.pos
 
     
         index = -1
