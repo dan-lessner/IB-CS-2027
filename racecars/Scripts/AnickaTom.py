@@ -3,63 +3,97 @@ from simulation.script_api import AutoAuto
 
 
 class Auto(AutoAuto):
+    def __init__(self) -> None:
+        super().__init__()
+        self.last_positions = []
+        self.direction = (1, 0)  # current preferred direction
+
     def GetName(self) -> str:
         return "Anna"
-
-    def _get_turn_options(self, vx, vy):
-        if vx > 0:  # right
-            return [5, 3, 8, 6, 2, 0]
-        elif vx < 0:  # left
-            return [5, 3, 2, 0, 8, 6]
-        elif vy > 0:  # down
-            return [7, 1, 8, 2, 6, 0]
-        elif vy < 0:  # up
-            return [7, 1, 6, 0, 8, 2]
-        else:
-            return [7, 5, 1, 3, 8, 6, 2, 0]
 
     def PickMove(self, auto, world, targets, validity):
         if not targets:
             return None
 
-        vx = auto.vel.vx
-        vy = auto.vel.vy
-
-        def is_valid(i):
-            return validity is None or (i < len(validity) and validity[i])
+        current_x = auto.pos.x
+        current_y = auto.pos.y
 
         # =========================
-        # 1. IF MOVING → try keep direction
+        # TRACK POSITION HISTORY
         # =========================
-        if vx != 0 or vy != 0:
-            forward_index = 4  # keep velocity (0 acceleration)
-
-            if forward_index < len(targets) and is_valid(forward_index):
-                return targets[forward_index]
-
-            # blocked → turn
-            turn_options = self._get_turn_options(vx, vy)
-            random.shuffle(turn_options)
-
-            for idx in turn_options:
-                if idx < len(targets) and is_valid(idx):
-                    return targets[idx]
+        self.last_positions.append((current_x, current_y))
+        if len(self.last_positions) > 8:
+            self.last_positions.pop(0)
 
         # =========================
-        # 2. IF STOPPED → MUST accelerate
+        # DETECT STUCK
         # =========================
-        start_moves = [7, 5, 1, 3, 8, 6, 2, 0]  # everything except 4
-        random.shuffle(start_moves)
+        stuck = False
+        if len(self.last_positions) == 8:
+            xs = [p[0] for p in self.last_positions]
+            ys = [p[1] for p in self.last_positions]
 
-        for idx in start_moves:
-            if idx < len(targets) and is_valid(idx):
-                return targets[idx]
+            # if we barely moved in BOTH directions → stuck
+            if (max(xs) - min(xs) < 2) and (max(ys) - min(ys) < 2):
+                stuck = True
 
         # =========================
-        # 3. LAST RESORT
+        # BUILD MOVE POOL
         # =========================
+        valid_moves = []
         for i in range(len(targets)):
-            if is_valid(i):
-                return targets[i]
+            if validity is None or (i < len(validity) and validity[i]):
+                valid_moves.append((targets[i], i))
 
-        return None
+        pool = valid_moves if valid_moves else [(targets[i], i) for i in range(len(targets))]
+
+        # =========================
+        # CHECK IF FORWARD BLOCKED
+        # =========================
+        forward_blocked = True
+        for m, i in valid_moves:
+            if m.x > current_x:
+                forward_blocked = False
+                break
+
+        # =========================
+        # SCORE MOVES
+        # =========================
+        best_move = None
+        best_score = float("-inf")
+
+        for move, idx in pool:
+            dx = move.x - current_x
+            dy = move.y - current_y
+
+            # --- if stuck → explore randomly ---
+            if stuck:
+                score = abs(dx) + abs(dy) + random.uniform(0, 2)
+
+            else:
+                # prefer continuing same direction
+                momentum_bonus = 0
+                if (dx, dy) == self.direction:
+                    momentum_bonus = 3
+
+                # small bonus for diagonal (helps cornering)
+                diagonal_bonus = 1.5 if abs(dx) > 0 and abs(dy) > 0 else 0
+
+                # main movement scoring
+                if forward_blocked:
+                    # prioritize escaping vertically if blocked
+                    score = abs(dx) + abs(dy) * 2
+                else:
+                    # strongly prefer forward movement
+                    score = (dx * 4) - abs(dy) * 0.5
+
+                # combine bonuses
+                score += momentum_bonus + diagonal_bonus
+                score += random.uniform(0, 0.2)
+
+            if score > best_score:
+                best_score = score
+                best_move = move
+                self.direction = (dx, dy)
+
+        return best_move
