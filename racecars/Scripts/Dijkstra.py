@@ -3,7 +3,7 @@ import heapq
 
 
 class Auto(AutoAuto):
-    def __init__(self, , track):
+    def __init__(self, track):
         super().__init__()
         self.path = None
 

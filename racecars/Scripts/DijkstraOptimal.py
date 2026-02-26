@@ -3,7 +3,7 @@ from collections import deque
 
 
 class Auto(AutoAuto):
-    def __init__(self):
+    def __init__(self, track):
         super().__init__()
         self.plan = None
         self.plan_index = 0
@@ -213,4 +213,5 @@ class Auto(AutoAuto):
                 return valid_move_map[(next_x, next_y)]
         
         print(f"[DijkstraOptimal] No valid path, picking first valid move")
+        self.plan = None
         return valid_moves[0]
