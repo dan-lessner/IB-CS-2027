@@ -213,4 +213,5 @@ class Auto(AutoAuto):
                 return valid_move_map[(next_x, next_y)]
         
         print(f"[DijkstraOptimal] No valid path, picking first valid move")
+        self.plan = None
         return valid_moves[0]
