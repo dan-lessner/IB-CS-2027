@@ -5,100 +5,102 @@ from simulation.script_api import AutoAuto
 class Auto(AutoAuto):
     def __init__(self) -> None:
         super().__init__()
-
-        # direction vector (dx, dy)
-        self.direction = (1, 0)   # start moving right
-
-        # remember last positions to detect loops
         self.last_positions = []
-        self.stuck_counter = 0
+        self.direction = (1, 0)  # preferred movement direction
 
     def GetName(self) -> str:
-        return "AnickaTom"
+        return "Anna"
 
     def PickMove(self, auto, world, targets, validity):
+        # no possible moves
         if not targets:
             return None
 
-        cx = auto.pos.x
-        cy = auto.pos.y
+        current_x = auto.pos.x
+        current_y = auto.pos.y
 
-        # -------------------------
-        # MEMORY (for stuck detect)
-        # -------------------------
-        self.last_positions.append((cx, cy))
+
+        # TRACK LAST POSITIONS
+
+        self.last_positions.append((current_x, current_y))
         if len(self.last_positions) > 8:
             self.last_positions.pop(0)
+
+
+        # STUCK DETECTION
 
         stuck = False
         if len(self.last_positions) == 8:
             xs = [p[0] for p in self.last_positions]
             ys = [p[1] for p in self.last_positions]
 
-            if max(xs) - min(xs) < 2 and max(ys) - min(ys) < 2:
+            # very small movement window → stuck
+            if (max(xs) - min(xs) < 2) and (max(ys) - min(ys) < 2):
                 stuck = True
 
-        if stuck:
-            self.stuck_counter += 1
-        else:
-            self.stuck_counter = 0
 
-        # -------------------------
-        # VALID MOVE POOL
-        # -------------------------
+        # BUILD MOVE POOL
+
         valid_moves = []
         for i in range(len(targets)):
             if validity is None or (i < len(validity) and validity[i]):
-                valid_moves.append(targets[i])
+                valid_moves.append((targets[i], i))
 
-        pool = valid_moves if valid_moves else targets
+        # if nothing valid, allow everything as fallback
+        pool = valid_moves if valid_moves else [(targets[i], i) for i in range(len(targets))]
 
-        # -------------------------
-        # 🚨 HARD ESCAPE
-        # -------------------------
-        if self.stuck_counter > 2:
-            # pick farthest move to break loop
-            best = max(pool, key=lambda m: abs(m.x - cx) + abs(m.y - cy))
-            self.direction = (best.x - cx, best.y - cy)
-            return best
 
-        # -------------------------
-        # NORMAL AUTONOMOUS DRIVE
-        # -------------------------
-        dx, dy = self.direction
+        # CHECK FORWARD BLOCK
+        
+        forward_blocked = True
+        for move, i in valid_moves:
+            if move.x > current_x:
+                forward_blocked = False
+                break
 
-        # try to keep moving same direction
-        for m in pool:
-            if (m.x - cx, m.y - cy) == (dx, dy):
-                return m
 
-        # try slight vertical adjustment (smooth steering)
-        for m in pool:
-            mx = m.x - cx
-            my = m.y - cy
+        # SCORE MOVES
+       
+        best_move = None
+        best_score = float("-inf")
 
-            # same forward x but different y
-            if mx == dx and abs(my) <= 1:
-                self.direction = (mx, my)
-                return m
+        for move, idx in pool:
+            dx = move.x - current_x
+            dy = move.y - current_y
 
-        # forward blocked → try vertical only (bounce up/down)
-        for m in pool:
-            mx = m.x - cx
-            my = m.y - cy
+            # avoid zero movement unless absolutely necessary
+            if dx == 0 and dy == 0:
+                continue
 
-            if mx == 0 and abs(my) == 1:
-                self.direction = (mx, my)
-                return m
+            if stuck:
+                # escape mode → choose any strong movement
+                score = abs(dx) + abs(dy) + random.uniform(0, 2)
 
-        # fully blocked → flip vertical direction
-        self.direction = (dx, -dy if dy != 0 else random.choice([-1, 1]))
+            else:
+                # prefer continuing same direction
+                momentum_bonus = 3 if (dx, dy) == self.direction else 0
 
-        for m in pool:
-            if (m.x - cx, m.y - cy) == self.direction:
-                return m
+                # diagonal movement bonus (helps cornering)
+                diagonal_bonus = 1.5 if abs(dx) > 0 and abs(dy) > 0 else 0
 
-        # last fallback: go furthest away
-        best = max(pool, key=lambda m: abs(m.x - cx) + abs(m.y - cy))
-        self.direction = (best.x - cx, best.y - cy)
-        return best
+                if forward_blocked:
+                    # when blocked, prioritize turning (vertical motion)
+                    score = abs(dx) + abs(dy) * 2
+                else:
+                    # prefer moving forward strongly
+                    score = (dx * 4) - (abs(dy) * 0.5)
+
+                score += momentum_bonus + diagonal_bonus
+                score += random.uniform(0, 0.2)
+
+            if score > best_score:
+                best_score = score
+                best_move = move
+                self.direction = (dx, dy)
+
+        # safety fallback
+        if best_move is None:
+            return targets[0]
+
+        return best_move
+
