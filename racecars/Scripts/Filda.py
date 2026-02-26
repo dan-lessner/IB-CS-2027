@@ -1,4 +1,5 @@
 import math
+from operator import index
 import random
 from shutil import move
 from simulation.script_api import AutoAuto
@@ -19,7 +20,7 @@ class Auto(AutoAuto):
         repeat = coords in self.history
         
         self.history.append(coords)
-        if len(self.history) > 10:
+        if len(self.history) > 4:
             self.history.pop(0)
 
         for i in range(len(targets)):
@@ -32,6 +33,9 @@ class Auto(AutoAuto):
 
         index = -1
         if repeat and len(allowed_moves) > 1:
-            index = -2
+            index = random.randint(-2, -1)
+        print(targets)
         return allowed_moves[index]     
-        
+
+
+
