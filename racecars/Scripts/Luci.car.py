@@ -2,13 +2,12 @@ import random
 from simulation.script_api import AutoAuto, WorldState
 
 class Auto(AutoAuto):
-    def __init__(self,track) -> None:
-        super().__init__()
+    def _init_(self) -> None:
+        super()._init_()
         self.step = 0
         self.bad_actions = set()
         self.last_action = None
         self.best_targets = []
-        self.track = track
 
 
     def PickMove(self,auto,world, targets, validity):
