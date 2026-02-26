@@ -1,11 +1,12 @@
 from simulation.script_api import AutoAuto, WorldState
 import heapq
+import math
 
 
 class Auto(AutoAuto):
-    def __init__(self):
+    def __init__(self, track):
         super().__init__()
-        self.path = None
+        self.dist_to_finish = None
 
     def GetName(self) -> str:
         return "DijkstraFast"
@@ -46,12 +47,15 @@ class Auto(AutoAuto):
         
         return True
 
-    def computepath(self, start_x: int, start_y: int, world: WorldState) -> list:
+    def compute_distance_map(self, world: WorldState) -> dict:
         finish_set = {(v.x, v.y) for v in world.finish_vertices}
         
-        heap = [(0, start_x, start_y)]
-        dist = {(start_x, start_y): 0}
-        came_from = {}
+        heap = []
+        dist = {}
+        
+        for fx, fy in finish_set:
+            heap.append((0, fx, fy))
+            dist[(fx, fy)] = 0
         
         directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
         
@@ -61,19 +65,10 @@ class Auto(AutoAuto):
             if d > dist.get((x, y), float('inf')):
                 continue
             
-            if (x, y) in finish_set:
-                path = [(x, y)]
-                while (x, y) in came_from:
-                    x, y = came_from[(x, y)]
-                    path.append((x, y))
-                path.reverse()
-                return path
-            
             for dx, dy in directions:
                 nx, ny = x + dx, y + dy
                 
-                is_finish = (nx, ny) in finish_set
-                if not is_finish and not self.can_move(world, x, y, dx, dy):
+                if not self.can_move(world, nx, ny, -dx, -dy):
                     continue
                 
                 step_dist = 1.414 if (dx != 0 and dy != 0) else 1.0
@@ -81,163 +76,57 @@ class Auto(AutoAuto):
                 
                 if new_dist < dist.get((nx, ny), float('inf')):
                     dist[(nx, ny)] = new_dist
-                    came_from[(nx, ny)] = (x, y)
                     heapq.heappush(heap, (new_dist, nx, ny))
         
-        raise RuntimeError("No path to finish found!")
-
-    def get_dir(self, p1, p2):
-        dx = p2[0] - p1[0]
-        dy = p2[1] - p1[1]
-        dx = 0 if dx == 0 else (1 if dx > 0 else -1)
-        dy = 0 if dy == 0 else (1 if dy > 0 else -1)
-        return (dx, dy)
-
-    def straight_len(self, path, start_index):
-        if start_index >= len(path) - 1:
-            return 0
-        
-        direction = self.get_dir(path[start_index], path[start_index + 1])
-        length = 1
-        
-        for i in range(start_index + 1, len(path) - 1):
-            next_dir = self.get_dir(path[i], path[i + 1])
-            if next_dir == direction:
-                length += 1
-            else:
-                break
-        
-        return length
-
-    def stop_dist(self, speed):
-        return speed * (speed + 1) // 2
+        return dist
 
     def PickMove(self, auto, world, targets, validity):
         current = (int(auto.pos.x), int(auto.pos.y))
-        vx, vy = int(auto.vel.vx), int(auto.vel.vy)
-        current_speed = max(abs(vx), abs(vy))
         
-        attempts = 0
-        max_attempts = 2
-        while attempts < max_attempts:
-            if self.path is None or current not in self.path:
-                if self.path is not None:
-                    print(f"[DijkstraFast] Warning: deviated from path at {current}, recomputing path")
-                self.path = self.computepath(current[0], current[1], world)
-
-            try:
-                current_index = self.path.index(current)
-            except ValueError:
-                print(f"[DijkstraFast] Warning: current position {current} not on computed path, retrying")
-                self.path = self.computepath(current[0], current[1], world)
-                attempts += 1
-                continue
-            break
-
-        if current not in self.path:
-            print(f"[DijkstraFast] Warning: unable to place current {current} on path")
-            return None
-
-        if current_index >= len(self.path) - 1:
-            return None
-        remaining = len(self.path) - 1 - current_index
+        if self.dist_to_finish is None:
+            self.dist_to_finish = self.compute_distance_map(world)
         
-        if remaining == 0:
-            valid_indices = []
-            i = 0
-            while i < len(validity):
-                if validity[i]:
-                    valid_indices.append(i)
-                i += 1
-
-            if len(valid_indices) == 0:
-                return None
-
-            return targets[valid_indices[0]]
+        valid_moves = []
+        for i, is_valid in enumerate(validity):
+            if is_valid:
+                valid_moves.append(targets[i])
         
-        next_pos = self.path[current_index + 1]
-        path_dir = self.get_dir(current, next_pos)
+        if len(valid_moves) == 0:
+            print(f"[DijkstraFast] Warning: no valid moves at {current}, picking first target")
+            return targets[0]
         
-        straight_length = self.straight_len(self.path, current_index)
+        finish_set = {(v.x, v.y) for v in world.finish_vertices}
+        best_move = None
+        best_dist = float('inf')
         
-        vel_dir = (0 if vx == 0 else (1 if vx > 0 else -1),
-                   0 if vy == 0 else (1 if vy > 0 else -1))
-        
-        if current_speed > 0 and vel_dir != path_dir:
-            target_speed = current_speed - 1
-        else:
-            max_safe_speed = 1
-            for s in range(1, 20):
-                if self.stop_dist(s) <= straight_length:
-                    max_safe_speed = s
-                else:
-                    break
+        for move in valid_moves:
+            pos = (move.x, move.y)
             
-            if current_speed < max_safe_speed:
-                target_speed = current_speed + 1
-            elif current_speed > max_safe_speed:
-                target_speed = current_speed - 1
-            else:
-                target_speed = current_speed
+            if pos in finish_set:
+                return move
+            
+            dist = self.dist_to_finish.get(pos, float('inf'))
+            
+            if dist < best_dist:
+                best_dist = dist
+                best_move = move
         
-        target_vx = path_dir[0] * target_speed
-        target_vy = path_dir[1] * target_speed
-        target_x = current[0] + target_vx
-        target_y = current[1] + target_vy
+        if best_move is not None:
+            return best_move
         
-        valid_indices = []
-        i = 0
-        while i < len(validity):
-            if validity[i]:
-                valid_indices.append(i)
-            i += 1
-
-        if len(valid_indices) == 0:
-            return None
-
-        for i in valid_indices:
-            mv = targets[i]
-            if mv.x == target_x and mv.y == target_y:
-                return mv
-
-        print(f"[DijkstraFast] Warning: exact calculated move ({target_x},{target_y}) not in valid moves, recomputing path")
-        self.path = self.computepath(current[0], current[1], world)
-
-        current_index = self.path.index(current)
-        if current_index >= len(self.path) - 1:
-            return None
-
-        next_pos = self.path[current_index + 1]
-        path_dir = self.get_dir(current, next_pos)
-
-        straight_length = self.straight_len(self.path, current_index)
-        vel_dir = (0 if vx == 0 else (1 if vx > 0 else -1),
-                   0 if vy == 0 else (1 if vy > 0 else -1))
-
-        if current_speed > 0 and vel_dir != path_dir:
-            target_speed = current_speed - 1
-        else:
-            max_safe_speed = 1
-            for s in range(1, 20):
-                if self.stop_dist(s) <= straight_length:
-                    max_safe_speed = s
-                else:
-                    break
-            if current_speed < max_safe_speed:
-                target_speed = current_speed + 1
-            elif current_speed > max_safe_speed:
-                target_speed = current_speed - 1
-            else:
-                target_speed = current_speed
-
-        target_vx = path_dir[0] * target_speed
-        target_vy = path_dir[1] * target_speed
-        target_x = current[0] + target_vx
-        target_y = current[1] + target_vy
-
-        for i in valid_indices:
-            mv = targets[i]
-            if mv.x == target_x and mv.y == target_y:
-                return mv
-
-        return None
+        print(f"[DijkstraFast] Warning: no move with known distance at {current}, using Euclidean fallback")
+        
+        for move in valid_moves:
+            min_euclidean = float('inf')
+            for fv in world.finish_vertices:
+                dx = move.x - fv.x
+                dy = move.y - fv.y
+                euclidean = math.sqrt(dx*dx + dy*dy)
+                if euclidean < min_euclidean:
+                    min_euclidean = euclidean
+            
+            if min_euclidean < best_dist:
+                best_dist = min_euclidean
+                best_move = move
+        
+        return best_move if best_move else valid_moves[0]

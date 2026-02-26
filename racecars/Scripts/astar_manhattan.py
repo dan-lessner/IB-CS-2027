@@ -1,4 +1,4 @@
-from simulation.game_state import Vector2i
+from simulation.game_state import Vector2i, Vertex
 from simulation.script_api import AutoAuto, WorldState
 
 class Node:
@@ -25,7 +25,7 @@ class Auto(AutoAuto):
 
 
     def GetName(self) -> str:
-        return "A*"
+        return "A* manhattan"
     
     def __init__(self):
         super().__init__()
@@ -34,12 +34,18 @@ class Auto(AutoAuto):
     def _diagonal_dist(self,start: Vector2i, end: Vector2i):
         return max(abs(start.x-end.x),abs(start.y-end.y))
     
+    def _euclidean_dist(self,start: Vector2i, end: Vector2i):
+        return ((start.x-end.x)**2 + (start.y-end.y)**2)**0.5
+    
+    def _manhattan_dist(self,start: Vector2i, end: Vector2i):
+        return abs(start.x-end.x) + abs(start.y-end.y)
+    
     def closest_finish(self,node: Vector2i, world: WorldState):
         finish = world.finish_vertices
-        min_dist = self._diagonal_dist(node, finish[0])
+        min_dist = self._manhattan_dist(node, finish[0])
         for i in range(1,len(finish)):
-            if self._diagonal_dist(node, finish[i]) < min_dist:
-                min_dist = self._diagonal_dist(node, finish[i])
+            if self._manhattan_dist(node, finish[i]) < min_dist:
+                min_dist = self._manhattan_dist(node, finish[i])
         return min_dist
     
     def reconstruct_path(self,node: Node):
@@ -114,4 +120,5 @@ class Auto(AutoAuto):
         if not self.path:
             start_node = Node(auto.pos, 0, self.closest_finish(auto.pos,world), self.closest_finish(auto.pos,world),None)
             self.path = self.a_star(start_node, world)
-        return self.path.pop().pos
+        next_pos = self.path.pop().pos
+        return Vertex(next_pos.x, next_pos.y)

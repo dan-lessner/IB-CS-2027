@@ -59,12 +59,6 @@ def setup_logging(level, to_console: bool = True, file_path: str = None):
         )
     return level_name
 
-
-def get_car_logger(car_name: str, car_id: int):
-    safe_name = _safe_logger_part(car_name)
-    return logging.getLogger("racecars.car." + safe_name + ".id_" + str(car_id + 1))
-
-
 def _resolve_level(level):
     text = _DEFAULT_LOG_LEVEL
     if level is not None:
@@ -101,8 +95,7 @@ def _remove_handlers(logger):
                 ex
             )
 
-
-def _safe_logger_part(text: str):
+def sanitize_logger_name(text: str):
     if text is None:
         return "unnamed"
     stripped = text.strip()

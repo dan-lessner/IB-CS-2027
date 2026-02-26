@@ -5,7 +5,7 @@ from simulation.script_api import AutoAuto
 class Auto(AutoAuto):
 
 
-    def __init__(self):
+    def __init__(self, track):
         super().__init__()
         self.last_move = None
         self.move_history = []
