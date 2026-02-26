@@ -4,7 +4,7 @@ from simulation.script_api import AutoAuto, WorldState
 
 
 class Auto(AutoAuto):
-    def __init__(self) -> None:
+    def __init__(self, track) -> None:
         super().__init__()
         self.step = 0  # counts steps
         self.vertical_direction = 1   # -1 is up , 1 is down
