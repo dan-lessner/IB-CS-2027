@@ -1,106 +1,67 @@
 import random
 from simulation.script_api import AutoAuto
-
+from simulation.game_state import Vertex
 
 class Auto(AutoAuto):
     def __init__(self) -> None:
         super().__init__()
         self.last_positions = []
-        self.direction = (1, 0)  # preferred movement direction
+        self.direction = (1, 0)  # start moving right
 
     def GetName(self) -> str:
-        return "Anna"
+        return "AnickaTom"
 
-    def PickMove(self, auto, world, targets, validity):
-        # no possible moves
-        if not targets:
-            return None
+    def _rotate_left(self, dx, dy):
+        return (-dy, dx)
 
-        current_x = auto.pos.x
-        current_y = auto.pos.y
+    def _rotate_right(self, dx, dy):
+        return (dy, -dx)
 
+    def _get_forward(self):
+        return self.direction
 
-        # TRACK LAST POSITIONS
+    def _get_possible_moves(self):
+        # forward, left, right (priority order)
+        dx, dy = self.direction
+        return [
+            (dx, dy),              # forward
+            self._rotate_left(dx, dy),
+            self._rotate_right(dx, dy)
+        ]
 
-        self.last_positions.append((current_x, current_y))
-        if len(self.last_positions) > 8:
+    def PickMove(self):
+        # ensure position is initialized
+        if not hasattr(self, "position") or self.position is None:
+            return Vertex(0, 0)  # fallback start position
+
+        x, y = self.position
+
+        # remember history (to avoid loops)
+        self.last_positions.append((x, y))
+        if len(self.last_positions) > 10:
             self.last_positions.pop(0)
 
+        # 1) Try preferred directions first
+        for dx, dy in self._get_possible_moves():
+            new_x = x + dx
+            new_y = y + dy
 
-        # STUCK DETECTION
-
-        stuck = False
-        if len(self.last_positions) == 8:
-            xs = [p[0] for p in self.last_positions]
-            ys = [p[1] for p in self.last_positions]
-
-            # very small movement window → stuck
-            if (max(xs) - min(xs) < 2) and (max(ys) - min(ys) < 2):
-                stuck = True
-
-
-        # BUILD MOVE POOL
-
-        valid_moves = []
-        for i in range(len(targets)):
-            if validity is None or (i < len(validity) and validity[i]):
-                valid_moves.append((targets[i], i))
-
-        # if nothing valid, allow everything as fallback
-        pool = valid_moves if valid_moves else [(targets[i], i) for i in range(len(targets))]
-
-
-        # CHECK FORWARD BLOCK
-        
-        forward_blocked = True
-        for move, i in valid_moves:
-            if move.x > current_x:
-                forward_blocked = False
-                break
-
-
-        # SCORE MOVES
-       
-        best_move = None
-        best_score = float("-inf")
-
-        for move, idx in pool:
-            dx = move.x - current_x
-            dy = move.y - current_y
-
-            # avoid zero movement unless absolutely necessary
-            if dx == 0 and dy == 0:
+            if (new_x, new_y) in self.last_positions:
                 continue
 
-            if stuck:
-                # escape mode → choose any strong movement
-                score = abs(dx) + abs(dy) + random.uniform(0, 2)
-
-            else:
-                # prefer continuing same direction
-                momentum_bonus = 3 if (dx, dy) == self.direction else 0
-
-                # diagonal movement bonus (helps cornering)
-                diagonal_bonus = 1.5 if abs(dx) > 0 and abs(dy) > 0 else 0
-
-                if forward_blocked:
-                    # when blocked, prioritize turning (vertical motion)
-                    score = abs(dx) + abs(dy) * 2
-                else:
-                    # prefer moving forward strongly
-                    score = (dx * 4) - (abs(dy) * 0.5)
-
-                score += momentum_bonus + diagonal_bonus
-                score += random.uniform(0, 0.2)
-
-            if score > best_score:
-                best_score = score
-                best_move = move
+            if self.IsValidPosition(new_x, new_y):
                 self.direction = (dx, dy)
+                return Vertex(new_x, new_y)
 
-        # safety fallback
-        if best_move is None:
-            return targets[0]
+        # 2) Try any direction if blocked
+        directions = [(1,0), (-1,0), (0,1), (0,-1)]
+        random.shuffle(directions)
+        for dx, dy in directions:
+            new_x = x + dx
+            new_y = y + dy
+            if self.IsValidPosition(new_x, new_y):
+                self.direction = (dx, dy)
+                return Vertex(new_x, new_y)
 
-        return best_move
-
+        # 3) Absolute last resort: stay in place
+        return Vertex(x, y)
