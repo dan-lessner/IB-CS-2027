@@ -1,9 +1,10 @@
 import random
 import math
 from simulation.script_api import AutoAuto
+
 class Auto(AutoAuto):
     
-    def __init__(self) -> None:
+    def __init__(self, track) -> None:
         self.dir = (1, 0) 
         super().__init__()
         self.step = 0
@@ -54,3 +55,4 @@ def random_unit_step():
     return dx, dy
 
 dx, dy = random_unit_step()
+
