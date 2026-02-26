@@ -3,7 +3,7 @@ from collections import deque
 
 
 class Auto(AutoAuto):
-    def __init__(self):
+    def __init__(self, track):
         super().__init__()
         self.plan = None
         self.plan_index = 0
