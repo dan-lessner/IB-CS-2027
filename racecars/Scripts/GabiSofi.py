@@ -1,92 +1,171 @@
-import random
-import math
-from simulation.script_api import AutoAuto
+from simulation.script_api import AutoAuto, WorldState
+import heapq
 
 class Auto(AutoAuto):
-
-    def __init__(self) -> None:
-        self.dir = (1, 0)
+    def __init__(self, track):
         super().__init__()
+        self.path = None
+
+        # --- added from your original ---
+        self.dir = (1, 0)
         self.step = 0
 
     def GetName(self) -> str:
+        # keep your name if you want
         return "Lightning McQueen"
 
-    def _get_finish_xy(self, world):
-    
-        candidates = [
-            "finish", "finish_pos", "finishPosition", "finish_point",
-            "goal", "goal_pos", "target", "target_pos"
-        ]
+    def is_road(self, world: WorldState, cx: int, cy: int) -> bool:
+        width = len(world.road)
+        height = len(world.road[0]) if width > 0 else 0
+        if 0 <= cx < width and 0 <= cy < height:
+            return world.road[cx][cy]
+        return False
 
-        for name in candidates:
-            if hasattr(world, name):
-                f = getattr(world, name)
-                # If finish is an object with x/y
-                if hasattr(f, "x") and hasattr(f, "y"):
-                    return (f.x, f.y)
-                # If finish is a tuple/list like (x, y)
-                if isinstance(f, (tuple, list)) and len(f) >= 2:
-                    return (f[0], f[1])
+    def is_valid_vertex(self, world: WorldState, x: int, y: int) -> bool:
+        for dx in [-1, 0]:
+            for dy in [-1, 0]:
+                if self.is_road(world, x + dx, y + dy):
+                    return True
+        return False
 
-        return None
+    def can_move(self, world: WorldState, x: int, y: int, dx: int, dy: int) -> bool:
+        nx, ny = x + dx, y + dy
+
+        if not self.is_valid_vertex(world, nx, ny):
+            return False
+
+        if dx != 0 and dy != 0:
+            cell_x = x if dx > 0 else x - 1
+            cell_y = y if dy > 0 else y - 1
+            if not self.is_road(world, cell_x, cell_y):
+                return False
+        elif dx != 0:
+            cell_x = x if dx > 0 else x - 1
+            if not self.is_road(world, cell_x, y) and not self.is_road(world, cell_x, y - 1):
+                return False
+        else:
+            cell_y = y if dy > 0 else y - 1
+            if not self.is_road(world, x, cell_y) and not self.is_road(world, x - 1, cell_y):
+                return False
+
+        return True
+
+    def computepath(self, start_x: int, start_y: int, world: WorldState) -> list:
+        finish_set = {(v.x, v.y) for v in world.finish_vertices}
+
+        heap = [(0, start_x, start_y)]
+        dist = {(start_x, start_y): 0}
+        came_from = {}
+
+        directions = [(-1, -1), (-1, 0), (-1, 1),
+                      (0, -1),           (0, 1),
+                      (1, -1),  (1, 0),  (1, 1)]
+
+        while heap:
+            d, x, y = heapq.heappop(heap)
+
+            if d > dist.get((x, y), float('inf')):
+                continue
+
+            if (x, y) in finish_set:
+                path = [(x, y)]
+                while (x, y) in came_from:
+                    x, y = came_from[(x, y)]
+                    path.append((x, y))
+                path.reverse()
+                return path
+
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+
+                is_finish = (nx, ny) in finish_set
+                if not is_finish and not self.can_move(world, x, y, dx, dy):
+                    continue
+
+                step_dist = 1.414 if (dx != 0 and dy != 0) else 1.0
+                new_dist = d + step_dist
+
+                if new_dist < dist.get((nx, ny), float('inf')):
+                    dist[(nx, ny)] = new_dist
+                    came_from[(nx, ny)] = (x, y)
+                    heapq.heappush(heap, (new_dist, nx, ny))
+
+        return []  # No path found
 
     def PickMove(self, auto, world, targets, validity):
+        # --- added from your original ---
         self.step += 1
         print("kroky:", self.step)
 
-        if not targets:
+        current = (int(auto.pos.x), int(auto.pos.y))
+        vx, vy = int(auto.vel.x), int(auto.vel.y)
+        current_speed = max(abs(vx), abs(vy))
+
+        valid_moves = []
+        valid_move_map = {}
+        for i, is_valid in enumerate(validity):
+            if is_valid:
+                move = targets[i]
+                valid_moves.append(move)
+                valid_move_map[(move.x, move.y)] = move
+
+        if not valid_moves:
             return None
 
-        finish_xy = self._get_finish_xy(world)
+        finish_set = {(v.x, v.y) for v in world.finish_vertices}
+        for move in valid_moves:
+            if (move.x, move.y) in finish_set:
+                return move
 
-        if finish_xy is not None:
-            best = None
-            best_dist = None
+        if current_speed > 1:
+            for move in valid_moves:
+                move_vx = move.x - current[0]
+                move_vy = move.y - current[1]
+                move_speed = max(abs(move_vx), abs(move_vy))
+                if move_speed < current_speed:
+                    return move
+            return valid_moves[0]
 
-            for move in targets:
-                d = euclidean((move.x, move.y), finish_xy)
-                if best_dist is None or d < best_dist:
-                    best_dist = d
-                    best = move
+        if self.path is None:
+            self.path = self.computepath(current[0], current[1], world)
 
-            return best
+        try:
+            current_index = self.path.index(current)
+        except ValueError:
+            print(f"[Dijkstra] Recomputing path: current {current} not on path")
+            self.path = self.computepath(current[0], current[1], world)
+            try:
+                current_index = self.path.index(current)
+            except ValueError:
+                print(f"[Dijkstra] Warning: still not on path after recompute")
+                return valid_moves[0]
 
-        best = targets[0]
-        for move in targets:
-            if move.x > best.x:
-                best = move
-        return best
+        if current_index >= len(self.path) - 1:
+            return valid_moves[0]
 
+        next_pos = self.path[current_index + 1]
 
-def euclidean(a, b):
-    dx = a[0] - b[0]
-    dy = a[1] - b[1]
-    return math.sqrt(dx * dx + dy * dy)
+        if next_pos in valid_move_map:
+            return valid_move_map[next_pos]
 
+        if current_speed > 0:
+            for move in valid_moves:
+                move_vx = move.x - current[0]
+                move_vy = move.y - current[1]
+                move_speed = max(abs(move_vx), abs(move_vy))
+                if move_speed < current_speed:
+                    return move
 
-def pick_nearest_vertex(vertices, position, visited):
-    best_idx = None
-    best_dist = None
-    i = 0
-    while i < len(vertices):
-        v = vertices[i]
-        if v in visited:
-            i = i + 1
-            continue
-        d = euclidean(position, v)
-        if best_dist is None or d < best_dist:
-            best_dist = d
-            best_idx = i
-        i = i + 1
-    return best_idx
+        print(f"[Dijkstra] Recomputing path: next step {next_pos} not reachable")
+        self.path = self.computepath(current[0], current[1], world)
 
+        try:
+            current_index = self.path.index(current)
+            if current_index < len(self.path) - 1:
+                next_pos = self.path[current_index + 1]
+                if next_pos in valid_move_map:
+                    return valid_move_map[next_pos]
+        except ValueError:
+            pass
 
-def random_unit_step():
-    angle = random.random() * 2.0 * math.pi
-    dx = math.cos(angle)
-    dy = math.sin(angle)
-    return dx, dy
-
-
-dx, dy = random_unit_step()
+        return valid_moves[0]
