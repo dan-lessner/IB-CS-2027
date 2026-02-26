@@ -13,8 +13,8 @@ y = h // 2
 my_canvas = Canvas(root, width=w, height=h, bg="white")
 my_canvas.pack(pady=20)
 
-# Create a circle 
-my_circle = my_canvas.create_oval(x, y, x+10, y+10)
+# Create a circle
+my_circle = my_canvas.create_oval(x, y, x + 10, y + 10)
 
 # Define movement functions
 def left(event):
