@@ -103,3 +103,4 @@ class Auto(AutoAuto):
             return targets[0]
 
         return best_move
+

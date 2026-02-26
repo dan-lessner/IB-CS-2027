@@ -11,19 +11,19 @@ class AbstractSet(ABC):
         pass
 
     @abstractmethod
-    def contains(self, element):
+    def contains(self, element) -> bool:
         pass
 
     @abstractmethod
-    def size(self):
+    def size(self) -> int:
         pass
 
     @abstractmethod
-    def union(self, other):
+    def union(self, other) -> 'AbstractSet':
         pass
 
     @abstractmethod
-    def intersection(self, other):
+    def intersection(self, other) -> 'AbstractSet':
         pass
 
     @abstractmethod
