@@ -12,7 +12,7 @@ class Auto(AutoAuto):
         self.stuck_counter = 0
 
     def GetName(self) -> str:
-        return "Express"
+        return "Cutie"
 
     def PickMove(self, auto, world, targets, validity):
         if not targets:
@@ -45,7 +45,7 @@ class Auto(AutoAuto):
 
          # i is the position in the original list, it keeps the safe options
         valid_moves = [(targets[i], i) for i in range(len(targets)) if validity[i]]
-
+        print (targets)
         # what it will actually choose from 
         pool = valid_moves if valid_moves else [(targets[i], i) for i in range(len(targets))]
 
@@ -94,5 +94,3 @@ class Auto(AutoAuto):
             # look at every avaiable move, calculate how far it is, pick it and go
 
 
-
-# IT STILL GETS STUCK WHYYYYYYYYYYYYYYYYYYYYY
