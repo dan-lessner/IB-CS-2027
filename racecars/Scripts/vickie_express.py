@@ -12,7 +12,7 @@ class Auto(AutoAuto):
         self.stuck_counter = 0
 
     def GetName(self) -> str:
-        return "Cutie"
+        return "Cutie 2"
 
     def PickMove(self, auto, world, targets, validity):
         if not targets:
