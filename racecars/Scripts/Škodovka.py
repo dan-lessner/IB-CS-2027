@@ -10,17 +10,30 @@ class Auto(AutoAuto):
         return "Škoda"
     
     def PickMove(self, auto, world, targets, validity):
-        current_pos = (int(auto.pos.x), int(auto.pos.y))
+        possible_moves = []                    
 
         for i in range(len(targets)):
-            if targets[i].x == auto.pos.x + self.direction[0] and targets[i].y == auto.pos.y + self.direction[1]:
-                if validity[i]:
-                    return targets[i]
-                else:
-                    if self.direction[0] == 0:
-                        self.direction = [1, 0]
-                    else:
-                        self.direction = [0, random.choice([-1, 1])]
-                    return auto.pos
-                    
+            possible_moves.append([targets[i].x, targets[i].y])
         
+        print(possible_moves)
+
+        if self.direction[0] == 0:
+            if validity[possible_moves.index([auto.pos.x+1, auto.pos.y + self.direction[1]])]:
+                self.direction[0] = 1
+
+        if not validity[possible_moves.index([auto.pos.x + self.direction[0], auto.pos.y + self.direction[1]])]:
+            if self.direction[0] == 1:
+                if validity[possible_moves.index([auto.pos.x + 1, auto.pos.y])]:
+                    self.direction[1] = 0
+                else:
+                    self.direction[0] = 0
+                    if self.direction[1] == 0:
+                        self.direction[1] = random.choice([-1, 1])
+                    return auto.pos
+            else:
+                if self.direction[1] == 0:
+                    self.direction[1] == random.choice([-1, 1])
+                self.direction[1] = -self.direction[1]
+                return auto.pos
+            
+        return targets[possible_moves.index([auto.pos.x + self.direction[0], auto.pos.y + self.direction[1]])]
