@@ -1,17 +1,20 @@
 from simulation.script_api import AutoAuto, WorldState
 import heapq
+import math
+
 
 class Auto(AutoAuto):
     def __init__(self, track):
         super().__init__()
-        self.path = None
+        self.dist_to_finish = None
+        self.step_count = 0
+        self.move_count = 0
 
-        # --- added from your original ---
-        self.dir = (1, 0)
-        self.step = 0
+        # unstuck helpers
+        self.last_position = None
+        self.stuck_steps = 0
 
     def GetName(self) -> str:
-        # keep your name if you want
         return "Lightning McQueen"
 
     def is_road(self, world: WorldState, cx: int, cy: int) -> bool:
@@ -50,16 +53,21 @@ class Auto(AutoAuto):
 
         return True
 
-    def computepath(self, start_x: int, start_y: int, world: WorldState) -> list:
+    def compute_distance_map(self, world: WorldState) -> dict:
         finish_set = {(v.x, v.y) for v in world.finish_vertices}
 
-        heap = [(0, start_x, start_y)]
-        dist = {(start_x, start_y): 0}
-        came_from = {}
+        heap = []
+        dist = {}
+
+        for fx, fy in finish_set:
+            heap.append((0, fx, fy))
+            dist[(fx, fy)] = 0
+
+        heapq.heapify(heap)
 
         directions = [(-1, -1), (-1, 0), (-1, 1),
-                      (0, -1),           (0, 1),
-                      (1, -1),  (1, 0),  (1, 1)]
+                      (0, -1),          (0, 1),
+                      (1, -1),  (1, 0), (1, 1)]
 
         while heap:
             d, x, y = heapq.heappop(heap)
@@ -67,19 +75,10 @@ class Auto(AutoAuto):
             if d > dist.get((x, y), float('inf')):
                 continue
 
-            if (x, y) in finish_set:
-                path = [(x, y)]
-                while (x, y) in came_from:
-                    x, y = came_from[(x, y)]
-                    path.append((x, y))
-                path.reverse()
-                return path
-
             for dx, dy in directions:
                 nx, ny = x + dx, y + dy
 
-                is_finish = (nx, ny) in finish_set
-                if not is_finish and not self.can_move(world, x, y, dx, dy):
+                if not self.can_move(world, nx, ny, -dx, -dy):
                     continue
 
                 step_dist = 1.414 if (dx != 0 and dy != 0) else 1.0
@@ -87,85 +86,94 @@ class Auto(AutoAuto):
 
                 if new_dist < dist.get((nx, ny), float('inf')):
                     dist[(nx, ny)] = new_dist
-                    came_from[(nx, ny)] = (x, y)
                     heapq.heappush(heap, (new_dist, nx, ny))
 
-        return []  # No path found
+        return dist
 
     def PickMove(self, auto, world, targets, validity):
-        # --- added from your original ---
-        self.step += 1
-        print("kroky:", self.step)
+        self.step_count += 1
 
         current = (int(auto.pos.x), int(auto.pos.y))
-        vx, vy = int(auto.vel.x), int(auto.vel.y)
-        current_speed = max(abs(vx), abs(vy))
+
+        # count only real movement, not just turns
+        if self.last_position is None:
+            self.last_position = current
+        elif current != self.last_position:
+            self.move_count += 1
+            self.last_position = current
+
+        print("moves:", self.move_count)
+
+        # track whether the car is stuck in the same place
+        if self.last_position == current:
+            self.stuck_steps += 1
+        else:
+            self.stuck_steps = 0
+        self.last_position = current
+
+        if self.dist_to_finish is None:
+            self.dist_to_finish = self.compute_distance_map(world)
 
         valid_moves = []
-        valid_move_map = {}
         for i, is_valid in enumerate(validity):
             if is_valid:
-                move = targets[i]
-                valid_moves.append(move)
-                valid_move_map[(move.x, move.y)] = move
+                valid_moves.append(targets[i])
 
-        if not valid_moves:
-            return None
+        if len(valid_moves) == 0:
+            print(f"[Lightning McQueen] Warning: no valid moves at {current}")
+            return targets[0]
 
-        finish_set = {(v.x, v.y) for v in world.finish_vertices}
+        best_move = None
+        best_dist = float('inf')
+
         for move in valid_moves:
-            if (move.x, move.y) in finish_set:
-                return move
+            pos = (move.x, move.y)
+            dist = self.dist_to_finish.get(pos, float('inf'))
 
-        if current_speed > 1:
-            for move in valid_moves:
-                move_vx = move.x - current[0]
-                move_vy = move.y - current[1]
-                move_speed = max(abs(move_vx), abs(move_vy))
-                if move_speed < current_speed:
-                    return move
-            return valid_moves[0]
+            if dist < best_dist:
+                best_dist = dist
+                best_move = move
 
-        if self.path is None:
-            self.path = self.computepath(current[0], current[1], world)
+        # if normal best move actually moves, use it
+        if best_move is not None and (best_move.x, best_move.y) != current and self.stuck_steps < 2:
+            return best_move
 
-        try:
-            current_index = self.path.index(current)
-        except ValueError:
-            print(f"[Dijkstra] Recomputing path: current {current} not on path")
-            self.path = self.computepath(current[0], current[1], world)
-            try:
-                current_index = self.path.index(current)
-            except ValueError:
-                print(f"[Dijkstra] Warning: still not on path after recompute")
-                return valid_moves[0]
+        # unstuck mode:
+        # choose a valid move that changes position and has the best distance
+        escape_move = None
+        escape_dist = float('inf')
 
-        if current_index >= len(self.path) - 1:
-            return valid_moves[0]
+        for move in valid_moves:
+            pos = (move.x, move.y)
+            if pos == current:
+                continue
 
-        next_pos = self.path[current_index + 1]
+            dist = self.dist_to_finish.get(pos, float('inf'))
+            if dist < escape_dist:
+                escape_dist = dist
+                escape_move = move
 
-        if next_pos in valid_move_map:
-            return valid_move_map[next_pos]
+        if escape_move is not None:
+            print(f"[Lightning McQueen] Unstuck move at {current}")
+            return escape_move
 
-        if current_speed > 0:
-            for move in valid_moves:
-                move_vx = move.x - current[0]
-                move_vy = move.y - current[1]
-                move_speed = max(abs(move_vx), abs(move_vy))
-                if move_speed < current_speed:
-                    return move
+        # fallback identical to original idea
+        print(f"[Lightning McQueen] Warning: fallback at {current}")
 
-        print(f"[Dijkstra] Recomputing path: next step {next_pos} not reachable")
-        self.path = self.computepath(current[0], current[1], world)
+        best_move = None
+        best_dist = float('inf')
 
-        try:
-            current_index = self.path.index(current)
-            if current_index < len(self.path) - 1:
-                next_pos = self.path[current_index + 1]
-                if next_pos in valid_move_map:
-                    return valid_move_map[next_pos]
-        except ValueError:
-            pass
+        for move in valid_moves:
+            min_euclidean = float('inf')
+            for fv in world.finish_vertices:
+                dx = move.x - fv.x
+                dy = move.y - fv.y
+                euclidean = math.sqrt(dx * dx + dy * dy)
+                if euclidean < min_euclidean:
+                    min_euclidean = euclidean
 
-        return valid_moves[0]
+            if min_euclidean < best_dist:
+                best_dist = min_euclidean
+                best_move = move
+
+        return best_move if best_move else valid_moves[0]
