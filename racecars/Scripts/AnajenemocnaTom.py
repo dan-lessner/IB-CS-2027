@@ -18,36 +18,44 @@ class Auto(AutoAuto):
         current_x = auto.pos.x
         current_y = auto.pos.y
 
+        valid_moves = []
+
+        for i, move in enumerate(targets):
+            if validity is None or validity[i]:
+                valid_moves.append(move)
+
+        if not valid_moves:
+            return targets[0]
+
+        # jedeme dopredu
+        forward_possible = False
+        for move in valid_moves:
+            if move.x > current_x:
+                forward_possible = True
+                break
+
         best_move = None
         best_score = float("-inf")
 
-        for i, move in enumerate(targets):
-
-            if validity and not validity[i]:
-                continue
+        for move in valid_moves:
 
             dx = move.x - current_x
             dy = move.y - current_y
 
-            # jedeme co nejvíc doprava, cause women are always right
-            score = dx * 10
+            if forward_possible:
+                # prefer strong forward movement
+                score = dx * 10 - abs(dy) * 2
+            else:
+                # if blocked, prioritize turning
+                score = abs(dy) * 6 + dx
 
-            # zadny klikateni jinak minus body debile
-            score -= abs(dy) * 2
-
-            # bodik navic (kein schwarzpuntik) kdyz jedes dobre
+                # bonusovy bodik
             if (dx, dy) == self.direction:
-                score += 5
-
-            # divna zmena smeru = problem
-            score -= abs(dy - self.direction[1]) * 2
+                score += 4
 
             if score > best_score:
                 best_score = score
                 best_move = move
                 self.direction = (dx, dy)
-
-        if best_move is None:
-            return targets[0]
 
         return best_move
