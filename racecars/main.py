@@ -311,7 +311,7 @@ def _create_cars_for_track(track: Track, players: int, controllers, script_infos
                 try:
                     name = driver.GetName()
                 except Exception as ex:
-                    car.logger.exception("GetName() failed for script '%s' (%s: %s). Using script file name as fallback.", script_info.name, type(ex).__name__, ex)
+                    _LOGGER.exception("GetName() failed for script '%s' (%s: %s). Using script file name as fallback.", script_info.name, type(ex).__name__, ex)
                     name = script_info.name
                 names[index] = name
                 logger = logging.getLogger("racecars.car." + sanitize_logger_name(script_info.name) + ".id_" + str(index + 1))
