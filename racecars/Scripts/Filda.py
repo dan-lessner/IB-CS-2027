@@ -34,7 +34,7 @@ class Auto(AutoAuto):
         index = -1
         if repeat and len(allowed_moves) > 1:
             index = random.randint(-2, -1)
-        print(targets)
+        print(world.finish_vertices)
         return allowed_moves[index]     
 
 
