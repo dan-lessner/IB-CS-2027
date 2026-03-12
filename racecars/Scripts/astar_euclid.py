@@ -25,7 +25,7 @@ class Auto(AutoAuto):
 
 
     def GetName(self) -> str:
-        return "A* euclid"
+        return "BARBIE JEEP ASTARA SERANA"
     
     def __init__(self, track):
         super().__init__()
