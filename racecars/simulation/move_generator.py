@@ -10,6 +10,10 @@ def get_ordered_targets_and_validity(game_state: GameState, car_id: int):
     # Returns fixed-order targets so student scripts can map indices to accelerations.
     car = game_state.cars[car_id]
 
+    # Eliminated cars (fatal penalty) cannot move — they stay where they are
+    if car.eliminated:
+        return [car.pos], [True]
+
     # If car is penalized, only allow staying in place
     if car.penalty > 0:
         return [car.pos], [True]

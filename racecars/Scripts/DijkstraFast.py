@@ -13,10 +13,15 @@ class Auto(AutoAuto):
 
     def is_road(self, world: WorldState, cx: int, cy: int) -> bool:
         width = len(world.road)
-        height = len(world.road[0]) if width > 0 else 0
-        if 0 <= cx < width and 0 <= cy < height:
-            return world.road[cx][cy]
-        return False
+        if cx < 0 or cx >= width:
+            return False
+        if cy < 0:
+            return False
+        if cx >= len(world.road):
+            return False
+        if cy >= len(world.road[cx]):
+            return False
+        return world.road[cx][cy]
 
     def is_valid_vertex(self, world: WorldState, x: int, y: int) -> bool:
         for dx in [-1, 0]:

@@ -63,6 +63,13 @@ class Car:
         self.pos = pos
         self.vel = vel  # Velocity vector
         self.penalty = 0  # Number of penalty turns remaining
+        self.eliminated = False  # True when car is permanently out of the race (fatal collision mode)
+        self.laps = 0           # Počet přejezdů cílem
+        self.crashes = 0        # Počet nárazů
+        self.distance = 0.0     # Celková ujetá vzdálenost (v jednotkách mřížky)
+        self.controller_name = ""  # Jméno controlleru (skriptu), nastavuje se zvenčí
+        self.finish_round = None  # Kolo, ve kterém auto projelo cílem (pro řazení výsledků)
+        self.finish_t = None      # Parametrický okamžik průjezdu cílem v rámci tahu (0..1)
         self.path: List[Segment] = []  # Path history for replay/logging
         self.trail: List[Tuple[int, int]] = []  # Initialize trail as an empty list
         self.driver = driver
@@ -70,7 +77,7 @@ class Car:
         self._missing_driver_warning_emitted = False
 
     def __repr__(self):
-        return f"Car(id={self.id}, name={self.name}, pos={self.pos}, vel={self.vel}, penalty={self.penalty})"
+        return f"Car(id={self.id}, name={self.name}, pos={self.pos}, vel={self.vel}, penalty={self.penalty}, eliminated={self.eliminated})"
 
     def deleteSetDriver(self, driver):
         self.driver = driver
@@ -201,6 +208,48 @@ class Track:
 
     def segment_crosses_finish(self, p0: Vertex, p1: Vertex) -> bool:
         return self._finish_intersection_point(p0, p1) is not None
+
+    def finish_crossing_t(self, p0: Vertex, p1: Vertex):
+        # Returns t ∈ [0, 1]: the fraction of the move at which the car crosses the finish line.
+        # Lower t = crossed earlier in the move (i.e., arrived sooner).
+        # Returns None if the segment does not cross the finish line.
+        fx0 = self.finish_line.start.x
+        fy0 = self.finish_line.start.y
+        fx1 = self.finish_line.end.x
+        fy1 = self.finish_line.end.y
+
+        if fx0 == fx1:
+            # Vertical finish line
+            if p0.x == p1.x:
+                # Car moves parallel to the finish line — already on it at t=0
+                if p0.x != fx0:
+                    return None
+                if not self._ranges_overlap(p0.y, p1.y, fy0, fy1):
+                    return None
+                return 0.0
+            t = (fx0 - p0.x) / (p1.x - p0.x)
+            if t < 0 or t > 1:
+                return None
+            y = p0.y + (p1.y - p0.y) * t
+            if not self._value_in_range(y, fy0, fy1):
+                return None
+            return t
+        else:
+            # Horizontal finish line
+            if p0.y == p1.y:
+                # Car moves parallel to the finish line — already on it at t=0
+                if p0.y != fy0:
+                    return None
+                if not self._ranges_overlap(p0.x, p1.x, fx0, fx1):
+                    return None
+                return 0.0
+            t = (fy0 - p0.y) / (p1.y - p0.y)
+            if t < 0 or t > 1:
+                return None
+            x = p0.x + (p1.x - p0.x) * t
+            if not self._value_in_range(x, fx0, fx1):
+                return None
+            return t
 
     def _finish_intersection_point(self, p0: Vertex, p1: Vertex):
         # Handles both vertical and horizontal finish lines.
@@ -408,6 +457,7 @@ class GameState:
         self.turn_order_position = 0
         self.current_player_idx = 0  # Index of the current player
         self.race_round = 1  # Starts at 1 and increases after each full player cycle.
+        self.race_start_time = None  # Set externally before the race begins (time.time())
         self.finished = False  # Whether the game is finished
         self.winners: List[int] = []  # List of winner IDs
         self.finish_triggered = False
