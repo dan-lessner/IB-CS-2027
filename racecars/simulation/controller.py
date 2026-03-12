@@ -131,7 +131,7 @@ class Controller:
 
     def _report_if_finished(self):
         if not self.game_state.finished:
-            if self.game_state.race_round > 500:
+            if self.game_state.race_round > 1000:
                 _LOGGER.warning("Round limit reached (500). Forcing race end.")
                 self.game_state.finished = True
             else:
