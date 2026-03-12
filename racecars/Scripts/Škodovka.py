@@ -7,7 +7,7 @@ class Auto(AutoAuto):
         self.direction = [1, 0]
 
     def GetName(self) -> str:
-        return "Škoda prohrávat"
+        return "Škoda vyhrávat"
     
     def PickMove(self, auto, world, targets, validity):
         possible_moves = []                    
