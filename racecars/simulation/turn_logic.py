@@ -39,8 +39,11 @@ class TurnLogic:
         # Validate the move and check for collisions
         target_occupied = TurnLogic._target_is_occupied(game_state, car_id, new_position)
         segment_valid = game_state.track.segment_is_valid(old_position, new_position)
+        # Finish-line nodes allow multiple cars — no crash when target is on finish line.
+        target_on_finish = game_state.track.vertex_on_finish_line(new_position)
+        effective_occupied = target_occupied and not target_on_finish
 
-        if target_occupied or not segment_valid:
+        if effective_occupied or not segment_valid:
             # Collision/off-track handling: keep a crash segment and reset speed.
             exit_point = game_state.track.first_invalid_point_on_segment(old_position, new_position)
             if exit_point is None:
@@ -54,7 +57,7 @@ class TurnLogic:
                 car.path.append(Segment(old_position, collision_vertex))
             car.vel = Vector2i(0, 0)
             car.crashes = car.crashes + 1
-            if TurnLogic._should_apply_penalty(game_state, target_occupied, segment_valid):
+            if TurnLogic._should_apply_penalty(game_state, effective_occupied, segment_valid):
                 if game_state.penalty_mode == "fatal":
                     car.eliminated = True
                     car.logger.info("Car '%s' (id=%s) was eliminated.", car.name, car.id)
@@ -74,7 +77,7 @@ class TurnLogic:
 
         # Check if the car crosses the finish line (only on a valid move)
         crossed_finish = False
-        if not target_occupied and segment_valid:
+        if not effective_occupied and segment_valid:
             if game_state.track.segment_crosses_finish(old_position, new_position):
                 crossed_finish = True
 
