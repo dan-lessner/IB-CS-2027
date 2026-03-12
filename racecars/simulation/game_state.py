@@ -206,6 +206,16 @@ class Track:
 
         return Vertex(int(round(x)), int(round(y)))
 
+    def vertex_on_finish_line(self, v: Vertex) -> bool:
+        """Returns True if vertex v lies exactly on the finish line segment."""
+        s = self.finish_line.start
+        e = self.finish_line.end
+        cross = (e.x - s.x) * (v.y - s.y) - (e.y - s.y) * (v.x - s.x)
+        if cross != 0:
+            return False
+        return (min(s.x, e.x) <= v.x <= max(s.x, e.x) and
+                min(s.y, e.y) <= v.y <= max(s.y, e.y))
+
     def segment_crosses_finish(self, p0: Vertex, p1: Vertex) -> bool:
         return self._finish_intersection_point(p0, p1) is not None
 

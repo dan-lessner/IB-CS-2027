@@ -20,20 +20,20 @@ class Auto(AutoAuto):
         if self.direction[0] == 0:
             if validity[possible_moves.index([auto.pos.x+1, auto.pos.y + self.direction[1]])]:
                 self.direction[0] = 1
-
-        if not validity[possible_moves.index([auto.pos.x + self.direction[0], auto.pos.y + self.direction[1]])]:
-            if self.direction[0] == 1:
-                if validity[possible_moves.index([auto.pos.x + 1, auto.pos.y])]:
-                    self.direction[1] = 0
+        if [auto.pos.x + self.direction[0], auto.pos.y + self.direction[1]] in possible_moves:
+            if not validity[possible_moves.index([auto.pos.x + self.direction[0], auto.pos.y + self.direction[1]])]:
+                if self.direction[0] == 1:
+                    if validity[possible_moves.index([auto.pos.x + 1, auto.pos.y])]:
+                        self.direction[1] = 0
+                    else:
+                        self.direction[0] = 0
+                        if self.direction[1] == 0:
+                            self.direction[1] = random.choice([-1, 1])
+                        return auto.pos
                 else:
-                    self.direction[0] = 0
                     if self.direction[1] == 0:
-                        self.direction[1] = random.choice([-1, 1])
+                        self.direction[1] == random.choice([-1, 1])
+                    self.direction[1] = -self.direction[1]
                     return auto.pos
-            else:
-                if self.direction[1] == 0:
-                    self.direction[1] == random.choice([-1, 1])
-                self.direction[1] = -self.direction[1]
-                return auto.pos
             
-        return targets[possible_moves.index([auto.pos.x + self.direction[0], auto.pos.y + self.direction[1]])]
+        return targets[possible_moves.index([auto.pos.x + auto.vel.x + self.direction[0], auto.pos.y + auto.vel.x + self.direction[1]])]

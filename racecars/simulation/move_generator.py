@@ -39,7 +39,8 @@ def get_ordered_targets_and_validity(game_state: GameState, car_id: int):
                     segment_valid = game_state.track.segment_is_valid(car.pos, target)
 
             occupied = _target_is_occupied(game_state, car_id, target)
-            valid = segment_valid and (not occupied)
+            target_on_finish = game_state.track.vertex_on_finish_line(target)
+            valid = segment_valid and (not occupied or target_on_finish)
 
             targets.append(target)
             validity.append(valid)
