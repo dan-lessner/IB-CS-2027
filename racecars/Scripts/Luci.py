@@ -7,7 +7,8 @@ class Auto(AutoAuto):
         self.step = 0
         self.bad_actions = set()
         self.last_action = None
-        self.last_positions = [] 
+        self.last_positions = []
+        self.last_direction = None
 
     def GetName(self):
         return "Luci"
@@ -37,12 +38,22 @@ class Auto(AutoAuto):
 
        
         if stuck:
-            return max(pool, key=lambda m: abs(m.x - current_x) + abs(m.y - current_y))
+             # compute all possible directions
+             dirs = [(m.x - current_x, m.y - current_y) for m in pool]
 
-        
-        for move in pool:
-            if move.x > current_x:
-                return move
+             # avoid repeating the same direction
+             alternative_moves = [
+            m for m in pool
+             if (m.x - current_x, m.y - current_y) != self.last_direction
+        ]
 
-        
+        if alternative_moves:
+            move = random.choice(alternative_moves)
+        else:
+            move = random.choice(pool)
+
+        self.last_direction = (move.x - current_x, move.y - current_y)
+        return move
+
+        self.last_direction = (move.x - current_x, move.y - current_y)
         return pool[0]
