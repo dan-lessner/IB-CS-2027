@@ -55,9 +55,9 @@ class Auto(AutoAuto):
             return valid_moves[random.randint(-2, -1)] # if stuck it chooses random, either index -2 (second to last) or -1(last)
 
         # finish line y position is the goal
-        finish_y = current_y  # 
+        finish_y = current_y  
         if world.finish_vertices:
-            finish_y = world.finish_vertices[len(world.finish_vertices) // 2].y
+            finish_y = world.finish_vertices[len(world.finish_vertices) // 3].y
             # // integer division, it divides and gets rid of th edecimal, this creates the best target in the finnish line (finnish is a vertical line - middle is optimal)
 
         # score every move: it prioritizes going forward,  you want to be close to the y finnish line
@@ -84,7 +84,4 @@ class Auto(AutoAuto):
 
         return best_move # gives the best of the best, simply the best move
     
-
-
-
     # how it work: finds where it is --store memory/ moves ---if its stuck it deals with it on random -- wehr is the finnish line (i am for the middle)--i want to go forward, but being close the y line is niceee--- moves according to the highest score
