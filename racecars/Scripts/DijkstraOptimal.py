@@ -18,11 +18,7 @@ class Auto(AutoAuto):
     def is_road(self, cx: int, cy: int) -> bool:
         if cx < 0 or cx >= self.road_width:
             return False
-        if cy < 0:
-            return False
-        if cx >= len(self.road):
-            return False
-        if cy >= len(self.road[cx]):
+        if cy < 0 or cy >= self.road_height:
             return False
         return self.road[cx][cy]
 

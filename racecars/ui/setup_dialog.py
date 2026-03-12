@@ -4,22 +4,26 @@ import pygame
 from simulation.params import GameParams
 
 class SetupDialog:
-    def __init__(self, params: GameParams):
+    def __init__(self, params: GameParams, generator_infos=None):
         self.params = params.clone()
+        self.generator_infos = generator_infos if generator_infos is not None else []
         self.screen = None
         self.font = None
         self.clock = None
         self.fields = []
         self.active_index = 0
-        self.message = ""
 
     def run(self) -> GameParams:
         # Modal-style loop: collect values, then return updated params.
         pygame.init()
-        self.screen = pygame.display.set_mode((640, 480))
         self.font = pygame.font.SysFont("consolas", 18)
         self.clock = pygame.time.Clock()
         self._build_fields()
+        # Size window to fit all fields plus buttons.
+        fields_height = 60 + len(self.fields) * 34 + 80
+        if fields_height < 480:
+            fields_height = 480
+        self.screen = pygame.display.set_mode((640, fields_height))
 
         running = True
         while running:
@@ -51,18 +55,32 @@ class SetupDialog:
             _Field("Seed (empty = random)", "seed", "" if self.params.seed is None else str(self.params.seed))
         ]
 
+        # Add track generator selector if any generators are available.
+        if len(self.generator_infos) > 0:
+            initial_index = 0
+            if self.params.track_generator_id is not None:
+                for i in range(len(self.generator_infos)):
+                    if self.generator_infos[i].id == self.params.track_generator_id:
+                        initial_index = i
+                        break
+            self.fields.append(_SelectField("Track generator", "track_generator_id",
+                                            self.generator_infos, initial_index))
+
     def _handle_mouse(self, pos):
         x, y = pos
         field_index = self._field_index_at(y)
         if field_index is not None:
+            field = self.fields[field_index]
+            if isinstance(field, _SelectField):
+                # Clicking a select field cycles its option.
+                field.index += 1
+                if field.index >= len(field.options):
+                    field.index = 0
             self.active_index = field_index
             return
 
-        if self._button_hit(x, y, 380, 400, 110, 40):
-            self.message = "Track regenerated."
-            return
-
-        if self._button_hit(x, y, 500, 400, 110, 40):
+        btn_y = self._buttons_y()
+        if self._button_hit(x, y, 500, btn_y, 110, 40):
             self._apply_fields_to_params()
             pygame.event.post(pygame.event.Event(pygame.QUIT))
             return
@@ -80,7 +98,7 @@ class SetupDialog:
             return True
         if key == pygame.K_BACKSPACE:
             field = self.fields[self.active_index]
-            if len(field.value) > 0:
+            if not isinstance(field, _SelectField) and len(field.value) > 0:
                 field.value = self._remove_last_char(field.value)
             return True
 
@@ -88,14 +106,25 @@ class SetupDialog:
             return True
 
         field = self.fields[self.active_index]
+        # Select fields do not accept text input.
+        if isinstance(field, _SelectField):
+            return True
         if self._text_allowed(field.key, text):
             field.value = field.value + text
         return True
 
     def _apply_fields_to_params(self):
-        # Parse validated text fields back into typed GameParams values.
+        # Parse validated fields back into typed GameParams values.
         for field in self.fields:
-            self._apply_field_value(field)
+            if isinstance(field, _SelectField):
+                self._apply_select_field(field)
+            else:
+                self._apply_field_value(field)
+
+    def _apply_select_field(self, field):
+        if field.key == "track_generator_id":
+            selected = field.options[field.index]
+            self.params.track_generator_id = selected.id
 
     def _apply_field_value(self, field):
         if field.key == "seed":
@@ -141,22 +170,25 @@ class SetupDialog:
         for index, field in enumerate(self.fields):
             label = self.font.render(field.label, True, (0, 0, 0))
             self.screen.blit(label, (20, y))
-            box_rect = pygame.Rect(260, y - 4, 160, 26)
+            box_rect = pygame.Rect(260, y - 4, 260, 26)
             color = (200, 200, 200)
             if index == self.active_index:
                 color = (255, 255, 255)
             pygame.draw.rect(self.screen, color, box_rect)
             pygame.draw.rect(self.screen, (120, 120, 120), box_rect, 1)
-            value_label = self.font.render(field.value, True, (0, 0, 0))
+
+            if isinstance(field, _SelectField):
+                selected_name = field.options[field.index].name
+                display_text = "< " + selected_name + " >"
+                value_label = self.font.render(display_text, True, (0, 0, 120))
+            else:
+                value_label = self.font.render(field.value, True, (0, 0, 0))
+
             self.screen.blit(value_label, (265, y))
             y += 34
 
-        self._draw_button(380, 400, 110, 40, "Generate")
-        self._draw_button(500, 400, 110, 40, "Start")
-
-        if self.message != "":
-            msg = self.font.render(self.message, True, (0, 0, 0))
-            self.screen.blit(msg, (20, 420))
+        btn_y = self._buttons_y()
+        self._draw_button(500, btn_y, 110, 40, "Start")
 
         pygame.display.flip()
 
@@ -175,6 +207,9 @@ class SetupDialog:
         if y < by or y > by + bh:
             return False
         return True
+
+    def _buttons_y(self):
+        return 60 + len(self.fields) * 34 + 14
 
     def _field_index_at(self, y):
         top = 60
@@ -212,3 +247,12 @@ class _Field:
         self.label = label
         self.key = key
         self.value = value
+
+
+class _SelectField:
+    def __init__(self, label: str, key: str, options, index: int):
+        # options is a list of TrackGeneratorInfo objects (or any object with .name and .id).
+        self.label = label
+        self.key = key
+        self.options = options
+        self.index = index

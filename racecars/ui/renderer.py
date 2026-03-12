@@ -1,13 +1,15 @@
 """Pygame renderer for the racecars game.
 
 Draws the track, cars, move hints, and status text each frame.
+The game loop itself lives in simulation.runner; this class only handles
+pygame initialisation, drawing, and event collection.
 """
 
 import logging
 import random
 import pygame
 from simulation.game_state import GameState
-from simulation.controller import Controller
+from simulation.runner import run_race
 
 _LOGGER = logging.getLogger("racecars.renderer")
 
@@ -36,9 +38,11 @@ class Renderer:
     ):
         pygame.init()
         self.game_state = game_state
-        self.controller = Controller(game_state)
-        self.cell_size = 20  # Size of each grid cell in pixels
+        self.controller = None  # Set later via bind_controller() from run_race()
         self.margin = 40  # Paper margin around the grid
+        self.cell_size = self._compute_cell_size()  # Fit track to monitor
+        if self.cell_size < 6:
+            self.margin = 10  # Reduce margin when cells are small
         if screen_width is None or screen_height is None:
             screen_width, screen_height = self._compute_screen_size()
         self.screen = pygame.display.set_mode((screen_width, screen_height))
@@ -53,6 +57,39 @@ class Renderer:
         self.font = pygame.font.SysFont("consolas", 18)
         self._missing_start_line_warning_emitted = False
         self._missing_car_id_warnings = set()
+        # Set to True by runner when stepwise mode pauses between rounds.
+        self.stepwise_pause = False
+
+    def _compute_cell_size(self):
+        # Use monitor resolution to scale the track so it fits the screen.
+        info = pygame.display.Info()
+        monitor_w = info.current_w
+        monitor_h = info.current_h
+
+        track_w = self.game_state.track.width
+        track_h = self.game_state.track.height
+
+        # Available pixels for the track cells (margin on both sides).
+        avail_w = monitor_w - self.margin * 2
+        avail_h = monitor_h - self.margin * 2
+
+        cell_by_width = avail_w // track_w
+        cell_by_height = avail_h // track_h
+
+        # Pick the smaller to ensure the whole track fits.
+        cell_size = cell_by_width
+        if cell_by_height < cell_size:
+            cell_size = cell_by_height
+
+        # Cap at the default maximum so small tracks are not zoomed in too much.
+        if cell_size > 20:
+            cell_size = 20
+
+        # Guard against degenerate track dimensions.
+        if cell_size < 1:
+            cell_size = 1
+
+        return cell_size
 
     def _compute_screen_size(self):
         width_px = self.game_state.track.width * self.cell_size
@@ -63,6 +100,10 @@ class Renderer:
 
     def draw_grid(self):
         # Grid lines mimic graph paper, which helps explain vector movement.
+        # Skip them when cells are too small — lines would merge into solid fill.
+        if self.cell_size < 5:
+            return
+
         width_px = self.game_state.track.width * self.cell_size
         height_px = self.game_state.track.height * self.cell_size
 
@@ -112,7 +153,18 @@ class Renderer:
 
             # Draw the car
             car_pos = self._vertex_to_screen(car.pos.x, car.pos.y)
-            pygame.draw.circle(self.screen, color, car_pos, self.cell_size // 3)
+            if car.eliminated:
+                # Eliminated car: grey circle with a cross in the car's original color.
+                pygame.draw.circle(self.screen, (150, 150, 150), car_pos, self.cell_size // 3)
+                arm = self.cell_size // 3
+                pygame.draw.line(self.screen, color,
+                    (car_pos[0] - arm, car_pos[1] - arm),
+                    (car_pos[0] + arm, car_pos[1] + arm), 2)
+                pygame.draw.line(self.screen, color,
+                    (car_pos[0] + arm, car_pos[1] - arm),
+                    (car_pos[0] - arm, car_pos[1] + arm), 2)
+            else:
+                pygame.draw.circle(self.screen, color, car_pos, self.cell_size // 3)
 
     def draw_start_and_finish_lines(self):
         if self.game_state.track.start_line is None:
@@ -158,23 +210,42 @@ class Renderer:
         self.draw_cars()
         self.draw_status()
         self.draw_round_counter()
+        if self.stepwise_pause:
+            self.draw_stepwise_hint()
         pygame.display.flip()
 
-    def run(self):
-        # Main render loop: input -> game update -> redraw.
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    self.handle_click(event.pos)
+    def bind_controller(self, controller):
+        """Called by run_race() so the renderer can query targets for drawing."""
+        self.controller = controller
 
-            self.controller.update()
-            self.render()
-            self.clock.tick(self.framerate)
+    def process_events(self):
+        """Handle all pending pygame events. Returns True if the window was closed."""
+        quit_requested = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                quit_requested = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    if self.game_state.finished:
+                        quit_requested = True
+                    elif self.stepwise_pause:
+                        # Spacebar resumes a stepwise pause between rounds.
+                        self.stepwise_pause = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self.handle_click(event.pos)
+        return quit_requested
 
+    def tick(self):
+        """Throttle the frame rate."""
+        self.clock.tick(self.framerate)
+
+    def shutdown(self):
+        """Tear down pygame after the race loop exits."""
         pygame.quit()
+
+    def run(self, stepwise=False):
+        """Start a race with this renderer attached. Blocks until the window is closed."""
+        run_race(self.game_state, renderer=self, stepwise=stepwise)
 
     def _vertex_to_screen(self, x: int, y: int):
         screen_x = self.margin + x * self.cell_size
@@ -203,6 +274,10 @@ class Renderer:
         # Targets are shown every frame for the currently active car.
         if self.game_state.finished:
             return
+        if self.game_state.cars:
+            current_car = self.game_state.cars[self.game_state.current_player_idx]
+            if current_car.eliminated:
+                return
 
         self._draw_target_preview_lines()
 
@@ -227,7 +302,10 @@ class Renderer:
         x = self.margin
         y = 10
         if self.game_state.finished:
-            if len(self.game_state.winners) == 1:
+            if len(self.game_state.winners) == 0:
+                label = self.font.render("No winner.", True, (0, 0, 0))
+                self.screen.blit(label, (x, y))
+            elif len(self.game_state.winners) == 1:
                 winner_id = self.game_state.winners[0]
                 winner = self._get_car_by_id(winner_id)
                 winner_text = "Car " + str(winner_id + 1) + ": " + winner.name
@@ -254,6 +332,23 @@ class Renderer:
         x = self.screen.get_width() - label.get_width() - 10
         y = 10
         self.screen.blit(label, (x, y))
+
+    def draw_stepwise_hint(self):
+        """Draw a semi-transparent banner at the bottom: 'SPACE — continue'."""
+        hint_text = "SPACE — continue to round " + str(self.game_state.race_round)
+        label = self.font.render(hint_text, True, (255, 255, 255))
+        banner_height = label.get_height() + 10
+        banner_y = self.screen.get_height() - banner_height
+        banner_rect = pygame.Rect(0, banner_y, self.screen.get_width(), banner_height)
+        # Dark semi-transparent background
+        overlay = pygame.Surface((self.screen.get_width(), banner_height))
+        overlay.set_alpha(200)
+        overlay.fill((30, 30, 30))
+        self.screen.blit(overlay, (0, banner_y))
+        # Centered text
+        text_x = (self.screen.get_width() - label.get_width()) // 2
+        text_y = banner_y + 5
+        self.screen.blit(label, (text_x, text_y))
 
     def _join_winners(self):
         text = ""
@@ -293,6 +388,8 @@ class Renderer:
         if not self.game_state.cars:
             return False
         car = self.game_state.cars[self.game_state.current_player_idx]
+        if car.eliminated:
+            return False
         return car.penalty > 0
 
     def _apply_penalty_marker_offset(self, pos):
