@@ -14,8 +14,6 @@ class Auto(AutoAuto):
 
         for i in range(len(targets)):
             possible_moves.append([targets[i].x, targets[i].y])
-        
-        print(possible_moves)
 
         if self.direction[0] == 0:
             if validity[possible_moves.index([auto.pos.x+1, auto.pos.y + self.direction[1]])]:
