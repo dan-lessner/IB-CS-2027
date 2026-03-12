@@ -3,12 +3,9 @@ from simulation.script_api import AutoAuto
 
 class Auto(AutoAuto):
     def __init__(self, track) -> None: 
-        super().__init__()  
-        self.step = 0
-        self.bad_actions = set()
-        self.last_action = None
+        super().__init__()
         self.last_positions = []
-        self.last_direction = None
+        self.visit_count = {}
 
     def GetName(self):
         return "Luci"
@@ -17,43 +14,50 @@ class Auto(AutoAuto):
         if not targets:
             return None
 
-        # track position history
-        self.last_positions.append((auto.pos.x, auto.pos.y))
-        if len(self.last_positions) > 5:
+        # --- Update visit memory ---
+        pos = (auto.pos.x, auto.pos.y)
+        self.visit_count[pos] = self.visit_count.get(pos, 0) + 1
+
+        # --- Track last positions for stuck detection ---
+        self.last_positions.append(pos)
+        if len(self.last_positions) > 6:
             self.last_positions.pop(0)
 
-        # detect if stuck
         stuck = False
-        if len(self.last_positions) == 5:
+        if len(self.last_positions) == 6:
             xs = [p[0] for p in self.last_positions]
-            if max(xs) - min(xs) < 2:
+            ys = [p[1] for p in self.last_positions]
+            if (max(xs) - min(xs) < 1) and (max(ys) - min(ys) < 1):
                 stuck = True
 
-      
-        valid_moves = [targets[i] for i in range(len(targets)) if validity[i]]
-        pool = valid_moves if valid_moves else list(targets)
+        # --- Filter valid moves ---
+        pool = [targets[i] for i in range(len(targets)) if validity[i]]
+        if not pool:
+            pool = list(targets)
 
         current_x = auto.pos.x
         current_y = auto.pos.y
 
-       
+        # --- Helper: visit score ---
+        def score(move):
+            return self.visit_count.get((move.x, move.y), 0)
+
+        # --- 1. If stuck: choose the least-visited move, ignoring direction ---
         if stuck:
-             # compute all possible directions
-             dirs = [(m.x - current_x, m.y - current_y) for m in pool]
+            return min(pool, key=score)
 
-             # avoid repeating the same direction
-             alternative_moves = [
-            m for m in pool
-             if (m.x - current_x, m.y - current_y) != self.last_direction
-        ]
+        # --- 2. Try to move forward only (x increasing) ---
+        forward_moves = [m for m in pool if m.x > current_x]
 
-        if alternative_moves:
-            move = random.choice(alternative_moves)
-        else:
-            move = random.choice(pool)
+        if forward_moves:
+            # choose the forward tile with the lowest visit count
+            return min(forward_moves, key=score)
 
-        self.last_direction = (move.x - current_x, move.y - current_y)
-        return move
+        # --- 3. If no forward move exists, choose sideways but NEVER backwards ---
+        sideways_moves = [m for m in pool if m.x == current_x]
+        if sideways_moves:
+            return min(sideways_moves, key=score)
 
-        self.last_direction = (move.x - current_x, move.y - current_y)
-        return pool[0]
+        # --- 4. Absolute fallback: if only backward moves exist, pick the least visited ---
+        # (This prevents the car from freezing completely.)
+        return min(pool, key=score)
