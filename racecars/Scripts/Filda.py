@@ -20,7 +20,7 @@ class Auto(AutoAuto):
         repeat = coords in self.history
         
         self.history.append(coords)
-        if len(self.history) > 9:
+        if len(self.history) > 20:
             self.history.pop(0)
 
         for i in range(len(targets)):
@@ -30,12 +30,10 @@ class Auto(AutoAuto):
 
         if len(allowed_moves) == 0:
             return auto.pos
-
         index = -1
         if repeat and len(allowed_moves) > 1:
             index = random.randint(-2, -1) 
         
         if len(self.history) >= 2 and self.history[-2] == (auto.pos.x, auto.pos.y + 1) and len(allowed_moves) >= 2:
-            index = -2
-
+            return targets[-6]
         return allowed_moves[index]
