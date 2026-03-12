@@ -33,5 +33,5 @@ class Auto(AutoAuto):
                         self.direction[1] == random.choice([-1, 1])
                     self.direction[1] = -self.direction[1]
                     return auto.pos
-            
-        return targets[possible_moves.index([auto.pos.x + auto.vel.x + self.direction[0], auto.pos.y + auto.vel.x + self.direction[1]])]
+        
+        return targets[possible_moves.index([auto.pos.x + self.direction[0], auto.pos.y + self.direction[1]])]
