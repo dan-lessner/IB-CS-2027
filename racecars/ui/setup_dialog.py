@@ -1,7 +1,7 @@
 """Simple setup window for game parameters before a race starts."""
 
 import pygame
-from simulation.params import GameParams
+from ui.params import GameParams
 
 class SetupDialog:
     def __init__(self, params: GameParams, generator_infos=None):

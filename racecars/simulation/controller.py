@@ -33,7 +33,7 @@ class Controller:
         if hasattr(car.driver, "SetTarget"):
             car.driver.SetTarget(target)
 
-    def update(self):
+    def update(self): # TODO
         # Core turn loop for one car: generate targets, ask driver, apply result.
         if self.game_state.finished:
             return
@@ -131,8 +131,10 @@ class Controller:
 
     def _report_if_finished(self):
         if not self.game_state.finished:
-            if self.game_state.race_round > 1000:
-                _LOGGER.warning("Round limit reached (500). Forcing race end.")
+            limit = self.game_state.max_rounds
+            # A limit of 0 means no limit. Only trigger when a positive limit is exceeded.
+            if limit > 0 and self.game_state.race_round > limit:
+                _LOGGER.warning("Round limit reached (%s). Forcing race end.", limit)
                 self.game_state.finished = True
             else:
                 return
@@ -146,22 +148,26 @@ def get_race_result_rows(game_state):
     """Return ordered result rows as a list of tab-separated strings (no header).
 
     Order: finishers sorted by finish_round / finish_t, then eliminated cars.
+    When --measure is active (game_state.performance is set), two extra timing
+    columns are included: init time (ms) and average PickMove time (ms).
     """
     rows = []
     position = 1
+    tracker = game_state.performance
+    measure_enabled = tracker is not None
 
     start_time_str = "-"
     if game_state.race_start_time is not None:
         start_time_str = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(game_state.race_start_time))
 
-    # Seřaď vítěze: primárně podle kola dokončení, sekundárně podle interpolovaného
-    # okamžiku průjezdu cílem (t ∈ [0,1]) v rámci tahu, terciárně podle pořadí tahu.
-    # Předpoklad: kolo probíhá simultánně — nižší t = auto projelo cílem dříve.
+    # Sort finishers: primary key = finish round, secondary = fractional crossing
+    # time t within that round (lower t = crossed the line earlier = placed higher).
+    # Tertiary tiebreaker = original turn order (preserved by stable bubble sort).
     sorted_winners = []
     for wid in game_state.winners:
         sorted_winners.append(wid)
 
-    # Bubble sort — počet aut je malý, čitelnost důležitější než efektivita
+    # Bubble sort — car counts are small so readability matters more than speed.
     n = len(sorted_winners)
     for pass_index in range(n):
         for compare_index in range(n - 1 - pass_index):
@@ -169,25 +175,12 @@ def get_race_result_rows(game_state):
             b_id = sorted_winners[compare_index + 1]
             a_car = game_state.cars[a_id]
             b_car = game_state.cars[b_id]
-            a_round = a_car.finish_round
-            b_round = b_car.finish_round
-            if a_round is None:
-                a_round = 999999
-            if b_round is None:
-                b_round = 999999
-            a_t = a_car.finish_t
-            b_t = b_car.finish_t
-            if a_t is None:
-                a_t = 1.0
-            if b_t is None:
-                b_t = 1.0
-            # Prohoď, pokud a přijelo až po b (vyšší round, nebo stejné round ale vyšší t)
-            swap = False
-            if a_round > b_round:
-                swap = True
-            elif a_round == b_round and a_t > b_t:
-                swap = True
-            # Při stejném round i t: zachovej původní pořadí (pořadí tahu — terciární tiebreaker)
+            a_round = a_car.finish_round if a_car.finish_round is not None else 999999
+            b_round = b_car.finish_round if b_car.finish_round is not None else 999999
+            a_t = a_car.finish_t if a_car.finish_t is not None else 1.0
+            b_t = b_car.finish_t if b_car.finish_t is not None else 1.0
+            # Swap if a finished strictly after b.
+            swap = a_round > b_round or (a_round == b_round and a_t > b_t)
             if swap:
                 sorted_winners[compare_index] = b_id
                 sorted_winners[compare_index + 1] = a_id
@@ -196,15 +189,15 @@ def get_race_result_rows(game_state):
         car = game_state.cars[car_id]
         distance_str = str(round(car.distance, 1))
         finish_round_str = str(car.finish_round) if car.finish_round is not None else "-"
-        if car.finish_round is not None and car.finish_round > 0:
-            avg_speed_str = str(round(car.distance / car.finish_round, 1))
-        else:
-            avg_speed_str = "-"
-        row = start_time_str + "\t" + str(position) + "\t" + finish_round_str + "\t" + str(car.crashes) + "\t" + distance_str + "\t" + avg_speed_str + "\t" + car.name + "\t" + car.controller_name
+        row = start_time_str + "\t" + str(position) + "\t" + finish_round_str + "\t" + str(car.crashes) + "\t" + distance_str
+        if measure_enabled:
+            row += "\t" + _format_init_ms(car)
+            row += "\t" + _format_avg_pickmove_ms(tracker, car_id)
+        row += "\t" + car.name + "\t" + car.controller_name
         rows.append(row)
         position = position + 1
 
-    # Pak auta vyřazená krachem (nedojela do cíle)
+    # Append cars that were eliminated (crashed fatally and never finished).
     for car in game_state.cars:
         if not car.eliminated:
             continue
@@ -215,22 +208,45 @@ def get_race_result_rows(game_state):
                 break
         if already_listed:
             continue
+
         distance_str = str(round(car.distance, 1))
-        if car.finish_round is not None and car.finish_round > 0:
-            avg_speed_str = str(round(car.distance / car.finish_round, 1))
-        else:
-            avg_speed_str = "-"
-        row = start_time_str + "\t" + str(position) + "\t-\t" + str(car.crashes) + "\t" + distance_str + "\t" + avg_speed_str + "\t" + car.name + "\t" + car.controller_name
+        row = start_time_str + "\t" + str(position) + "\t-\t" + str(car.crashes) + "\t" + distance_str
+        if measure_enabled:
+            row += "\t" + _format_init_ms(car)
+            row += "\t" + _format_avg_pickmove_ms(tracker, car.id)
+        row += "\t" + car.name + "\t" + car.controller_name
         rows.append(row)
         position = position + 1
 
     return rows
 
 
+def _format_init_ms(car) -> str:
+    """Return car's driver __init__ time as a formatted millisecond string."""
+    return str(round(car.init_ms, 2))
+
+
+def _format_avg_pickmove_ms(tracker, car_id: int) -> str:
+    """Return average PickMove() time in milliseconds, or '-' if no calls recorded."""
+    if car_id < 0 or car_id >= len(tracker.call_counts):
+        return "-"
+    calls = tracker.call_counts[car_id]
+    if calls == 0:
+        return "-"
+    avg_s = tracker.total_seconds[car_id] / calls
+    return str(round(avg_s * 1000, 2))
+
+
 def _print_race_results(game_state):
+    tracker = game_state.performance
+    measure_enabled = tracker is not None
     print("")
-    print("=== Výsledky závodu ===")
-    print("Time\tPlace\tRounds\tCrashes\tDistance\tAvg.speed\tCar name\tController")
+    print("=== Race results ===")
+    header = "Time\tPlace\tRounds\tCrashes\tDistance"
+    if measure_enabled:
+        header += "\tInit ms\tPickMove ms"
+    header += "\tCar name\tController"
+    print(header)
     rows = get_race_result_rows(game_state)
     for row in rows:
         print(row)

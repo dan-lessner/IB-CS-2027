@@ -4,7 +4,7 @@ import argparse
 import logging
 import os
 import sys
-from simulation.params import GameParams
+from ui.params import GameParams
 
 _LOGGER = logging.getLogger("racecars.config")
 
@@ -79,11 +79,11 @@ def parse_console_args(default_params: GameParams):
     _apply_options_to_params(params, options)
 
     provided_any = _has_parameter_overrides(options)
-    headless = options.headless
+    headless = bool(options.headless)
     # --headless implies skipping dialogs too.
-    start_without_dialog = options.start_without_dialog or headless
-    list_params = options.list_params
-    list_advanced_parameters = options.list_advanced_parameters
+    start_without_dialog = bool(options.start_without_dialog) or headless
+    list_params = bool(options.list_params)
+    list_advanced_parameters = bool(options.list_advanced_parameters)
     controllers_text = options.controllers
     track_generator_id = options.track_generator_id
 
@@ -153,32 +153,32 @@ def print_basic_console_help():
     print("  --seed N or --seed None")
     print("  --track ID (example: --track rectangle)")
     print("")
-    print("  --supress-log or --suppress-log")
+    print("  --supress-log or --suppress-log or suppress_log=true")
     print("  --log-path PATH or log_path=PATH")
     print("  --log-level LEVEL (DEBUG|INFO|WARNING|ERROR|CRITICAL)")
-    print("  --measure or measure=1")
+    print("  --measure or measure=true (or =false to disable)")
     print("")
     print("  --config PATH (default: racecars.config next to main.py)")
-    print("  --start: skip setup dialogs, start immediately with current settings")
-    print("  --headless (or --no-gui): no pygame window; implies --start")
+    print("  --start or start=true: skip setup dialogs, start immediately")
+    print("  --headless or headless=true (or --no-gui): no pygame window; implies --start")
     print("  --list-params (show this list)")
     print("  --list-advanced-parameters (show advanced rule parameters)")
 
 
 def print_advanced_console_help():
     print("Advanced console parameters:")
-    print("  --car-collision-penalty on|off")
-    print("    If OFF, collision with another car does not apply waiting penalty.")
-    print("    Default: on")
+    print("  --car-collision-penalty or car_collision_penalty=true|false")
+    print("    If false, collision with another car does not apply waiting penalty.")
+    print("    Default: true")
     print("")
-    print("  --shuffle-turn-order on|off")
-    print("    If ON, a list of car indexes is shuffled at the start of each round.")
+    print("  --shuffle-turn-order or shuffle_turn_order=true|false")
+    print("    If true, a list of car indexes is shuffled at the start of each round.")
     print("    Car objects are not shuffled.")
-    print("    Default: off")
+    print("    Default: false")
     print("")
-    print("  --strict-target-check on|off")
-    print("    If ON, PickMove() result must be one of generated target vertices.")
-    print("    Default: off")
+    print("  --strict-target-check or strict_target_check=true|false")
+    print("    If true, PickMove() result must be one of generated target vertices.")
+    print("    Default: false")
     print("")
     print("  --penalty-length N")
     print("    Fixed number of waiting rounds after penalty.")
@@ -195,19 +195,23 @@ def print_advanced_console_help():
     print("  --results PATH")
     print("    Append race result rows (no header) to PATH after each race.")
     print("")
-    print("  --start")
+    print("  --start or start=true")
     print("    Skip setup dialogs and start immediately.")
     print("    The game window is still shown. Settings come from config file + CLI.")
     print("")
-    print("  --headless (alias: --no-gui)")
+    print("  --headless or headless=true (alias: --no-gui)")
     print("    Run without any pygame window. Implies --start.")
     print("    Mouse controllers are not allowed in this mode.")
     print("    Useful for batch runs: --headless --races 100 --results out.tsv")
     print("")
-    print("  --stepwise (or stepwise=on in config file)")
+    print("  --stepwise or stepwise=true (or =false to disable)")
     print("    Pause at the end of every round and wait for SPACE before continuing.")
     print("    Works in GUI mode only; ignored in headless mode.")
-    print("    Default: off")
+    print("    Default: false")
+    print("")
+    print("  --max-rounds N (or max_rounds=N in config file)")
+    print("    End the race after N rounds even if no car has crossed the finish line.")
+    print("    Use 0 (the default) to impose no round limit.")
 
 def _build_arg_parser():
     parser = argparse.ArgumentParser(add_help=False)
@@ -240,14 +244,16 @@ def _build_arg_parser():
 
     parser.add_argument("--races", "--races", dest="races", type=int)
     parser.add_argument("--results", "--results_path", dest="results_path")
+    # 0 = no limit; positive value ends the race after that many rounds.
+    parser.add_argument("--max-rounds", "--max_rounds", dest="max_rounds", type=int)
 
     parser.add_argument("--config", dest="config_path")
     # --start: skip setup dialogs, game window still shown.
-    parser.add_argument("--start", dest="start_without_dialog", action="store_true")
+    parser.add_argument("--start", dest="start_without_dialog", nargs="?", const="on", type=_parse_bool_option)
     # --headless / --no-gui: no pygame window at all (implies --start).
-    parser.add_argument("--headless", "--no-gui", dest="headless", action="store_true")
-    parser.add_argument("--list-params", "--help-params", dest="list_params", action="store_true")
-    parser.add_argument("--list-advanced-parameters", dest="list_advanced_parameters", action="store_true")
+    parser.add_argument("--headless", "--no-gui", dest="headless", nargs="?", const="on", type=_parse_bool_option)
+    parser.add_argument("--list-params", "--help-params", dest="list_params", nargs="?", const="on", type=_parse_bool_option)
+    parser.add_argument("--list-advanced-parameters", dest="list_advanced_parameters", nargs="?", const="on", type=_parse_bool_option)
     parser.add_argument(
         "--stepwise",
         dest="stepwise",
@@ -327,6 +333,9 @@ def _apply_options_to_params(params: GameParams, options):
         penalty_value = penalty_tuple[1]
         params.penalty_mode = penalty_mode
         params.penalty_value = penalty_value
+
+    if options.max_rounds is not None:
+        params.max_rounds = options.max_rounds
 
 
 def _has_parameter_overrides(options):
@@ -489,7 +498,7 @@ def _ensure_option_prefix(text: str):
 
 def _parse_bool_option(text: str):
     if text is None:
-        raise argparse.ArgumentTypeError("Boolean value is required.")
+        return True
     lower = text.strip().lower()
     if lower == "1" or lower == "true" or lower == "yes" or lower == "on":
         return True

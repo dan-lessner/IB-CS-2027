@@ -56,22 +56,29 @@ class Segment:
         return f"Segment(start={self.start}, end={self.end})"
 
 class Car:
+    """Represents one car (and its driver) in a race.
+
+    Stores everything needed to simulate, score, and display a single
+    participant: position, velocity, crash count, path history, and a
+    reference to the driver object that chooses each move.
+    """
+
     def __init__(self, car_id: int, name: str, pos: Vertex, vel: Vector2i = Vector2i(0, 0), driver = None, logger: logging.Logger = _LOGGER):
-        # One Car object stores everything needed to replay and score a single driver.
         self.id = car_id
         self.name = name
         self.pos = pos
-        self.vel = vel  # Velocity vector
-        self.penalty = 0  # Number of penalty turns remaining
-        self.eliminated = False  # True when car is permanently out of the race (fatal collision mode)
-        self.laps = 0           # Počet přejezdů cílem
-        self.crashes = 0        # Počet nárazů
-        self.distance = 0.0     # Celková ujetá vzdálenost (v jednotkách mřížky)
-        self.controller_name = ""  # Jméno controlleru (skriptu), nastavuje se zvenčí
-        self.finish_round = None  # Kolo, ve kterém auto projelo cílem (pro řazení výsledků)
-        self.finish_t = None      # Parametrický okamžik průjezdu cílem v rámci tahu (0..1)
+        self.vel = vel  # Velocity vector; updated each turn.
+        self.penalty = 0  # Number of penalty turns remaining (car sits still).
+        self.eliminated = False  # True when car is permanently out of the race (fatal collision mode).
+        self.laps = 0           # Number of times the car has crossed the finish line.
+        self.crashes = 0        # Total number of crashes.
+        self.distance = 0.0     # Total distance travelled (in grid units).
+        self.controller_name = ""  # Name of the controller script (set externally after creation).
+        self.finish_round = None  # Round number in which the car crossed the finish line.
+        self.finish_t = None      # Fractional crossing time within that round (0.0–1.0).
         self.path: List[Segment] = []  # Path history for replay/logging
         self.trail: List[Tuple[int, int]] = []  # Initialize trail as an empty list
+        self.init_ms: float = 0.0  # Time (ms) spent constructing this car's driver (for --measure)
         self.driver = driver
         self.logger = logger
         self._missing_driver_warning_emitted = False
@@ -87,16 +94,41 @@ class Car:
         self.logger = logger
 
     def PickMove(self, world, targets, validity):
+        """Ask the driver to choose a target vertex for this turn.
+
+        Passes the current world snapshot, the ordered list of candidate target
+        vertices, and a matching validity list to the driver's PickMove method.
+        Returns None if no driver is assigned (which causes the controller to
+        apply a fallback drift move).
+        """
         if self.driver is None:
             if not self._missing_driver_warning_emitted:
                 self.logger.warning("Car '%s' has no driver assigned. Returning None move.", self.name)
                 self._missing_driver_warning_emitted = True
             return None
         self._missing_driver_warning_emitted = False
-        # Forward car instance, world, ordered targets and validity flags to driver
+        # Forward car instance, world, ordered targets and validity flags to driver.
         return self.driver.PickMove(self, world, targets, validity)
 
 class Track:
+    """A race track represented as a rectangular grid with road/off-road cells.
+
+    The grid is indexed as ``road_mask[x][y]`` where (0, 0) is the top-left
+    corner.  ``True`` means the cell is drivable; ``False`` means off-road.
+    Cars move between *vertices* (grid intersections), not cell centres.
+
+    Key attributes
+    --------------
+    road_mask : list[list[bool]]
+        2-D grid of drivable cells; size is width × height.
+    start_vertices : list[Vertex]
+        All valid starting positions for cars.
+    finish_line : Segment
+        The segment that cars must cross to complete a lap.
+    start_line : Segment or None
+        Derived from the first and last start vertices (used for rendering).
+    """
+
     def __init__(self, width: int, height: int, road_mask: List[List[bool]], start_vertices: List[Vertex], finish_line: Segment):
         # The track is a grid plus start/finish metadata used by movement validation.
         self.width = width
@@ -445,6 +477,31 @@ class Track:
         return value
 
 class GameState:
+    """The complete, mutable state of one race session.
+
+    Holds the track, all cars, rule settings, and bookkeeping fields (round
+    counter, turn order, winner list, etc.).  The Controller and TurnLogic
+    classes read and modify this object every turn.
+
+    Important fields
+    ----------------
+    race_round : int
+        The current round number (1-based).  Increments when every car has
+        had one turn.
+    current_player_idx : int
+        Index into ``cars`` of the car whose turn it is right now.
+    finished : bool
+        Set to True when the race is over (someone finished or round limit hit).
+    winners : list[int]
+        Car IDs of cars that have crossed the finish line, in the order they
+        did so.
+    rankings : list[int]
+        Live leaderboard — car IDs sorted from leading to trailing.
+        Updated after every move by the runner using BFS distances.
+    performance : PerformanceTracker or None
+        Present only when --measure was passed on the command line.
+    """
+
     def __init__(
         self,
         track: Track,
@@ -453,7 +510,8 @@ class GameState:
         shuffle_turn_order_each_round: bool = False,
         strict_target_check: bool = False,
         penalty_mode: str = "fixed",
-        penalty_value: int = 2
+        penalty_value: int = 2,
+        max_rounds: int = 0
     ):
         # Global mutable state for one full game session.
         self.track = track
@@ -463,6 +521,8 @@ class GameState:
         self.strict_target_check = strict_target_check
         self.penalty_mode = penalty_mode
         self.penalty_value = penalty_value
+        # 0 = no round limit; positive value ends the race after that many rounds.
+        self.max_rounds = max_rounds
         self.turn_order: List[int] = []
         self.turn_order_position = 0
         self.current_player_idx = 0  # Index of the current player
@@ -473,6 +533,9 @@ class GameState:
         self.finish_triggered = False
         self.finish_after_player_idx = None
         self.performance = None
+        # Current leaderboard order: list of car IDs from leading to trailing.
+        # Updated after every move by the runner using BFS distance from finish.
+        self.rankings: List[int] = []
         self._initialize_turn_order()
 
     def __repr__(self):
@@ -490,6 +553,11 @@ class GameState:
         )
 
     def next_player(self):
+        """Advance current_player_idx to the next car in turn order.
+
+        When the last car in the round has moved, the round counter increments
+        and (optionally) the turn order is reshuffled.
+        """
         # Advance to the next player using the index order list.
         if len(self.turn_order) == 0:
             self.current_player_idx = 0
@@ -512,6 +580,11 @@ class GameState:
         self.current_player_idx = self.turn_order[self.turn_order_position]
 
     def check_game_finished(self):
+        """Check whether any car's projected move crosses the finish line.
+
+        If so, those car IDs are added to ``winners`` and ``finish_triggered``
+        is set so the round can complete before the race officially ends.
+        """
         # Check if any car would cross the finish line on its current segment.
         winners: List[int] = []
         for car in self.cars:

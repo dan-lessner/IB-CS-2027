@@ -6,6 +6,7 @@ pygame initialisation, drawing, and event collection.
 """
 
 import logging
+import math
 import random
 import pygame
 from simulation.game_state import GameState
@@ -27,6 +28,10 @@ _CAR_COLOR_NAMES = [
     "firebrick",
     "midnightblue",
 ]
+
+_LEADERBOARD_WIDTH = 180  # Pixels added to the right of the track for the leaderboard panel.
+_MAX_NAME_CHARS = 15       # Car names are truncated to this length in the leaderboard.
+
 
 class Renderer:
     def __init__(
@@ -94,7 +99,8 @@ class Renderer:
     def _compute_screen_size(self):
         width_px = self.game_state.track.width * self.cell_size
         height_px = self.game_state.track.height * self.cell_size
-        screen_width = width_px + self.margin * 2
+        # Extra width on the right for the leaderboard panel.
+        screen_width = width_px + self.margin * 2 + _LEADERBOARD_WIDTH
         screen_height = height_px + self.margin * 2
         return screen_width, screen_height
 
@@ -141,15 +147,34 @@ class Renderer:
         self.controller.apply_click(grid_x, grid_y)
 
     def draw_cars(self):
+        n_cars = len(self.game_state.cars)
         for car in self.game_state.cars:
             color = self.car_colors[car.id]
             # Draw the historical path so students can replay decision outcomes.
+            # Each car's segments are shifted slightly perpendicular to the segment
+            # direction so that overlapping paths remain individually visible.
+            offset_amount = (car.id - (n_cars - 1) / 2.0) * 1.5  # pixels
             for segment in car.path:
                 start_pos = self._vertex_to_screen(segment.start.x, segment.start.y)
                 end_pos = self._vertex_to_screen(segment.end.x, segment.end.y)
-                pygame.draw.line(self.screen, color, start_pos, end_pos, 2)
-                pygame.draw.circle(self.screen, color, start_pos, self.cell_size // 8)
-                pygame.draw.circle(self.screen, color, end_pos, self.cell_size // 8)
+                # Compute perpendicular direction for the offset.
+                dx = end_pos[0] - start_pos[0]
+                dy = end_pos[1] - start_pos[1]
+                length = math.sqrt(dx * dx + dy * dy)
+                if length > 0:
+                    # Perpendicular unit vector: rotate 90 degrees.
+                    perp_x = -dy / length
+                    perp_y = dx / length
+                    ox = perp_x * offset_amount
+                    oy = perp_y * offset_amount
+                    s = (start_pos[0] + ox, start_pos[1] + oy)
+                    e = (end_pos[0] + ox, end_pos[1] + oy)
+                else:
+                    s = start_pos
+                    e = end_pos
+                pygame.draw.line(self.screen, color, s, e, 2)
+                pygame.draw.circle(self.screen, color, (int(s[0]), int(s[1])), self.cell_size // 8)
+                pygame.draw.circle(self.screen, color, (int(e[0]), int(e[1])), self.cell_size // 8)
 
             # Draw the car
             car_pos = self._vertex_to_screen(car.pos.x, car.pos.y)
@@ -165,6 +190,51 @@ class Renderer:
                     (car_pos[0] - arm, car_pos[1] + arm), 2)
             else:
                 pygame.draw.circle(self.screen, color, car_pos, self.cell_size // 3)
+
+    def draw_leaderboard(self):
+        """Draw a live leaderboard panel to the right of the track.
+
+        Uses game_state.rankings (maintained by runner via BFS) to display
+        each car's current position with its name (trimmed to 15 chars) in the
+        car's own colour.  Finished cars are labelled with their finish round.
+        """
+        # Panel starts just to the right of the track area.
+        panel_x = self.margin + self.game_state.track.width * self.cell_size + 8
+        panel_y = self.margin
+
+        title = self.font.render("Leaderboard", True, (0, 0, 0))
+        self.screen.blit(title, (panel_x, panel_y))
+        panel_y += title.get_height() + 4
+
+        # Draw a thin separator line under the title.
+        sep_end_x = panel_x + _LEADERBOARD_WIDTH - 8
+        pygame.draw.line(self.screen, (80, 80, 80), (panel_x, panel_y), (sep_end_x, panel_y), 1)
+        panel_y += 5
+
+        rankings = self.game_state.rankings
+        if not rankings:
+            # Fall back to natural car order before the first ranking is computed.
+            rankings = [car.id for car in self.game_state.cars]
+
+        for rank_idx, car_id in enumerate(rankings):
+            car = self._get_car_by_id(car_id)
+            color = self.car_colors[car.id]
+
+            # Truncate long names so they fit the panel.
+            name = car.name
+            if len(name) > _MAX_NAME_CHARS:
+                name = name[:_MAX_NAME_CHARS - 1] + "…"
+
+            # Build label: "1. RedComet  [fin.7]" or "2. BlueFalcon"
+            label_text = str(rank_idx + 1) + ". " + name
+            if car.finish_round is not None:
+                label_text += "  [fin." + str(car.finish_round) + "]"
+            elif car.eliminated:
+                label_text += "  [out]"
+
+            label = self.font.render(label_text, True, color)
+            self.screen.blit(label, (panel_x, panel_y))
+            panel_y += label.get_height() + 2
 
     def draw_start_and_finish_lines(self):
         if self.game_state.track.start_line is None:
@@ -210,6 +280,7 @@ class Renderer:
         self.draw_cars()
         self.draw_status()
         self.draw_round_counter()
+        self.draw_leaderboard()
         if self.stepwise_pause:
             self.draw_stepwise_hint()
         pygame.display.flip()

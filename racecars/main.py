@@ -12,7 +12,7 @@ import random
 import time
 from typing import List
 from simulation.game_state import GameState, Car, Track
-from simulation.params import GameParams
+from ui.params import GameParams
 from simulation.manual_auto import MouseAuto
 from simulation.script_loader import (
     load_scripts_from_folder,
@@ -39,9 +39,14 @@ _LOGGER = logging.getLogger("racecars.main")
 
 
 def _find_track_generator(generator_infos, generator_id):
-    # Find generator by id; fall back to the first available one.
-    # Matching is case-insensitive and tries several representations so that
-    # --track snake, --track Snake, --track 2_snake and --track "Snake" all work.
+    """Return the track generator that matches generator_id, or the first one.
+
+    Matching is case-insensitive and tries the generator's internal id, its
+    display name, and the source file stem — so ``--track snake``,
+    ``--track Snake``, and ``--track 2_snake`` all resolve to the same generator.
+    Falls back to the first available generator when no match is found, and
+    returns None when the list is empty.
+    """
     if generator_id is not None:
         needle = generator_id.lower()
 
@@ -71,6 +76,11 @@ def _find_track_generator(generator_infos, generator_id):
 
 
 def _filter_visible_scripts(script_infos):
+    """Remove internal/hidden scripts (e.g. RandomAuto) from the public list.
+
+    Hidden scripts are still loaded and can be referenced by name on the CLI,
+    but they are not shown in setup dialogs or used as defaults.
+    """
     visible = []
     for info in script_infos:
         if info.name is None or info.name.lower() != "randomauto":
@@ -78,6 +88,10 @@ def _filter_visible_scripts(script_infos):
     return visible
 
 def _find_script_info(script_infos, name: str):
+    """Look up a script by name, file name, or file name without the .py extension.
+
+    Returns the matching ScriptInfo, or None if no match is found.
+    """
     if name is None:
         return None
     target = name.lower()
@@ -91,12 +105,33 @@ def _find_script_info(script_infos, name: str):
 
 
 def _strip_py_extension(name: str) -> str:
+    """Remove a trailing '.py' suffix from a file name string, if present."""
     if name.endswith(".py"):
         return name[:-3]
     return name
 
 
 def _create_cars_for_track(track: Track, players: int, controllers, script_infos) -> List[Car]:
+    """Create and return the list of Car objects for one race.
+
+    Each car gets a random name, a start position (chosen from the track's
+    start vertices in a random order), and a driver — either a MouseAuto for
+    human players or an auto-script loaded from the Scripts folder.
+
+    The time spent constructing each AI driver is stored on ``car.init_ms``
+    so it can be reported in the results when ``--measure`` is active.
+
+    Parameters
+    ----------
+    track : Track
+        The generated track; provides start positions.
+    players : int
+        How many cars to create (capped by available start positions).
+    controllers : list[str]
+        One entry per car: a script name or ``"mouse"`` for human control.
+    script_infos : list[ScriptInfo]
+        All loaded script descriptors (used to look up AI classes by name).
+    """
     # Start order is randomized so scripts do not always get the same starting slot.
     start_positions = list(track.start_vertices)
     random.shuffle(start_positions)
@@ -123,6 +158,7 @@ def _create_cars_for_track(track: Track, players: int, controllers, script_infos
             controller_name = controllers[index]
 
         driver = MouseAuto()
+        init_elapsed_ms = 0.0  # Will be overwritten for AI drivers below.
         logger = logging.getLogger("racecars.car." + sanitize_logger_name("Mouse") + ".id_" + str(index + 1))
         if controller_name.lower() != "mouse":
             try:
@@ -132,7 +168,9 @@ def _create_cars_for_track(track: Track, players: int, controllers, script_infos
                 auto_class = load_auto_class(script_info)
                 if auto_class is None:
                     raise ValueError("Failed to load script '%s'. Falling back to mouse for car %s." % (script_info.name, index + 1))
+                _init_start = time.perf_counter()
                 driver = auto_class(track)
+                init_elapsed_ms = (time.perf_counter() - _init_start) * 1000
                 try:
                     name = driver.GetName()
                 except Exception as ex:
@@ -143,18 +181,21 @@ def _create_cars_for_track(track: Track, players: int, controllers, script_infos
             except Exception as ex:
                 _LOGGER.exception("Script '%s' raised during initialization (%s: %s). Falling back to mouse for car %s.", script_info.name, type(ex).__name__, ex, index + 1)
 
-        # finally create the car
+        # Finally create the car and attach the measured init time.
         new_car = Car(index, names[index], start_positions[index], driver = driver, logger = logger)
         new_car.controller_name = controller_name
+        new_car.init_ms = init_elapsed_ms
         cars.append(new_car)
 
     return cars
 
 
 def _filter_mouse_controllers_headless(controllers):
-    """Remove 'mouse' entries from the controller list and log ERROR for each.
+    """Remove 'mouse' entries from the controller list (headless mode only).
 
-    Called only in headless mode. Returns the filtered list.
+    Mouse control requires a window, so it is not allowed in headless mode.
+    Each removed entry is logged at ERROR level to inform the user.
+    Returns the filtered list.
     """
     filtered = []
     for name in controllers:
@@ -169,6 +210,7 @@ def _filter_mouse_controllers_headless(controllers):
 
 
 def _print_start_instructions():
+    """Print a short reminder of the most commonly used CLI options."""
     print("Players: use --players N or players=N")
     print("Measure: use --measure")
     print("Controllers: use --controllers mouse,ScriptName")
@@ -178,6 +220,11 @@ def _print_start_instructions():
 
 
 def _append_results_to_file(game_state, results_path, race_index):
+    """Append tab-separated result rows for one race to the results file.
+
+    Each row is prefixed with the race index so multiple races in a batch run
+    can be distinguished when the file is opened in a spreadsheet.
+    """
     rows = get_race_result_rows(game_state)
     file_obj = None
     try:
@@ -194,10 +241,22 @@ def _run_with_gui(game_state, params, stepwise=False):
     # Import here so pygame is never loaded when running headless.
     from ui.renderer import Renderer
     renderer = Renderer(game_state, framerate=params.framerate)
-    renderer.run(stepwise=stepwise)
+    renderer.run(stepwise=stepwise) #TODO: stepwise flag should be passed at the beginning (also change in Renderer)
 
 
 def main():
+    """Entry point: parse configuration, set up the race, and run it.
+
+    Steps performed:
+    1. Parse console arguments and an optional config file.
+    2. Load all AI scripts from the Scripts folder.
+    3. Optionally show setup dialogs (skipped with --start or --headless).
+    4. Generate a track and create cars with the chosen controllers.
+    5. Run the race loop (with or without a pygame window).
+    6. Append results to a file if --results was given.
+
+    In multi-race mode (--races N) steps 4–6 repeat for each race.
+    """
     # 1) Gather parameters and available scripts.
     parsed_config = parse_console_args(GameParams())
     params = parsed_config.params
@@ -303,7 +362,8 @@ def main():
             shuffle_turn_order_each_round=params.shuffle_turn_order_each_round,
             strict_target_check=params.strict_target_check,
             penalty_mode=params.penalty_mode,
-            penalty_value=params.penalty_value
+            penalty_value=params.penalty_value,
+            max_rounds=params.max_rounds
         )
         if params.measure_performance:
             perf_log_path = os.path.join(os.path.dirname(__file__), "performance_log.csv")
