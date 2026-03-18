@@ -1,3 +1,6 @@
+import random
+
+
 def binary_search(arr, target):
     """
     Search for target in a sorted list.
@@ -14,41 +17,69 @@ def binary_search(arr, target):
             return i
     return -1
 
+GREEN = '\033[92m'
+RED = '\033[91m'
+RESET = '\033[0m'
 
 # Test cases
-print("=== Binary Search Test Cases ===\n")
+print("=== Running Tests ===")
 
 # Test 1: Search for first element
-arr1 = [1, 3, 5, 7, 9, 11, 13, 15]
-print(f"Array: {arr1}")
-print(f"Search for 1: {binary_search(arr1, 1)} (expected: 0)")
-print()
+arr = sorted(random.sample(range(101), 20))
+try:
+    assert binary_search(arr, arr[0]) == 0, f"Expected index 0, got {binary_search(arr, arr[0])}"
+    print(f"Test 1 {GREEN}passed{RESET}: Search for first element")
+except AssertionError as e:
+    print(f"Test 1 {RED}failed{RESET} for {arr}: {e}")
 
 # Test 2: Search for last element
-arr2 = [2, 4, 6, 8, 10, 12, 14, 16, 18]
-print(f"Array: {arr2}")
-print(f"Search for 18: {binary_search(arr2, 18)} (expected: 8)")
-print()
+arr = sorted(random.sample(range(101), 20))
+i = len(arr) - 1
+try:
+    assert binary_search(arr, arr[-1]) == i, f"Expected index {i}, got {binary_search(arr, arr[-1])}"
+    print(f"Test 2 {GREEN}passed{RESET}: Search for last element")
+except AssertionError as e:
+    print(f"Test 2 {RED}failed{RESET} for {arr}: {e}")
 
 # Test 3: Search for middle element
-arr3 = [10, 20, 30, 40, 50, 60, 70]
-print(f"Array: {arr3}")
-print(f"Search for 40: {binary_search(arr3, 40)} (expected: 3)")
-print()
+arr = sorted(random.sample(range(101), 20))
+i = len(arr) // 2
+try:
+    assert binary_search(arr, arr[i]) == i, f"Expected index {i}, got {binary_search(arr, arr[i])}"
+    print(f"Test 3 {GREEN}passed{RESET}: Search for middle element")
+except AssertionError as e:
+    print(f"Test 3 {RED}failed{RESET} for {arr}: {e}")
 
 # Test 4: Search for arbitrary element
-arr4 = [5, 15, 25, 35, 45, 55, 65, 75]
-print(f"Array: {arr4}")
-print(f"Search for 35: {binary_search(arr4, 35)} (expected: 3)")
-print()
+arr = sorted(random.sample(range(101), 20))
+i = random.randint(0, len(arr) - 1)
+try:
+    assert binary_search(arr, arr[i]) == i, f"Expected index {i}, got {binary_search(arr, arr[i])}"
+    print(f"Test 4 {GREEN}passed{RESET}: Search for arbitrary element")
+except AssertionError as e:
+    print(f"Test 4 {RED}failed{RESET} for {arr}: {e}")
 
-# Test 5: Element not found
-arr5 = [1, 2, 3, 4, 5, 6, 7, 8]
-print(f"Array: {arr5}")
-print(f"Search for 99: {binary_search(arr5, 99)} (expected: -1)")
-print()
+# Test 5: Search for random element in large list
+arr = sorted(random.sample(range(10000), 1000))
+i = random.randint(0, len(arr) - 1)
+try:
+    assert binary_search(arr, arr[i]) == i, f"Expected index {i}, got {binary_search(arr, arr[i])}"
+    print(f"Test 5 {GREEN}passed{RESET}: Search for random element in large list")
+except AssertionError as e:
+    print(f"Test 5 {RED}failed{RESET} for large list: {e}")
 
-# Test 6: Unsorted list
-arr6 = [5, 2, 8, 1, 9, 3, 7]
-print(f"Array: {arr6}")
-print(f"Search for 7: {binary_search(arr6, 7)} (correct is 4, but who knows what happens)")
+# Test 6: Element not found
+arr6 = [1, 2, 3, 4, 5, 6, 7, 8]
+try:
+    assert binary_search(arr6, 99) == -1, f"Expected index -1, got {binary_search(arr6, 99)}"
+    print(f"Test 6 {GREEN}passed{RESET}: Element not found")
+except AssertionError as e:
+    print(f"Test 6 {RED}failed{RESET} for {arr6}: {e}")
+
+# Test 7: Unsorted list
+arr7 = [5, 2, 8, 1, 9, 3, 7]
+try:
+    assert binary_search(arr7, 7) == 6, f"Expected index 6, got {binary_search(arr7, 7)}"
+    print(f"Test 7 {GREEN}passed{RESET}: Search for element in unsorted list")
+except AssertionError as e:
+    print(f"Test 7 {RED}failed{RESET} for {arr7}: {e}")
