@@ -69,17 +69,17 @@ except AssertionError as e:
     print(f"Test 5 {RED}failed{RESET} for large list: {e}")
 
 # Test 6: Element not found
-arr6 = [1, 2, 3, 4, 5, 6, 7, 8]
+arr = [1, 2, 3, 4, 5, 6, 7, 8]
 try:
-    assert binary_search(arr6, 99) == -1, f"Expected index -1, got {binary_search(arr6, 99)}"
+    assert binary_search(arr, 99) == -1, f"Expected index -1, got {binary_search(arr, 99)}"
     print(f"Test 6 {GREEN}passed{RESET}: Element not found")
 except AssertionError as e:
-    print(f"Test 6 {RED}failed{RESET} for {arr6}: {e}")
+    print(f"Test 6 {RED}failed{RESET} for {arr}: {e}")
 
 # Test 7: Unsorted list
-arr7 = [5, 2, 8, 1, 9, 3, 7]
+arr = [5, 2, 8, 1, 9, 3, 7]
 try:
-    assert binary_search(arr7, 7) == 6, f"Expected index 6, got {binary_search(arr7, 7)}"
+    assert binary_search(arr, 7) == 6, f"Expected index 6, got {binary_search(arr, 7)}"
     print(f"Test 7 {GREEN}passed{RESET}: Search for element in unsorted list")
 except AssertionError as e:
-    print(f"Test 7 {RED}failed{RESET} for {arr7}: {e}")
+    print(f"Test 7 {RED}failed{RESET} for {arr}: {e}")
