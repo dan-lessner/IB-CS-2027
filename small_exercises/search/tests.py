@@ -1,7 +1,7 @@
 import random
 import importlib
 
-filename = input("Enter the filename of the module to test: ")
+filename = input("Enter the filename of the module to test (e.g., example): ")
 
 try:
     imported_module = importlib.import_module(filename)
