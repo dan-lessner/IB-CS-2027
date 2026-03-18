@@ -15,7 +15,6 @@ def binary_search(arr, target):
     return -1
 
 
-# Test cases
 print("=== Binary Search Test Cases ===\n")
 
 # Test 1: Search for first element
