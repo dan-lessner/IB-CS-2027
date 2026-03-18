@@ -10,6 +10,10 @@ def get_ordered_targets_and_validity(game_state: GameState, car_id: int):
     # Returns fixed-order targets so student scripts can map indices to accelerations.
     car = game_state.cars[car_id]
 
+    # Eliminated cars (fatal penalty) cannot move — they stay where they are
+    if car.eliminated:
+        return [car.pos], [True]
+
     # If car is penalized, only allow staying in place
     if car.penalty > 0:
         return [car.pos], [True]
@@ -35,7 +39,8 @@ def get_ordered_targets_and_validity(game_state: GameState, car_id: int):
                     segment_valid = game_state.track.segment_is_valid(car.pos, target)
 
             occupied = _target_is_occupied(game_state, car_id, target)
-            valid = segment_valid and (not occupied)
+            target_on_finish = game_state.track.vertex_on_finish_line(target)
+            valid = segment_valid and (not occupied or target_on_finish)
 
             targets.append(target)
             validity.append(valid)

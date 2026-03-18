@@ -1,20 +1,19 @@
-# Express
+# Cutie_killer
 import random
 from simulation.script_api import AutoAuto, WorldState
 
 
 class Auto(AutoAuto):
-    def __init__(self, track) -> None:
+    def __init__(self, track) -> None: # runs at teh start, creates memory
         super().__init__()
-        self.step = 0  # counts steps
-        self.vertical_direction = 1   # -1 is up , 1 is down
-        self.last_positions = []  # remembers the last 6 positions, defiend below
+        self.step = 0
+        self.last_positions = [] # remembers the last 6 positions, defiend below
         self.stuck_counter = 0
 
     def GetName(self) -> str:
-        return "Express"
+        return "Cutie_killer"
 
-    def PickMove(self, auto, world, targets, validity):
+    def PickMove(self, auto, world, targets, validity): # runns every time
         if not targets:
             return None
 
@@ -26,73 +25,63 @@ class Auto(AutoAuto):
             self.last_positions.pop(0)
             #adds the current position to the memory list, it tracks where it was stuck and where not
 
-
         # detect stuck
         stuck = False
         if len(self.last_positions) == 6:
-            # this takes the last 6 positions from the list, and if both are less than 2, it means that it is tuck in 1X1 area
+            # this takes the last 6 positions from the list, and if both are less than 2, it means that it is tuck in 2X2 area
             xs = [p[0] for p in self.last_positions]
             ys = [p[1] for p in self.last_positions]
             if max(xs) - min(xs) < 2 and max(ys) - min(ys) < 2:
                 stuck = True
 
-            # how many turns stuck, if unstuck then it resets to zero
+        # how many turns stuck, if unstuck then it resets to zero
         if stuck:
             self.stuck_counter += 1
         else:
-            self.stuck_counter = 0
+            self.stuck_counter = 0 #here it resets
 
+        # valid moves only, # i is the position in the original list, it keeps the safe options
+        valid_moves = []
+        for i in range(len(targets)):  # lsit of same moves 
+            if validity[i]: # the move is not a wal and it goes somewehre
+                if not (targets[i].x == current_x and targets[i].y == current_y):
+                    valid_moves.append(targets[i])
 
-         # i is the position in the original list, it keeps the safe options
-        valid_moves = [(targets[i], i) for i in range(len(targets)) if validity[i]]
+        if len(valid_moves) == 0: # if there is no good place to go return, thanks to this it downt freeze
+            return targets[-1]
 
-        # what it will actually choose from 
-        pool = valid_moves if valid_moves else [(targets[i], i) for i in range(len(targets))]
+        # escape when stuck, aaah
+        if stuck and self.stuck_counter > 2: # if it is stuck for more than 2 turn in a row
+            return valid_moves[random.randint(-2, -1)] # if stuck it chooses random, either index -2 (second to last) or -1(last)
 
+        # finish line y position is the goal
+        finish_y = current_y  
+        if world.finish_vertices:
+            finish_y = world.finish_vertices[len(world.finish_vertices) // 3].y
+            # // integer division, it divides and gets rid of th edecimal, this creates the best target in the finnish line (finnish is a vertical line - middle is optimal)
 
+        # score every move: it prioritizes going forward,  you want to be close to the y finnish line
+        best_move = None
+        best_score = float("-inf")
 
-        # if stuck for  more than 2 turns, change the direct (1, -1)
-        #  goes furthest from current position
-        if stuck and self.stuck_counter > 2:
-            self.vertical_direction *= -1
-            best = max(pool, key=lambda mi: abs(mi[0].x - current_x) + abs(mi[0].y - current_y))
-            return best[0]
+        for move in valid_moves:
+            # how far is this, the multiplying by 10, gives it the importance (it can actually be any number)
+            forward = move.x * 10
 
-        # forward and vertical, if it can, it follows this
-        for move, idx in pool:
-            dx = move.x - current_x
-            dy = move.y - current_y
-            if dx == 1 and dy == self.vertical_direction:
-                return move
+            # how close is this move to the finish line y
+            y_closeness = -abs(move.y - finish_y)
+            # abs always make the number positive
+            # but by this, the closer i am the smaller number, and the system preffers high score (via moves above), so the § flips it so the closer always wins
+            # here it is, that closet to zero winssss
 
-        # if it cannot move forward, it checks if it can just move vertically(up, down)
-        for move, idx in pool:
-            dx = move.x - current_x
-            dy = move.y - current_y
-            if dx == 0 and dy == self.vertical_direction:
-                return move
+            score = forward + y_closeness
+            # total score is  the sum between forward progress and finnish line allignment
 
-        # oh no wall, bouncing of the wall, since it cannot move  froward/vertically, it  changes direction (1, -1)
-        self.vertical_direction *= -1
-        for move, idx in pool:
-            dy = move.y - current_y
-            if dy == self.vertical_direction:
-                return move
+            if score > best_score:
 
-        # cannot go vertically, just move front
-        for move, idx in pool:
-            if move.x > current_x:
-                return move
+                best_score = score
+                best_move = move
 
-        # lost option, not getting stuck, it chooses the furtherst direction, goeas anywhere
-        best = max(pool, key=lambda mi: abs(mi[0].x - current_x) + abs(mi[0].y - current_y))
-        return best[0]
-        # max finds the biggest number
-        # mi - how far horizontally/vertically it is
-        # abds makes the number postive 
-        # it calucates the total distance, so that is why it its +
-            # look at every avaiable move, calculate how far it is, pick it and go
-
-
-
-# IT STILL GETS STUCK WHYYYYYYYYYYYYYYYYYYYYY
+        return best_move # gives the best of the best, simply the best move
+    
+    # how it work: finds where it is --store memory/ moves ---if its stuck it deals with it on random -- wehr is the finnish line (i am for the middle)--i want to go forward, but being close the y line is niceee--- moves according to the highest score

@@ -25,7 +25,7 @@ class Auto(AutoAuto):
 
 
     def GetName(self) -> str:
-        return "A* euclid"
+        return "BARBIE JEEP ASTARA SERANA"
     
     def __init__(self, track):
         super().__init__()
@@ -101,7 +101,7 @@ class Auto(AutoAuto):
                         or new_y < 0 or new_y >= world_height):
                         continue
                     #not road
-                    if not world.road[new_x][new_y] or not self.can_move(world, min_node.pos, Vector2i(new_x, new_y)):
+                    if not self.can_move(world, min_node.pos, Vector2i(new_x, new_y)):
                         continue
                     if Vector2i(new_x, new_y) in closed:
                         continue

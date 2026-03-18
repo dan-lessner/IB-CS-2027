@@ -1,41 +1,115 @@
 """Pygame renderer for the racecars game.
 
 Draws the track, cars, move hints, and status text each frame.
+The game loop itself lives in simulation.runner; this class only handles
+pygame initialisation, drawing, and event collection.
 """
 
 import logging
+import math
 import random
 import pygame
 from simulation.game_state import GameState
-from simulation.controller import Controller
+from simulation.runner import run_race
 
 _LOGGER = logging.getLogger("racecars.renderer")
 
+_CAR_COLOR_NAMES = [
+    "darkred",
+    "darkgreen",
+    "navy",
+    "teal",
+    "darkmagenta",
+    "chocolate",
+    "dodgerblue",
+    "crimson",
+    "olivedrab",
+    "saddlebrown",
+    "firebrick",
+    "midnightblue",
+]
+
+_LEADERBOARD_WIDTH = 180  # Pixels added to the right of the track for the leaderboard panel.
+_MAX_NAME_CHARS = 15       # Car names are truncated to this length in the leaderboard.
+
+
 class Renderer:
-    def __init__(self, game_state: GameState, screen_width: int = None, screen_height: int = None):
+    def __init__(
+        self,
+        game_state: GameState,
+        screen_width: int = None,
+        screen_height: int = None,
+        framerate: int = 30
+    ):
         pygame.init()
         self.game_state = game_state
-        self.controller = Controller(game_state)
-        self.cell_size = 20  # Size of each grid cell in pixels
+        self.controller = None  # Set later via bind_controller() from run_race()
         self.margin = 40  # Paper margin around the grid
+        self.cell_size = self._compute_cell_size()  # Fit track to monitor
+        if self.cell_size < 6:
+            self.margin = 10  # Reduce margin when cells are small
         if screen_width is None or screen_height is None:
             screen_width, screen_height = self._compute_screen_size()
         self.screen = pygame.display.set_mode((screen_width, screen_height))
         self.clock = pygame.time.Clock()
-        self.car_colors = self._assign_car_colors()
+        self.framerate = framerate
+
+        self.car_colors = []
+        for color_name in _CAR_COLOR_NAMES:
+            self.car_colors.append(pygame.colordict.THECOLORS[color_name])
+        random.shuffle(self.car_colors)
+        
         self.font = pygame.font.SysFont("consolas", 18)
         self._missing_start_line_warning_emitted = False
         self._missing_car_id_warnings = set()
+        # Set to True by runner when stepwise mode pauses between rounds.
+        self.stepwise_pause = False
+
+    def _compute_cell_size(self):
+        # Use monitor resolution to scale the track so it fits the screen.
+        info = pygame.display.Info()
+        monitor_w = info.current_w
+        monitor_h = info.current_h
+
+        track_w = self.game_state.track.width
+        track_h = self.game_state.track.height
+
+        # Available pixels for the track cells (margin on both sides).
+        avail_w = monitor_w - self.margin * 2
+        avail_h = monitor_h - self.margin * 2
+
+        cell_by_width = avail_w // track_w
+        cell_by_height = avail_h // track_h
+
+        # Pick the smaller to ensure the whole track fits.
+        cell_size = cell_by_width
+        if cell_by_height < cell_size:
+            cell_size = cell_by_height
+
+        # Cap at the default maximum so small tracks are not zoomed in too much.
+        if cell_size > 20:
+            cell_size = 20
+
+        # Guard against degenerate track dimensions.
+        if cell_size < 1:
+            cell_size = 1
+
+        return cell_size
 
     def _compute_screen_size(self):
         width_px = self.game_state.track.width * self.cell_size
         height_px = self.game_state.track.height * self.cell_size
-        screen_width = width_px + self.margin * 2
+        # Extra width on the right for the leaderboard panel.
+        screen_width = width_px + self.margin * 2 + _LEADERBOARD_WIDTH
         screen_height = height_px + self.margin * 2
         return screen_width, screen_height
 
     def draw_grid(self):
         # Grid lines mimic graph paper, which helps explain vector movement.
+        # Skip them when cells are too small — lines would merge into solid fill.
+        if self.cell_size < 5:
+            return
+
         width_px = self.game_state.track.width * self.cell_size
         height_px = self.game_state.track.height * self.cell_size
 
@@ -73,19 +147,94 @@ class Renderer:
         self.controller.apply_click(grid_x, grid_y)
 
     def draw_cars(self):
+        n_cars = len(self.game_state.cars)
         for car in self.game_state.cars:
-            color = self._get_car_color(car.id)
+            color = self.car_colors[car.id]
             # Draw the historical path so students can replay decision outcomes.
+            # Each car's segments are shifted slightly perpendicular to the segment
+            # direction so that overlapping paths remain individually visible.
+            offset_amount = (car.id - (n_cars - 1) / 2.0) * 1.5  # pixels
             for segment in car.path:
                 start_pos = self._vertex_to_screen(segment.start.x, segment.start.y)
                 end_pos = self._vertex_to_screen(segment.end.x, segment.end.y)
-                pygame.draw.line(self.screen, color, start_pos, end_pos, 2)
-                pygame.draw.circle(self.screen, color, start_pos, self.cell_size // 8)
-                pygame.draw.circle(self.screen, color, end_pos, self.cell_size // 8)
+                # Compute perpendicular direction for the offset.
+                dx = end_pos[0] - start_pos[0]
+                dy = end_pos[1] - start_pos[1]
+                length = math.sqrt(dx * dx + dy * dy)
+                if length > 0:
+                    # Perpendicular unit vector: rotate 90 degrees.
+                    perp_x = -dy / length
+                    perp_y = dx / length
+                    ox = perp_x * offset_amount
+                    oy = perp_y * offset_amount
+                    s = (start_pos[0] + ox, start_pos[1] + oy)
+                    e = (end_pos[0] + ox, end_pos[1] + oy)
+                else:
+                    s = start_pos
+                    e = end_pos
+                pygame.draw.line(self.screen, color, s, e, 2)
+                pygame.draw.circle(self.screen, color, (int(s[0]), int(s[1])), self.cell_size // 8)
+                pygame.draw.circle(self.screen, color, (int(e[0]), int(e[1])), self.cell_size // 8)
 
             # Draw the car
             car_pos = self._vertex_to_screen(car.pos.x, car.pos.y)
-            pygame.draw.circle(self.screen, color, car_pos, self.cell_size // 3)
+            if car.eliminated:
+                # Eliminated car: grey circle with a cross in the car's original color.
+                pygame.draw.circle(self.screen, (150, 150, 150), car_pos, self.cell_size // 3)
+                arm = self.cell_size // 3
+                pygame.draw.line(self.screen, color,
+                    (car_pos[0] - arm, car_pos[1] - arm),
+                    (car_pos[0] + arm, car_pos[1] + arm), 2)
+                pygame.draw.line(self.screen, color,
+                    (car_pos[0] + arm, car_pos[1] - arm),
+                    (car_pos[0] - arm, car_pos[1] + arm), 2)
+            else:
+                pygame.draw.circle(self.screen, color, car_pos, self.cell_size // 3)
+
+    def draw_leaderboard(self):
+        """Draw a live leaderboard panel to the right of the track.
+
+        Uses game_state.rankings (maintained by runner via BFS) to display
+        each car's current position with its name (trimmed to 15 chars) in the
+        car's own colour.  Finished cars are labelled with their finish round.
+        """
+        # Panel starts just to the right of the track area.
+        panel_x = self.margin + self.game_state.track.width * self.cell_size + 8
+        panel_y = self.margin
+
+        title = self.font.render("Leaderboard", True, (0, 0, 0))
+        self.screen.blit(title, (panel_x, panel_y))
+        panel_y += title.get_height() + 4
+
+        # Draw a thin separator line under the title.
+        sep_end_x = panel_x + _LEADERBOARD_WIDTH - 8
+        pygame.draw.line(self.screen, (80, 80, 80), (panel_x, panel_y), (sep_end_x, panel_y), 1)
+        panel_y += 5
+
+        rankings = self.game_state.rankings
+        if not rankings:
+            # Fall back to natural car order before the first ranking is computed.
+            rankings = [car.id for car in self.game_state.cars]
+
+        for rank_idx, car_id in enumerate(rankings):
+            car = self._get_car_by_id(car_id)
+            color = self.car_colors[car.id]
+
+            # Truncate long names so they fit the panel.
+            name = car.name
+            if len(name) > _MAX_NAME_CHARS:
+                name = name[:_MAX_NAME_CHARS - 1] + "…"
+
+            # Build label: "1. RedComet  [fin.7]" or "2. BlueFalcon"
+            label_text = str(rank_idx + 1) + ". " + name
+            if car.finish_round is not None:
+                label_text += "  [fin." + str(car.finish_round) + "]"
+            elif car.eliminated:
+                label_text += "  [out]"
+
+            label = self.font.render(label_text, True, color)
+            self.screen.blit(label, (panel_x, panel_y))
+            panel_y += label.get_height() + 2
 
     def draw_start_and_finish_lines(self):
         if self.game_state.track.start_line is None:
@@ -130,47 +279,49 @@ class Renderer:
         self.draw_possible_targets()
         self.draw_cars()
         self.draw_status()
+        self.draw_round_counter()
+        self.draw_leaderboard()
+        if self.stepwise_pause:
+            self.draw_stepwise_hint()
         pygame.display.flip()
 
-    def run(self):
-        # Main render loop: input -> game update -> redraw.
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    self.handle_click(event.pos)
+    def bind_controller(self, controller):
+        """Called by run_race() so the renderer can query targets for drawing."""
+        self.controller = controller
 
-            self.controller.update()
-            self.render()
-            self.clock.tick(30)
+    def process_events(self):
+        """Handle all pending pygame events. Returns True if the window was closed."""
+        quit_requested = False
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                quit_requested = True
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    if self.game_state.finished:
+                        quit_requested = True
+                    elif self.stepwise_pause:
+                        # Spacebar resumes a stepwise pause between rounds.
+                        self.stepwise_pause = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                self.handle_click(event.pos)
+        return quit_requested
 
+    def tick(self):
+        """Throttle the frame rate."""
+        self.clock.tick(self.framerate)
+
+    def shutdown(self):
+        """Tear down pygame after the race loop exits."""
         pygame.quit()
+
+    def run(self, stepwise=False):
+        """Start a race with this renderer attached. Blocks until the window is closed."""
+        run_race(self.game_state, renderer=self, stepwise=stepwise)
 
     def _vertex_to_screen(self, x: int, y: int):
         screen_x = self.margin + x * self.cell_size
         screen_y = self.margin + y * self.cell_size
         return (screen_x, screen_y)
-
-    def _assign_car_colors(self):
-        colors = {}
-        for car in self.game_state.cars:
-            colors[car.id] = self._random_car_color()
-        return colors
-
-    def _random_car_color(self):
-        r = random.randint(60, 255)
-        g = random.randint(60, 255)
-        b = random.randint(60, 255)
-        return (r, g, b)
-
-    def _get_car_color(self, car_id: int):
-        if car_id in self.car_colors:
-            return self.car_colors[car_id]
-        color = self._random_car_color()
-        self.car_colors[car_id] = color
-        return color
 
     def _draw_target_preview_lines(self):
         # Light guide lines make the acceleration options easier to read visually.
@@ -194,6 +345,10 @@ class Renderer:
         # Targets are shown every frame for the currently active car.
         if self.game_state.finished:
             return
+        if self.game_state.cars:
+            current_car = self.game_state.cars[self.game_state.current_player_idx]
+            if current_car.eliminated:
+                return
 
         self._draw_target_preview_lines()
 
@@ -218,13 +373,16 @@ class Renderer:
         x = self.margin
         y = 10
         if self.game_state.finished:
-            if len(self.game_state.winners) == 1:
+            if len(self.game_state.winners) == 0:
+                label = self.font.render("No winner.", True, (0, 0, 0))
+                self.screen.blit(label, (x, y))
+            elif len(self.game_state.winners) == 1:
                 winner_id = self.game_state.winners[0]
                 winner = self._get_car_by_id(winner_id)
                 winner_text = "Car " + str(winner_id + 1) + ": " + winner.name
                 parts = [
                     ("Winner: ", (0, 0, 0)),
-                    (winner_text, self._get_car_color(winner_id))
+                    (winner_text, self.car_colors[winner.id])
                 ]
                 self._blit_text_parts(x, y, parts)
             else:
@@ -235,9 +393,33 @@ class Renderer:
             current = self.game_state.cars[self.game_state.current_player_idx]
             parts = [
                 ("Turn: ", (0, 0, 0)),
-                (current.name, self._get_car_color(current.id))
+                (current.name, self.car_colors[current.id])
             ]
             self._blit_text_parts(x, y, parts)
+
+    def draw_round_counter(self):
+        round_text = "Round: " + str(self.game_state.race_round)
+        label = self.font.render(round_text, True, (0, 0, 0))
+        x = self.screen.get_width() - label.get_width() - 10
+        y = 10
+        self.screen.blit(label, (x, y))
+
+    def draw_stepwise_hint(self):
+        """Draw a semi-transparent banner at the bottom: 'SPACE — continue'."""
+        hint_text = "SPACE — continue to round " + str(self.game_state.race_round)
+        label = self.font.render(hint_text, True, (255, 255, 255))
+        banner_height = label.get_height() + 10
+        banner_y = self.screen.get_height() - banner_height
+        banner_rect = pygame.Rect(0, banner_y, self.screen.get_width(), banner_height)
+        # Dark semi-transparent background
+        overlay = pygame.Surface((self.screen.get_width(), banner_height))
+        overlay.set_alpha(200)
+        overlay.fill((30, 30, 30))
+        self.screen.blit(overlay, (0, banner_y))
+        # Centered text
+        text_x = (self.screen.get_width() - label.get_width()) // 2
+        text_y = banner_y + 5
+        self.screen.blit(label, (text_x, text_y))
 
     def _join_winners(self):
         text = ""
@@ -263,7 +445,7 @@ class Renderer:
             if index > 0:
                 parts.append((", ", (0, 0, 0)))
             text = "Car " + str(winner_id + 1) + ": " + winner.name
-            parts.append((text, self._get_car_color(winner_id)))
+            parts.append((text, self.car_colors[winner.id]))
         return parts
 
     def _blit_text_parts(self, x: int, y: int, parts):
@@ -277,6 +459,8 @@ class Renderer:
         if not self.game_state.cars:
             return False
         car = self.game_state.cars[self.game_state.current_player_idx]
+        if car.eliminated:
+            return False
         return car.penalty > 0
 
     def _apply_penalty_marker_offset(self, pos):

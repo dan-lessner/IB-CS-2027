@@ -1,35 +1,71 @@
-"""Procedural track generator.
+"""Rectangular zigzag track generator.
 
-The generator builds a centerline, thickens it into a road, enforces a forward
-pass (without decreasing x), and retries until the track is fully connected.
+Refactored from simulation/track_generator.py.
+Builds a left-to-right track that zigzags between the top and bottom walls.
+Start: left edge (x=1), finish: right edge (x=width-2).
+
+The algorithm works on an inner grid of size (width-2) x (height-2),
+then the result is placed into the full grid with a 1-cell border of False.
 """
 
 import random
-from simulation.game_state import Track, Vertex, Segment
+import logging
+from simulation.game_state import Vertex
 from typing import List
 
-def generate_track(
-    width: int = 60,
-    height: int = 40,
-    players: int = 2,
-    track_width_mean: int = 6,
-    track_width_var: int = 2,
-    turn_density: int = 50,
-    turn_sharpness: int = 50,
-    seed: int = None
-) -> Track:
-    # If a seed is provided, students can recreate exactly the same track.
+_LOGGER = logging.getLogger("racecars.track_generators.rectangular_zigzag")
+
+META = {
+    "id": "rectangular_zigzag",
+    "name": "Rectangular zigzag",
+}
+
+
+def generate_track(params):
+    width = params["width"]
+    height = params["height"]
+    players = params["player_count"]
+    track_width_mean = params["track_width"]
+    seed = params["seed"]
+
+    extra = params["extra"]
+    track_width_var = 2
+    turn_density = 50
+    turn_sharpness = 50
+    if "track_width_var" in extra:
+        track_width_var = extra["track_width_var"]
+    if "turn_density" in extra:
+        turn_density = extra["turn_density"]
+    if "turn_sharpness" in extra:
+        turn_sharpness = extra["turn_sharpness"]
+
+    _LOGGER.info(
+        "generate_track: id=%s, width=%d, height=%d, players=%d, track_width=%d, seed=%s",
+        META["id"], width, height, players, track_width_mean, seed
+    )
+
+    # Work on inner dimensions (excluding the 1-cell border).
+    inner_width = width - 2
+    inner_height = height - 2
+
     if seed is not None:
         random.seed(seed)
 
-    track_width_mean, track_width_var = _clamp_track_width_for_players(players, height, track_width_mean, track_width_var)
-    min_width, max_width = _track_width_bounds(players, height)
+    track_width_mean, track_width_var = _clamp_track_width_for_players(
+        players, inner_height, track_width_mean, track_width_var
+    )
+    min_width, max_width = _track_width_bounds(players, inner_height)
+
+    # Track generation with retry on failure.
+    road_mask = None
+    start_y = 0
+    finish_y = 0
+    line_length = 1
     attempts = 0
     max_attempts = 200
-    last_track = None
 
     while True:
-        # 1) Place start/finish lines and an empty road grid.
+        # 1) Choose start and finish line positions.
         start_line_length = track_width_mean
         min_line_length = players
         reserve = 1
@@ -38,64 +74,97 @@ def generate_track(
             start_line_length = desired_length
         if start_line_length < 1:
             start_line_length = 1
-        if start_line_length > height:
-            start_line_length = height
-        start_x = 0
-        finish_x = width
+        if start_line_length > inner_height:
+            start_line_length = inner_height
 
-        max_start_y = height - start_line_length
+        max_start_y = inner_height - start_line_length
         if max_start_y < 0:
             max_start_y = 0
 
         start_y = random.randint(0, max_start_y)
         finish_y = random.randint(0, max_start_y)
+        line_length = start_line_length
 
-        start_vertices: List[Vertex] = []
-        for i in range(start_line_length):
-            start_vertices.append(Vertex(start_x, start_y + i))
-
-        finish_line = Segment(Vertex(finish_x, finish_y), Vertex(finish_x, finish_y + start_line_length))
-
-        # Road mask stores "is this cell road?" as booleans.
-        road_mask: List[List[bool]] = []
-        for _ in range(width):
-            column: List[bool] = []
-            for _ in range(height):
+        # 2) Build empty road mask for inner grid: road_mask[x][y].
+        road_mask = []
+        for _ in range(inner_width):
+            column = []
+            for _ in range(inner_height):
                 column.append(False)
             road_mask.append(column)
 
-        # 2) Draw a curvy centerline and paint road thickness around it.
-        centerline = _generate_centerline(width, height, start_y, finish_y, turn_density, turn_sharpness)
-        _apply_thickness(road_mask, width, height, centerline, track_width_mean, track_width_var, min_width, max_width)
-        _ensure_start_finish(road_mask, width, height, start_y, finish_y, start_line_length)
+        # 3) Draw centerline and paint road thickness around it.
+        centerline = _generate_centerline(
+            inner_width, inner_height, start_y, finish_y, turn_density, turn_sharpness
+        )
+        # start_width = how wide the track opening is at x=0 (fits all players).
+        start_width = line_length
+        if start_width > inner_height:
+            start_width = inner_height
+        if start_width < 2:
+            start_width = 2
+
+        _apply_thickness(
+            road_mask, inner_width, inner_height, centerline,
+            track_width_mean, start_width
+        )
+        _ensure_start_finish(road_mask, inner_width, inner_height, start_y, finish_y, line_length)
+
         forward_pass_ok = _prune_track_for_forward_pass(
-            road_mask,
-            width,
-            height,
-            start_y,
-            finish_y,
-            start_line_length
+            road_mask, inner_width, inner_height, start_y, finish_y, line_length
         )
 
-        # 3) Accept only tracks that are truly connected and usable.
-        if forward_pass_ok and _track_is_valid(road_mask, width, height, start_y, finish_y, start_line_length):
-            return Track(width, height, road_mask, start_vertices, finish_line)
+        # 4) Accept only fully connected and usable tracks.
+        if forward_pass_ok and _track_is_valid(
+            road_mask, inner_width, inner_height, start_y, finish_y, line_length
+        ):
+            break
 
-        last_track = Track(width, height, road_mask, start_vertices, finish_line)
         attempts += 1
         track_width_mean, track_width_var, turn_density, turn_sharpness = _relax_params(
-            attempts,
-            track_width_mean,
-            track_width_var,
-            turn_density,
-            turn_sharpness,
-            min_width,
-            max_width
+            attempts, track_width_mean, track_width_var, turn_density, turn_sharpness,
+            min_width, max_width
         )
         if attempts >= max_attempts:
-            attempts = 0
+            _LOGGER.warning(
+                "rectangular_zigzag: max attempts (%d) reached, returning best available track.",
+                max_attempts
+            )
+            break
 
-    return last_track
+    # Convert inner road_mask[x][y] to full-size grid[y][x] (row-major, with border).
+    grid = []
+    for y in range(height):
+        row = []
+        for x in range(width):
+            row.append(False)
+        grid.append(row)
+
+    for ix in range(inner_width):
+        for iy in range(inner_height):
+            grid[iy + 1][ix + 1] = road_mask[ix][iy]
+
+    # Start nodes: inner x=0 maps to global x=1.
+    start_nodes = []
+    for i in range(line_length):
+        global_y = start_y + i + 1
+        if global_y < height - 1:
+            start_nodes.append((1, global_y))
+
+    # Finish nodes: right border at x=width-1.
+    # Cars must cross the very edge of the track to finish.
+    finish_nodes = []
+    for i in range(line_length):
+        global_y = finish_y + i + 1
+        if global_y < height - 1:
+            finish_nodes.append((width - 1, global_y))
+
+    return grid, start_nodes, finish_nodes
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers (identical logic to simulation/track_generator.py)
+# ---------------------------------------------------------------------------
 
 def _generate_centerline(
     width: int,
@@ -146,7 +215,9 @@ def _generate_centerline(
                 if next_wp_index < len(waypoints_y):
                     target_y = waypoints_y[next_wp_index]
 
-        direction_y = _pick_direction_with_bias(direction_y, y, target_y, height, turn_density, turn_sharpness)
+        direction_y = _pick_direction_with_bias(
+            direction_y, y, target_y, height, turn_density, turn_sharpness
+        )
 
         next_y = y + direction_y
         if next_y < 0 or next_y >= height:
@@ -172,6 +243,7 @@ def _force_vertical_to_target(path: List[Vertex], x: int, y: int, target_y: int)
         y = ny
         path.append(Vertex(x, y))
     return y
+
 
 def _build_waypoints(width: int, height: int, start_y: int, finish_y: int):
     # Waypoints force larger shape changes so tracks do not become straight corridors.
@@ -267,8 +339,7 @@ def _pick_direction_with_bias(
     turn_density: int,
     turn_sharpness: int
 ) -> int:
-    # Weighted random steering: prefer moving toward the current target_y,
-    # while still allowing some noise for variety.
+    # Weighted random steering: prefer moving toward the current target_y.
     if height <= 1:
         return 0
 
@@ -319,36 +390,54 @@ def _pick_direction_with_bias(
         return 0
     return 1
 
+
 def _apply_thickness(
     road_mask: List[List[bool]],
     width: int,
     height: int,
     centerline: List[Vertex],
     track_width_mean: int,
-    track_width_var: int,
-    min_width: int,
-    max_width: int
+    start_width: int
 ):
-    # Converts centerline points into a drivable ribbon with varying width.
-    if min_width < 1:
-        min_width = 1
-    if max_width < min_width:
-        max_width = min_width
+    # Converts centerline points into a drivable ribbon.
+    # The opening at x=0 is start_width wide (fits all players).
+    # Over the first quarter of the track it tapers to the cruise range [4..8].
+    # After that it fluctuates randomly within [4..8].
+    CRUISE_MIN = 4
+    CRUISE_MAX = 8
 
-    change_interval = 1
-    if len(centerline) > 0:
-        change_interval = len(centerline) // 6
+    total = len(centerline)
+    if total == 0:
+        return
+
+    taper_length = total // 4
+    if taper_length < 4:
+        taper_length = 4
+    if taper_length > total:
+        taper_length = total
+
+    change_interval = total // 6
     if change_interval < 3:
         change_interval = 3
 
-    current_base = _clamp_int(track_width_mean, min_width, max_width)
+    # Initial cruise base: honour track_width_mean if it falls in cruise range.
+    current_base = _clamp_int(track_width_mean, CRUISE_MIN, CRUISE_MAX)
 
-    for index, point in enumerate(centerline):
-        if index % change_interval == 0:
-            current_base = _random_between(min_width, max_width)
-        width_offset = random.randint(-track_width_var, track_width_var)
-        track_width = current_base + width_offset
-        track_width = _clamp_int(track_width, min_width, max_width)
+    for index in range(total):
+        point = centerline[index]
+
+        if index < taper_length:
+            # Linear taper from start_width (at index 0) down to CRUISE_MIN.
+            target = start_width + (CRUISE_MIN - start_width) * index // taper_length
+            track_width = _clamp_int(target, CRUISE_MIN, start_width)
+        else:
+            # Cruise: change base width periodically and add small jitter.
+            offset = index - taper_length
+            if offset % change_interval == 0:
+                current_base = _random_between(CRUISE_MIN, CRUISE_MAX)
+            width_offset = random.randint(-1, 1)
+            track_width = _clamp_int(current_base + width_offset, CRUISE_MIN, CRUISE_MAX)
+
         if track_width < 1:
             track_width = 1
         radius = track_width // 2
@@ -359,6 +448,7 @@ def _apply_thickness(
                 y = point.y + dy
                 if 0 <= x < width and 0 <= y < height:
                     road_mask[x][y] = True
+
 
 def _ensure_start_finish(
     road_mask: List[List[bool]],
@@ -375,6 +465,7 @@ def _ensure_start_finish(
     for y in range(finish_y, min(finish_y + line_length, height)):
         if 0 <= width - 1 < width:
             road_mask[width - 1][y] = True
+
 
 def _prune_track_for_forward_pass(
     road_mask: List[List[bool]],
@@ -422,14 +513,7 @@ def _prune_track_for_forward_pass(
             return True
 
         next_cell = _pick_forward_neighbor(
-            road_mask,
-            width,
-            height,
-            cx,
-            cy,
-            finish_mid_y,
-            dead_end,
-            on_path
+            road_mask, width, height, cx, cy, finish_mid_y, dead_end, on_path
         )
 
         if next_cell is not None:
@@ -448,6 +532,7 @@ def _prune_track_for_forward_pass(
         stack.pop()
 
     return False
+
 
 def _pick_forward_start_cell(
     road_mask: List[List[bool]],
@@ -477,6 +562,7 @@ def _pick_forward_start_cell(
         y += 1
 
     return best
+
 
 def _pick_forward_neighbor(
     road_mask: List[List[bool]],
@@ -516,6 +602,7 @@ def _pick_forward_neighbor(
 
     return None
 
+
 def _is_finish_cell(x: int, y: int, width: int, finish_y: int, line_length: int) -> bool:
     if x != width - 1:
         return False
@@ -524,6 +611,7 @@ def _is_finish_cell(x: int, y: int, width: int, finish_y: int, line_length: int)
     if y >= finish_y + line_length:
         return False
     return True
+
 
 def _cell_is_protected(
     x: int,
@@ -539,6 +627,7 @@ def _cell_is_protected(
         return True
     return False
 
+
 def _track_is_valid(
     road_mask: List[List[bool]],
     width: int,
@@ -547,7 +636,7 @@ def _track_is_valid(
     finish_y: int,
     line_length: int
 ) -> bool:
-    # Breadth-first search ensures every road cell is connected and finish is reachable.
+    # BFS ensures every road cell is connected and finish is reachable.
     if width <= 0 or height <= 0:
         return False
 
@@ -572,7 +661,9 @@ def _track_is_valid(
     queue = []
     queue.append(start_cells[0])
     visited[start_cells[0][0]][start_cells[0][1]] = True
-    for cx, cy in queue:
+    for cell in queue:
+        cx = cell[0]
+        cy = cell[1]
 
         nx = cx - 1
         ny = cy
@@ -614,13 +705,16 @@ def _track_is_valid(
 
     return True
 
+
 def _start_has_exit(
     road_mask: List[List[bool]],
     width: int,
     height: int,
     start_cells
 ) -> bool:
-    for x, y in start_cells:
+    for cell in start_cells:
+        x = cell[0]
+        y = cell[1]
         has_exit = False
         if x + 1 < width and road_mask[x + 1][y]:
             has_exit = True
@@ -631,6 +725,7 @@ def _start_has_exit(
         if not has_exit:
             return False
     return True
+
 
 def _relax_params(
     attempts: int,
@@ -660,16 +755,17 @@ def _relax_params(
 
     return track_width_mean, track_width_var, turn_density, turn_sharpness
 
+
 def _track_width_bounds(players: int, height: int):
-    min_width = int(players * 0.8)
-    if min_width < 2:
-        min_width = 2
-    max_width = players * 2
+    # Cruise range is fixed: track narrows to this after the opening section.
+    min_width = 4
+    max_width = 8
     if height > 0 and height < max_width:
         max_width = height
     if max_width < min_width:
         max_width = min_width
     return min_width, max_width
+
 
 def _clamp_track_width_for_players(players: int, height: int, track_width_mean: int, track_width_var: int):
     min_width, max_width = _track_width_bounds(players, height)
@@ -690,12 +786,14 @@ def _clamp_track_width_for_players(players: int, height: int, track_width_mean: 
 
     return track_width_mean, track_width_var
 
+
 def _clamp_int(value: int, low: int, high: int) -> int:
     if value < low:
         return low
     if value > high:
         return high
     return value
+
 
 def _random_between(min_value: int, max_value: int) -> int:
     if min_value >= max_value:

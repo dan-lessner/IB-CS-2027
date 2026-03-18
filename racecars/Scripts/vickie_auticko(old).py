@@ -84,3 +84,4 @@ class Auto(AutoAuto):
                 self.direction = (dx, dy)
 
         return best_move
+    
