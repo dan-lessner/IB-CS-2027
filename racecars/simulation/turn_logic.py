@@ -1,5 +1,6 @@
 """Apply one player's chosen action and update the shared game state."""
 
+import math
 from simulation.game_state import GameState, Vertex, Vector2i, Segment
 
 class TurnLogic:
@@ -9,6 +10,11 @@ class TurnLogic:
             return
 
         car = game_state.cars[car_id]
+
+        if car.eliminated:
+            # Eliminated car: skip turn silently, advance to next player.
+            TurnLogic._advance_turn_and_finalize_if_needed(game_state)
+            return
 
         if car.penalty > 0:
             # Crash penalty consumes turns before the car can move again.
@@ -33,8 +39,11 @@ class TurnLogic:
         # Validate the move and check for collisions
         target_occupied = TurnLogic._target_is_occupied(game_state, car_id, new_position)
         segment_valid = game_state.track.segment_is_valid(old_position, new_position)
+        # Finish-line nodes allow multiple cars — no crash when target is on finish line.
+        target_on_finish = game_state.track.vertex_on_finish_line(new_position)
+        effective_occupied = target_occupied and not target_on_finish
 
-        if target_occupied or not segment_valid:
+        if effective_occupied or not segment_valid:
             # Collision/off-track handling: keep a crash segment and reset speed.
             exit_point = game_state.track.first_invalid_point_on_segment(old_position, new_position)
             if exit_point is None:
@@ -47,8 +56,13 @@ class TurnLogic:
             if collision_vertex != old_position:
                 car.path.append(Segment(old_position, collision_vertex))
             car.vel = Vector2i(0, 0)
-            if TurnLogic._should_apply_penalty(game_state, target_occupied, segment_valid):
-                car.penalty = TurnLogic._compute_penalty_rounds(game_state, new_velocity)
+            car.crashes = car.crashes + 1
+            if TurnLogic._should_apply_penalty(game_state, effective_occupied, segment_valid):
+                if game_state.penalty_mode == "fatal":
+                    car.eliminated = True
+                    car.logger.info("Car '%s' (id=%s) was eliminated.", car.name, car.id)
+                else:
+                    car.penalty = TurnLogic._compute_penalty_rounds(game_state, new_velocity)
             else:
                 car.penalty = 0
         else:
@@ -56,17 +70,27 @@ class TurnLogic:
             car.path.append(Segment(old_position, new_position))
             car.pos = new_position
             car.vel = new_velocity
+            dx = new_position.x - old_position.x
+            dy = new_position.y - old_position.y
+            segment_length = math.sqrt(dx * dx + dy * dy)
+            car.distance = car.distance + segment_length
 
         # Check if the car crosses the finish line (only on a valid move)
         crossed_finish = False
-        if not target_occupied and segment_valid:
+        if not effective_occupied and segment_valid:
             if game_state.track.segment_crosses_finish(old_position, new_position):
                 crossed_finish = True
 
         if crossed_finish:
-            # Game ends only after everyone had the same number of turns.
+            car.laps = car.laps + 1
             if not TurnLogic._winner_exists(game_state, car.id):
                 game_state.winners.append(car.id)
+                # Record finish timing for tie-breaking: kolo + parametrický okamžik t průjezdu
+                car.finish_round = game_state.race_round
+                t = game_state.track.finish_crossing_t(old_position, new_position)
+                if t is None:
+                    t = 1.0  # záloha — průjezd na konci tahu
+                car.finish_t = t
             if not game_state.finish_triggered:
                 game_state.finish_triggered = True
                 game_state.finish_after_player_idx = game_state.current_player_idx
@@ -92,9 +116,20 @@ class TurnLogic:
     @staticmethod
     def _advance_turn_and_finalize_if_needed(game_state: GameState):
         game_state.next_player()
-        if game_state.finish_triggered:
-            if game_state.current_player_idx == game_state.finish_after_player_idx:
-                game_state.finished = True
+        # Race ends when every non-eliminated car has crossed the finish line.
+        # Eliminated cars (fatal penalty) are not waited for.
+        if TurnLogic._all_active_cars_finished(game_state):
+            game_state.finished = True
+
+    @staticmethod
+    def _all_active_cars_finished(game_state: GameState) -> bool:
+        # Returns True when every non-eliminated car is in the winners list.
+        for car in game_state.cars:
+            if car.eliminated:
+                continue
+            if not TurnLogic._winner_exists(game_state, car.id):
+                return False
+        return True
 
     @staticmethod
     def _should_apply_penalty(game_state: GameState, target_occupied: bool, segment_valid: bool):

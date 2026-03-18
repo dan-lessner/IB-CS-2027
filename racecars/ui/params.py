@@ -17,7 +17,9 @@ class GameParams:
         shuffle_turn_order_each_round: bool = False,
         strict_target_check: bool = False,
         penalty_mode: str = "fixed",
-        penalty_value: int = 2
+        penalty_value: int = 2,
+        track_generator_id: str = None,
+        max_rounds: int = 0
     ):
         self.width = width
         self.height = height
@@ -34,6 +36,10 @@ class GameParams:
         self.strict_target_check = strict_target_check
         self.penalty_mode = penalty_mode
         self.penalty_value = penalty_value
+        # None means "use first available generator".
+        self.track_generator_id = track_generator_id
+        # 0 means no limit; positive value ends the race after that many rounds.
+        self.max_rounds = max_rounds
 
     def clone(self):
         # Defensive copy so dialogs/CLI parsing can edit params without side effects.
@@ -52,5 +58,7 @@ class GameParams:
             shuffle_turn_order_each_round=self.shuffle_turn_order_each_round,
             strict_target_check=self.strict_target_check,
             penalty_mode=self.penalty_mode,
-            penalty_value=self.penalty_value
+            penalty_value=self.penalty_value,
+            track_generator_id=self.track_generator_id,
+            max_rounds=self.max_rounds
         )

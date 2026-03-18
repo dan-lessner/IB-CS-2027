@@ -13,10 +13,15 @@ class Auto(AutoAuto):
 
     def is_road(self, world: WorldState, cx: int, cy: int) -> bool:
         width = len(world.road)
-        height = len(world.road[0]) if width > 0 else 0
-        if 0 <= cx < width and 0 <= cy < height:
-            return world.road[cx][cy]
-        return False
+        if cx < 0 or cx >= width:
+            return False
+        if cy < 0:
+            return False
+        if cx >= len(world.road):
+            return False
+        if cy >= len(world.road[cx]):
+            return False
+        return world.road[cx][cy]
 
     def is_valid_vertex(self, world: WorldState, x: int, y: int) -> bool:
         for dx in [-1, 0]:
@@ -114,19 +119,4 @@ class Auto(AutoAuto):
         if best_move is not None:
             return best_move
         
-        print(f"[DijkstraFast] Warning: no move with known distance at {current}, using Euclidean fallback")
-        
-        for move in valid_moves:
-            min_euclidean = float('inf')
-            for fv in world.finish_vertices:
-                dx = move.x - fv.x
-                dy = move.y - fv.y
-                euclidean = math.sqrt(dx*dx + dy*dy)
-                if euclidean < min_euclidean:
-                    min_euclidean = euclidean
-            
-            if min_euclidean < best_dist:
-                best_dist = min_euclidean
-                best_move = move
-        
-        return best_move if best_move else valid_moves[0]
+        print(f"[DijkstraFast] Warning: probably not connected to finish")

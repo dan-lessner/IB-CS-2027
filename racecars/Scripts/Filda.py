@@ -6,11 +6,11 @@ from simulation.script_api import AutoAuto
 
 
 class Auto(AutoAuto):
-    def __init__(self,track) -> None:
+    def __init__(self, track) -> None:
         super().__init__()
         self.step = 0
         self.history = []
-    
+
     def GetName(self) -> str:
         return "Fildy Driver"
 
@@ -20,7 +20,7 @@ class Auto(AutoAuto):
         repeat = coords in self.history
         
         self.history.append(coords)
-        if len(self.history) > 4:
+        if len(self.history) > 50:
             self.history.pop(0)
 
         for i in range(len(targets)):
@@ -30,12 +30,10 @@ class Auto(AutoAuto):
 
         if len(allowed_moves) == 0:
             return auto.pos
-
         index = -1
         if repeat and len(allowed_moves) > 1:
-            index = random.randint(-2, -1)
-        print(world.finish_vertices)
-        return allowed_moves[index]     
-
-
-
+            index = random.randint(-2, -1) 
+        
+        if len(self.history) >= 2 and self.history[-2] == (auto.pos.x, auto.pos.y + 1) and len(allowed_moves) >= 2:
+            return targets[3]
+        return allowed_moves[index]
