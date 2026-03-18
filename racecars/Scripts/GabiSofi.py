@@ -5,13 +5,10 @@ class Auto(AutoAuto):
     def __init__(self, track):
         super().__init__()
         self.path = None
-
-        # --- added from your original ---
         self.dir = (1, 0)
         self.step = 0
 
     def GetName(self) -> str:
-        # keep your name if you want
         return "Lightning McQueen"
 
     def is_road(self, world: WorldState, cx: int, cy: int) -> bool:
@@ -91,9 +88,9 @@ class Auto(AutoAuto):
                     heapq.heappush(heap, (new_dist, nx, ny))
 
         return []  # No path found
-
+    
+    #počítání kroků
     def PickMove(self, auto, world, targets, validity):
-        # --- added from your original ---
         self.step += 1
         print("kroky:", self.step)
 
@@ -132,12 +129,12 @@ class Auto(AutoAuto):
         try:
             current_index = self.path.index(current)
         except ValueError:
-            print(f"[Dijkstra] Recomputing path: current {current} not on path")
+            print(f" Recomputing path: current {current} not on path")
             self.path = self.computepath(current[0], current[1], world)
             try:
                 current_index = self.path.index(current)
             except ValueError:
-                print(f"[Dijkstra] Warning: still not on path after recompute")
+                print(f" Warning: still not on path after recompute")
                 return valid_moves[0]
 
         if current_index >= len(self.path) - 1:
@@ -156,7 +153,7 @@ class Auto(AutoAuto):
                 if move_speed < current_speed:
                     return move
 
-        print(f"[Dijkstra] Recomputing path: next step {next_pos} not reachable")
+        print(f" Recomputing path: next step {next_pos} not reachable")
         self.path = self.computepath(current[0], current[1], world)
 
         try:
