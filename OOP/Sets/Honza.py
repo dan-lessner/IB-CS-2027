@@ -69,3 +69,6 @@ class Set(AbstractSet):
 
     def __iter__(self):
         return
+
+
+# Note for next lesson: Implement set using tree
