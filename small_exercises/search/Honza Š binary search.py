@@ -1,4 +1,4 @@
-#  Honza Škoda :3
+#  :3                 :3                 :3                 :3                 :3                 :3
 
 def binary_search(elem, sorted_list):
 
