@@ -3,7 +3,7 @@ from simulation.script_api import AutoAuto
 from simulation.game_state import Vertex
 
 class Auto(AutoAuto):
-    def __init__(self) -> None:
+    def __init__(self,track) -> None:
         super().__init__()
         self.last_positions = []
         self.direction = (1, 0)  # start moving right
