@@ -1,9 +1,10 @@
 import random
 import importlib
 
-filename = input("Enter the filename of the module to test (e.g., example): ")
+filename = input("Enter the filename of the module to test: ")
 
 try:
+    filename = filename.replace('.py', '')
     imported_module = importlib.import_module(filename)
     binary_search = imported_module.binary_search
 except (ImportError, AttributeError) as e:
@@ -16,7 +17,7 @@ YELLOW = '\033[93m'
 RESET = '\033[0m'
 
 # Test cases
-print("=== Running Tests ===")
+print(f"=== Running Tests For \"{filename}\" ===")
 
 # Test 1: Search for first element
 arr = sorted(random.sample(range(101), 20))
