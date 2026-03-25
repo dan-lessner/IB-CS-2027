@@ -41,9 +41,13 @@ def listSplit(list, element):
         #print("Escape!: " + str(pivotIndex))
         indx = pivotIndex
     else:
-        print("Can a loc come up in yo crib? Nah man, fuck you I see you at work!... aww fella dont hate me cuz im beautiful fella. Maybe if you got rid of that yee-yee ass haircut, you'd get some bitches on your dick. Better yet, maybe tanisha dog ass would stop fuckin' with that lawyer or surgeon she fuckin' wit' .... Fella!....... WHAT?")
+        print("catastrophic failure ;), how did you manage this? ")
+        return None
+        #print("Can a loc come up in yo crib? Nah man, fuck you I see you at work!... aww fella dont hate me cuz im beautiful fella. Maybe if you got rid of that yee-yee ass haircut, you'd get some bitches on your dick. Better yet, maybe tanisha dog ass would stop fuckin' with that lawyer or surgeon she fuckin' wit' .... Fella!....... WHAT?")
     #print("indx: " + str(indx))
     return indx 
+
+'''Testing Code VVVVV '''
 
 list = []
 for x in range(100):
