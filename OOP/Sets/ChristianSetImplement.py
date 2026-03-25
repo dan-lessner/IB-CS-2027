@@ -15,9 +15,7 @@ class set (AbstractSet):
         self.population = 0
     
     def getIndex(self, element):
-        returnVar = 1
-        for x in list(str(element)):
-            returnVar *= ord(x)
+        returnVar = ord(str(element))
         return (returnVar % self.length)
     
     
