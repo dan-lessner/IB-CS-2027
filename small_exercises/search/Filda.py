@@ -1,16 +1,16 @@
 def binary_search(arr, target):
-    low = 0
-    high = len(arr) - 1
+    dole = 0
+    nahoře = len(arr) - 1
     arr.sort()
-    while low <= high:
-        mid = (low + high) // 2
+    while dole <= nahoře:
+        mid = (dole + nahoře) // 2
         guess = arr[mid]
         if guess == target:
             return mid
-        if guess => target:
-            high = mid - 1
+        if guess > target:
+            nahoře = mid - 1
         else:
-            low = mid + 1
+            dole = mid + 1
     return -1
 # Test cases
 print("=== Binary Search Test Cases ===\n")
