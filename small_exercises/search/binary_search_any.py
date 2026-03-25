@@ -16,7 +16,7 @@ def binarySearch(arr, targetVal):
   return -1
 
 mylist = [1, 3, 5, 7, 9, 11, 13, 15, 17, 19]
-x = 11
+x = 3
 
 result = binarySearch(mylist, x)
 
