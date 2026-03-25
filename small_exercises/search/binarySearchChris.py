@@ -4,12 +4,16 @@ import random
 
 #nefunguje, asi budu potrebovat rewrite
 #hardcoded for now cuz im too lazy to do it rn :3, also ik ze ten offset index vec se da udelat lepe ale nebudu to menit protoze bych to stealoval od ernesta
+#update: i stole the idea from ernest xO 
+totCount = 0
 
 def listSplit(list, element):
+    global totCount
+    
     #print("--------------------------------")
     #print("element: " + str(element))
     #print("maxIndex: " + str(len(list)-1))
-    pivotIndex = math.floor((len(list)-1)/2)
+    pivotIndex = (len(list)-1)//2 
     #print("pivotIndex: " + str(pivotIndex))
     #print("List!: " + str(list))
     
@@ -24,24 +28,27 @@ def listSplit(list, element):
     
     indx = 0
     
-    if element > list[pivotIndex]:
+    if element == list[pivotIndex]:
+        #print("Escape!: " + str(pivotIndex))
+        indx = pivotIndex
+        totCount += 1
+    
+    elif element > list[pivotIndex]:
         #print("bigger: " + str(list[pivotIndex + 1: ]))
         indx =listSplit(list[pivotIndex + 1 : ], element)
         if indx == -1:
             return -1
         indx += pivotIndex + 1
+        totCount +=1
         
     elif element < list[pivotIndex]:
         #print("smaller: " + str(list[: pivotIndex ]))
         indx = listSplit(list[: pivotIndex ], element)
         if indx == -1:
             return -1
-        
-    elif element == list[pivotIndex]:
-        #print("Escape!: " + str(pivotIndex))
-        indx = pivotIndex
+        totCount +=1
     else:
-        print("catastrophic failure ;), how did you manage this? ")
+        #print("catastrophic failure ;), how did you manage this? ")
         return None
         #print("Can a loc come up in yo crib? Nah man, fuck you I see you at work!... aww fella dont hate me cuz im beautiful fella. Maybe if you got rid of that yee-yee ass haircut, you'd get some bitches on your dick. Better yet, maybe tanisha dog ass would stop fuckin' with that lawyer or surgeon she fuckin' wit' .... Fella!....... WHAT?")
     #print("indx: " + str(indx))
@@ -49,13 +56,12 @@ def listSplit(list, element):
 
 '''Testing Code VVVVV '''
 
-list = []
-for x in range(100):
-    
-    list.append(random.randint(0,500))
+list = [145, 687, 58, 68, 278, 149, 296, 382, 398, 426, 827, 654, 257, 12, 16, 8, 147, 1028, 283, 647, 2, 48, 12]
 
 list.sort()
 
 #print(listSplit(list, int(input(" on foenem grave what number you wanna check?: "))))
 for i in list:
-    print(listSplit(list, i))
+    print("Element: ", i)
+    listSplit(list, i)
+print("Average time: ", totCount/len(list))

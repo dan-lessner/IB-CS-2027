@@ -16,29 +16,29 @@ for x in items :
     print("\n-----------------------------------\n")
     print("element: " , x)
     count = 0
-    indexhigh = (len(items) - 1)
-    indexlow = (0)  
-    while indexhigh != indexlow: 
+    indexHigh = (len(items) - 1)
+    indexLow = (0)  
+    while indexHigh != indexLow: 
         #print("new iteration")
         #print("element: ", x)
-        #print("low: ", indexlow)
-        #print("high: ", indexhigh)
-        #print( items[indexlow:indexhigh+1])
+        #print("low: ", indexLow)
+        #print("high: ", indexHigh)
+        #print( items[indexLow:indexHigh+1])
         count += 1
-        pivot = (indexhigh + indexlow) // (2) 
-       # print("pivot", pivot)
+        pivot = (indexHigh + indexLow) // (2) 
+       # #print("pivot", pivot)
         midElement = items[pivot]
         if midElement == x:
             #print("Break!")
             break
         elif midElement > x:
             #print("Smaller")
-            indexhigh = pivot -1
+            indexHigh = pivot -1
         elif midElement < x:
             #print("Bigger")
-            indexlow = pivot + 1
+            indexLow = pivot + 1
         else:
             print("Catastrophic Failure... How did you do this?")
     print("IterCount: ", count)
     total += count
-print(len(items), total/len(items))
+print("Average time: ",total/len(items))
