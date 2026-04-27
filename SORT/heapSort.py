@@ -4,6 +4,9 @@ class heap():
         self.arr = arr
         self.length = len(arr)
         self.cutoff = 0
+    
+    def print(self):
+        print("Array: ",self.arr, " Cutoff: ", self.cutoff, " Length: ", self.length)
 
     def heapify(self):
         for i in range(self.length-(self.cutoff+1),0,-1):
@@ -27,7 +30,8 @@ class heap():
         pos = int((float(index-1)/2))
         return pos
 
-test_list = [47, 12, 89, 3, 56, 24, 91, 18, 72, 5, 63, 30, 77, 1, 44, 68, 20, 95, 38, 14, 52, 9]
+test_list = [47, 12, 89, 3, 56, 24, 91, 18, 72, 5, 63, 30, 77, 1, 44, 68, 20, 95, 38, 14, 52, 9,3,3,3]
 
 h = heap(test_list)
 h.sort()
+h.print()
