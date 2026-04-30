@@ -3,13 +3,12 @@ class heap():
     def __init__(self,arr):
         self.arr = arr
         self.length = len(arr)
-        self.cutoff = 0
     
     def print(self):
-        print("Array: ",self.arr, " Cutoff: ", self.cutoff, " Length: ", self.length)
+        print("Array: ",self.arr, " Length: ", self.length)
 
-    def heapify(self):
-        for i in range(self.length-(self.cutoff+1),0,-1):
+    def heapify(self,cutoff):
+        for i in range(self.length-(cutoff+1),0,-1):
             pIndex = self.findParent(i)
             #print(self.arr[i],self.arr[pIndex])
             if self.arr[i] > self.arr[pIndex]:
@@ -18,11 +17,12 @@ class heap():
         #print(self.arr)
     
     def sort(self):
+        cutoff = 0
         print("Unsorted: ", self.arr)
         for _ in range(self.length):
-            self.heapify()
-            self.cutoff += 1    
-            self.arr[0], self.arr[-self.cutoff] = self.arr[-self.cutoff], self.arr[0] 
+            self.heapify(cutoff)
+            cutoff += 1    
+            self.arr[0], self.arr[-cutoff] = self.arr[-cutoff], self.arr[0] 
         print("Sorted: ",self.arr)  
         return self.arr  
         
