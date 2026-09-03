@@ -1,3 +1,4 @@
+import random
 def radixSort(arr):
     maxOrder = len(str(max(arr)))
     for u in range(maxOrder):
@@ -25,7 +26,10 @@ def radixSort(arr):
                     
     return sum(buckets,[])
     
-tList = [17, 42, 89, 105, 238, 376, 491, 604, 752, 918, 1234, 2076, 3490, 4158, 5621, 6789, 7340, 8012, 9563, 64,68,89,1098]
+tList = [random.randint(0,1000) for _ in range(20)]
+print(tList)
+
+
     
 print(radixSort(tList))
         

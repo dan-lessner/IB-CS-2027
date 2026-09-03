@@ -4,6 +4,7 @@ class node:
         self.value = value
         self.left = None
         self.right = None
+#class for a node, does nothing on its own
 
 class BST:
     def __init__(self, arr):
@@ -12,35 +13,33 @@ class BST:
         for i in range(1,len(arr)):
             print("e: " + str(arr[i]))
             self.insert(self.root, arr[i])
+    #inits the class (cuz ofc) and finds the most optimal root
     
-    def insert(self, root, val):
+    def insert(self, root, val): #This function inserts an element into the BST without balancing (idk how to do red black lol), it checks for duplicates aswell 
         if root is None:
             print(f"Returned: {val}")
             return node(val)
+        #if node with specified value doesnt exist create node with the value
         if root.value == val:
             print(f"Repeated: {val}")
             return root
+        #if value alr exists, exit and skip
         if root.value < val:
             print(f"Right: {val}")
             root.right = self.insert(root.right,val)
+        #if value is larger than root then set right node as new root (even if it does not exist)
         elif root.value >val:
             print(f"Left: {val}")
             root.left = self.insert(root.left,val)
+        #if value is smaller than root then set left node as new root (even if it does not exist)
         return root
         
-                
-    
-    def getChildIndexList(self,i):
-        return [(2*(i+1) -1), 2*(i+1)]
-    
-    def getParentIndex(self,i):
-        return math.floor((i+1)/2) -1
-    
     def print (self,root):
         if root:
             self.print(root.left)
             print(f"Val: {root.value}")
             self.print(root.right)
+        #if the root exists then run recursively for the left child, then print the value, then run it recursively for the right child (these children do not need to exist due to the if statement at the start)
             
             
         
