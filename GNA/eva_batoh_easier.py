@@ -17,30 +17,31 @@
 
 # vstupy
 nosnost_batohu = 50
-pocet_predmetu = 10
 hmotnosti = [5, 8, 12, 25, 45, 10, 13, 32, 4, 7]
-ceny =      [1, 3, 6,   3,  20, 9, 20, 15, 6, 2]
+ceny =      [1, 3,  6,  3, 20,  9, 20, 15, 6, 2]
+pocet_predmetu = len(hmotnosti)
+
 
 # nastaveni evoluce
 velikost_populace = 32
 pocet_generaci = 20
 delka_DNA = pocet_predmetu
-pst_mutace = 1.0/delka_DNA ############ jak to bude zrat float? ocisti deleni
+pst_mutace = 1/delka_DNA
 
 import random
 random.seed(0)
 
+### pomocne funkce
 def novy_seznam( hodnota, pocet ) :
     seznam = []
-    for i in range( pocet ) :
-        seznam = seznam + [hodnota]				#########šš je to lepsi nez append???
+    for plonkova_promenna in range( pocet ) :
+        seznam = seznam + [hodnota]	
     return seznam
 
-### pomocne funkce
-def soucin_po_prvcich( s1, s2 ):	## tzv. "skalarni soucin", ale to budete probirat az pozdeji
+def soucin_po_prvcich( A, B ):	## tzv. "skalarni soucin", ale to budete probirat az pozdeji
     S = 0
-    for i in range( len(s1) ):		# predpokladame, ze jsou seznamu stejne dlouhe
-        S = S + s1[i] * s2[i]		# postupne vynasobi odpovidajici prvky seznamu a souciny secte, neboli s1[0]*s2[0] + s1[1]*s2[1] + s1[2]*s2[2] + ...
+    for i in range( len(A) ):		# predpokladame, ze jsou seznamy stejne dlouhe
+        S = S + A[i] * B[i]		# postupne vynasobi odpovidajici prvky seznamu a souciny secte, neboli A[0]*B[0] + A[1]*B[1] + A[2]*B[2] + ...
     return S
 
 def fitness( jedinec ):
@@ -60,18 +61,18 @@ def mutuj( mutant ):
 def zkriz( tata, mama ):
     synek = novy_seznam( 0, delka_DNA )
     dcera = novy_seznam( 0, delka_DNA )
-    pozice = random.randrange( delka_DNA )
-    for i in range( pozice ) :
+    pozice_zkrizeni = random.randrange( delka_DNA )
+    for i in range( pozice_zkrizeni ) :
       synek[i] = tata[i]     
       dcera[i] = mama[i]
-    for i in range( pozice, delka_DNA ) :
+    for i in range( pozice_zkrizeni, delka_DNA ) :
       synek[i] = mama[i]
       dcera[i] = tata[i]
     return [synek, dcera]
 
 ### inicializace populace
 populace = []
-for i in range( velikost_populace ) :
+for plonkova_promenna in range( velikost_populace ) :
     miminko = novy_seznam( 0, delka_DNA )
     for cislo_kodonu in range( delka_DNA ) :
         miminko[cislo_kodonu] = random.randrange( 2 )
@@ -92,7 +93,7 @@ for plonkova_promenna in range( pocet_generaci ) :
     for i in range( 0, len(prezivsi), 2 ) :
         krizenci = krizenci + zkriz(prezivsi[i], prezivsi[i+1])
     # slozeni dalsi generace: vitezove turnaju a jejich deti
-    populace = prezivsi + krizenci
+    populace = prezivsi + krizenci  # kontrolni otazka: jaka je velikost populace po tomto kroku? Je to spravne?
     # mutace
     for jedinec in populace :
         mutuj(jedinec)
