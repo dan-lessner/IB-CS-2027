@@ -89,6 +89,7 @@ var I18N_EN = {
   zoom_label: 'Zoom level',
 
   section_saveload_legend: 'Save and load',
+  reset_defaults_btn: 'Reset to default settings',
   saveload_include_board_label: 'Also save the board state (mice, food)',
   save_cookie_btn: 'Save to cookie',
   load_cookie_btn: 'Load from cookie',
@@ -104,6 +105,7 @@ var I18N_EN = {
   saveload_status_cookie_cleared: 'Cookie with saved settings deleted.',
   saveload_status_link_ready: 'Link generated and selected — copy it (Ctrl+C).',
   saveload_status_link_loaded: 'Settings loaded from the link.',
+  saveload_status_defaults_applied: 'Settings reset to defaults.',
 
   // --- Tooltips -----------------------------------------------------------
   //
@@ -169,6 +171,7 @@ var I18N_EN = {
   save_cookie_btn_tooltip: 'Saves the current settings (and optionally the board state) to a cookie in this browser — the first time asks for explicit consent.',
   load_cookie_btn_tooltip: 'Sets the controls and resets the simulation from the data last saved to the cookie.',
   clear_cookie_btn_tooltip: 'Deletes the cookie with saved settings from this browser.',
-  save_link_btn_tooltip: 'Generates a URL with the current settings (and optionally the board state) encoded in a parameter — opening this link loads the same data again.'
+  save_link_btn_tooltip: 'Generates a URL with the current settings (and optionally the board state) encoded in a parameter — opening this link loads the same data again.',
+  reset_defaults_btn_tooltip: 'Resets every setting control to its default value (defined in one place in js/save-load.js) and resets the simulation.'
 
 };

@@ -297,6 +297,13 @@
           <span data-i18n="section_saveload_legend"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="section_saveload_legend_tooltip">?</span>
         </legend>
+        <!-- Reset na výchozí (spec 13.5) je logicky nejblíž save/load
+             kódu — stejně jako "načíst uložený stav", jen se místo dat z
+             cookie/odkazu použije DEFAULT_SETTINGS z js/save-load.js. -->
+        <span class="btn-with-help">
+          <button type="button" id="reset-defaults-btn" data-i18n="reset_defaults_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="reset_defaults_btn_tooltip">?</span>
+        </span>
         <label>
           <input type="checkbox" id="saveload-include-board-checkbox">
           <span data-i18n="saveload_include_board_label"></span>

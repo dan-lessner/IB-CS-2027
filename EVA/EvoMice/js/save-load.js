@@ -44,6 +44,43 @@ var SAVE_LOAD_FIELDS = [
   { id: 'seed-input', kind: 'number' }
 ];
 
+// --- Výchozí hodnoty nastavení (spec 13.5) -----------------------------
+//
+// Jediné místo v kódu, které definuje výchozí hodnotu každého ovládacího
+// prvku (klíč = id prvku, stejně jako SAVE_LOAD_FIELDS výše, + 'food-mode'
+// pro dvojici radio tlačítek). Slouží dvakrát:
+//   - tlačítko "reset na výchozí" (viz posluchač níže) ho aplikuje přímo,
+//   - applyDefaultSettingsOnStartup() ho aplikuje jednou při načtení
+//     stránky, ať HTML atributy value/checked nejsou druhé, nezávislé
+//     místo pravdy — i kdyby se časem rozešly, tenhle objekt vždycky
+//     "vyhraje" a přepíše je.
+// Hodnoty zatím zrcadlí aktuální HTML atributy (elitismus se na 0 podle
+// spec 13.9 přepne v samostatném kroku) a spec 13.1 (výchozí režim krmení
+// v UI "ruční kreslení").
+var DEFAULT_SETTINGS = {
+  'population-size-slider': 80,
+  'grid-size-slider': 48,
+  'food-count-slider': 20,
+  'food-capacity-slider': 20,
+  'food-depletes-checkbox': false,
+  'food-replenishes-checkbox': false,
+  'food-mode': 'manual',
+  'fitness-type-select': 'binary',
+  'selection-method-select': 'roulette',
+  'tournament-size-slider': 3,
+  'crossover-rate-slider': 0.8,
+  'crossover-type-select': 'xy-split',
+  'crossover-points-slider': 3,
+  'mutation-type-select': 'bit-flip',
+  'mutation-rate-slider': 0.02,
+  'mutation-jump-radius-slider': 3,
+  'elite-count-slider': 2,
+  'replacement-mode-select': 'full',
+  'replacement-percent-slider': 50,
+  'speed-slider': 2,
+  'seed-input': 42
+};
+
 function collectSettingsFromUI() {
   var settings = {};
   var i = 0;
@@ -145,10 +182,16 @@ function buildSaveData(includeBoard) {
   return data;
 }
 
-function applySaveData(data) {
+// `forceRandomFoodSeed` (nepovinné) se předává rovnou do resetSimulation()
+// — používá ho jen applyInitialSettings() níže pro úplně první aplikaci
+// DEFAULT_SETTINGS (spec 13.1: počáteční krmení je vždy náhodně rozhozené,
+// i když výchozí režim v UI je "ruční kreslení"). Běžné uložené/sdílené
+// odkazy a cookie tenhle argument nepředávají — jejich uložený stav krmení
+// (včetně prázdné plochy v ručním režimu) se respektuje přesně tak, jak byl.
+function applySaveData(data, forceRandomFoodSeed) {
   applySettingsToUI(data.settings);
   stopRunning();
-  resetSimulation(); // stejný krok jako tlačítko "Nastavit seed a resetovat" — čte teď už nové hodnoty z UI
+  resetSimulation(forceRandomFoodSeed); // stejný krok jako tlačítko "Nastavit seed a resetovat" — čte teď už nové hodnoty z UI
 
   if (data.board !== undefined) {
     applyBoardState(data.board);
@@ -282,6 +325,11 @@ document.getElementById('clear-cookie-btn').addEventListener('click', function (
   setSaveLoadStatus('saveload_status_cookie_cleared');
 });
 
+document.getElementById('reset-defaults-btn').addEventListener('click', function () {
+  applySaveData({ settings: DEFAULT_SETTINGS }); // bez stavu plochy — ten se resetSimulation() uvnitř postará
+  setSaveLoadStatus('saveload_status_defaults_applied');
+});
+
 document.getElementById('save-link-btn').addEventListener('click', function () {
   var includeBoard = document.getElementById('saveload-include-board-checkbox').checked;
   var data = buildSaveData(includeBoard);
@@ -294,18 +342,23 @@ document.getElementById('save-link-btn').addEventListener('click', function () {
   setSaveLoadStatus('saveload_status_link_ready');
 });
 
-// --- Úvodní načtení z URL (spec 12.5: nahradí výchozí hodnoty) -------------
+// --- Úvodní aplikace výchozích hodnot + načtení z URL -----------------------
 //
-// main.js už při vlastní inicializaci provedl výchozí resetSimulation() —
-// pokud URL obsahuje uložená data, tady je aplikujeme navrch (viz komentář
-// u <script> tagu v index.html pro pořadí načítání).
-function applyInitialSaveDataFromUrl() {
-  var data = readSaveDataFromUrl();
-  if (data === null) {
-    return;
+// main.js už při vlastní inicializaci provedl výchozí resetSimulation(), ale
+// s hodnotami rovnou z HTML atributů (value/checked) — tady je přepíšeme
+// hodnotami z DEFAULT_SETTINGS (spec 13.5: jedno místo pravdy, viz výš) a
+// rovnou znovu resetujeme, ať i počáteční populace/krmení odpovídá přesně
+// tomu, co formulář ukazuje. Pokud URL obsahuje uložená data, aplikujeme je
+// navrch (viz komentář u <script> tagu v index.html pro pořadí načítání) —
+// ta mají přednost před výchozími hodnotami.
+function applyInitialSettings() {
+  applySaveData({ settings: DEFAULT_SETTINGS }, true); // spec 13.1: viz komentář u applySaveData
+
+  var urlData = readSaveDataFromUrl();
+  if (urlData !== null) {
+    applySaveData(urlData);
+    setSaveLoadStatus('saveload_status_link_loaded');
   }
-  applySaveData(data);
-  setSaveLoadStatus('saveload_status_link_loaded');
 }
 
-applyInitialSaveDataFromUrl();
+applyInitialSettings();

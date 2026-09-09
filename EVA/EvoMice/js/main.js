@@ -633,4 +633,7 @@ function onLanguageChanged() {
 
 updateStartPauseButtonText();
 updateFullscreenButtonText();
-resetSimulation(true); // spec 13.1: první krmení je vždy náhodně rozhozené, i když UI ukazuje "ruční"
+// Skutečná první resetSimulation() proběhne až v js/save-load.js
+// (applyInitialSettings(), spec 13.5) — tam se napřed aplikují
+// DEFAULT_SETTINGS (jedno místo pravdy pro výchozí hodnoty) a případně
+// data z URL, teprve pak dává smysl populaci/krmení vytvořit.

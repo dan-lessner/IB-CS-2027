@@ -87,6 +87,7 @@ var I18N_CS = {
   zoom_label: 'Přiblížení',
 
   section_saveload_legend: 'Uložení a načtení',
+  reset_defaults_btn: 'Reset na výchozí nastavení',
   saveload_include_board_label: 'Uložit i stav plochy (myši, krmení)',
   save_cookie_btn: 'Uložit do cookie',
   load_cookie_btn: 'Načíst z cookie',
@@ -102,6 +103,7 @@ var I18N_CS = {
   saveload_status_cookie_cleared: 'Cookie s uloženým nastavením smazána.',
   saveload_status_link_ready: 'Odkaz vygenerován a označen — zkopírujte ho (Ctrl+C).',
   saveload_status_link_loaded: 'Nastavení načteno z odkazu.',
+  saveload_status_defaults_applied: 'Nastavení vráceno na výchozí hodnoty.',
 
   // --- Tooltipy ---------------------------------------------------------
   //
@@ -167,6 +169,7 @@ var I18N_CS = {
   save_cookie_btn_tooltip: 'Uloží aktuální nastavení (a volitelně stav plochy) do cookie v tomto prohlížeči — poprvé si vyžádá výslovný souhlas.',
   load_cookie_btn_tooltip: 'Nastaví ovládací prvky a resetuje simulaci podle dat naposledy uložených do cookie.',
   clear_cookie_btn_tooltip: 'Smaže cookie s uloženým nastavením z tohoto prohlížeče.',
-  save_link_btn_tooltip: 'Vygeneruje URL adresu s aktuálním nastavením (a volitelně stavem plochy) zakódovaným v parametru — otevřením tohohle odkazu se stejná data načtou znovu.'
+  save_link_btn_tooltip: 'Vygeneruje URL adresu s aktuálním nastavením (a volitelně stavem plochy) zakódovaným v parametru — otevřením tohohle odkazu se stejná data načtou znovu.',
+  reset_defaults_btn_tooltip: 'Vrátí všechny ovládací prvky nastavení na výchozí hodnoty (definované na jednom místě v js/save-load.js) a resetuje simulaci.'
 
 };
