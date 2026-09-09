@@ -12,7 +12,7 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
 
 - v1-v4 (viz `personal-playground/EvoMice` git historie, kód je stejný, jen bez dev-dokumentace
   přenesen sem 2026-09-09) — hotovo.
-- **v5 (spec sekce 13) — v implementaci.**
+- **v5 (spec sekce 13) — hotovo (2026-09-09), všech 10 kroků commitnuto a vizuálně ověřeno.**
 
 ## Vizuální ověřování (nové od v5)
 
