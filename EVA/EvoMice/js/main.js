@@ -33,7 +33,9 @@ var rng;
 var generationCount = 0;
 var isRunning = false;
 var runIntervalId = null;
-var foodMode = 'random'; // 'random' | 'manual'
+// Výchozí stav přepínače v UI je "ruční kreslení" (spec 13.1) — HTML má
+// odpovídající radio button rovnou 'checked', tahle proměnná to jen zrcadlí.
+var foodMode = 'manual'; // 'random' | 'manual'
 
 // --- Vykreslení a stavový řádek --------------------------------------------
 
@@ -210,7 +212,13 @@ window.addEventListener('resize', function () {
 
 // --- Reset / inicializace simulace ------------------------------------
 
-function resetSimulation() {
+// `forceRandomFoodSeed` (nepovinné): i v ručním režimu vytvoří počáteční
+// krmení náhodným rozhozením, místo aby začínalo na prázdno — použito jen
+// při úplně první inicializaci stránky (spec 13.1: výchozí stav přepínače v
+// UI je "ruční kreslení", ale počáteční krmení na ploše je pořád z náhodného
+// rozhození "jako dřív"). Běžný reset/reseed tenhle argument nepředává,
+// takže se tam ruční režim chová jako obvykle (prázdná plocha k nakreslení).
+function resetSimulation(forceRandomFoodSeed) {
   var seedValue = Number(document.getElementById('seed-input').value);
   rng = createRng(seedValue);
 
@@ -221,7 +229,7 @@ function resetSimulation() {
   var populationSize = Number(document.getElementById('population-size-slider').value);
   population = createRandomPopulation(populationSize, gridConfig, rng);
 
-  if (isManualFoodModeActive()) {
+  if (isManualFoodModeActive() && !forceRandomFoodSeed) {
     foodList = []; // ruční režim začíná na prázdno, uživatel si krmení nakreslí sám
   } else {
     var foodCount = Number(document.getElementById('food-count-slider').value);
@@ -612,5 +620,5 @@ function onLanguageChanged() {
 
 updateStartPauseButtonText();
 updateFullscreenButtonText();
-resetSimulation();
+resetSimulation(true); // spec 13.1: první krmení je vždy náhodně rozhozené, i když UI ukazuje "ruční"
 setStatus('status_running');

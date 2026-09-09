@@ -124,12 +124,16 @@
           <input type="range" id="food-capacity-slider" min="1" max="50" step="1" value="20">
         </label>
         <label>
-          <input type="radio" name="food-mode" id="food-mode-random" value="random" checked>
+          <input type="radio" name="food-mode" id="food-mode-random" value="random">
           <span data-i18n="food_mode_random"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="food_mode_random_tooltip">?</span>
         </label>
+        <!-- Výchozí volba je "ruční kreslení" (spec 13.1) — počáteční krmení
+             ale i tak vznikne náhodným rozhozením (viz resetSimulation() v
+             main.js, parametr forceRandomFoodSeed), jen se to v UI zobrazí
+             jako by uživatel měl zvolený ruční režim. -->
         <label>
-          <input type="radio" name="food-mode" id="food-mode-manual" value="manual">
+          <input type="radio" name="food-mode" id="food-mode-manual" value="manual" checked>
           <span data-i18n="food_mode_manual"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="food_mode_manual_tooltip">?</span>
         </label>

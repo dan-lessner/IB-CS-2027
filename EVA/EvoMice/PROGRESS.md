@@ -31,7 +31,7 @@ po prohlédnutí, necommituj.
 
 ## Plán v5 (spec sekce 13)
 
-- [ ] 13.1 — výchozí režim krmení v UI = "ruční kreslení" (počáteční rozhození zůstává)
+- [x] 13.1 — výchozí režim krmení v UI = "ruční kreslení" (počáteční rozhození zůstává)
 - [ ] 13.2 — přesunout blok "Běh simulace" k ploše (k zoomu/fullscreen)
 - [ ] 13.3 — zrušit patičku
 - [ ] 13.4 — populace až 1, deaktivovat irelevantní prvky (křížení, turnaj)
