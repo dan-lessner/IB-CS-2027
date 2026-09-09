@@ -161,12 +161,22 @@ function readParamsFromUI() {
 var CANVAS_AREA_HORIZONTAL_RESERVE = 8; // malá rezerva na okraj #canvas-container
 var CANVAS_AREA_VERTICAL_RESERVE = 8; // malá rezerva na okraje/mezery navíc
 
+// isFullscreenActive() je jediné místo, které se ptá na skutečný stav
+// Fullscreen API (viz #canvas-area.is-fullscreen, spec 13.6) — zbytek kódu
+// (tahle funkce, CSS ve style.css) se ptá přes ni, ne přímo přes
+// document.fullscreenElement, ať jde chování ověřit/vynutit i mimo reálné
+// volání requestFullscreen() (to headless prohlížeč bez uživatelského gesta
+// obvykle odmítne, viz poznámka u fullscreenchange listeneru níže).
+function isFullscreenActive() {
+  return document.getElementById('canvas-area').classList.contains('is-fullscreen');
+}
+
 // Ve fullscreenu na šířku (landscape) sedí #info-panel vedle plochy místo
 // pod ní (spec 12.2, viz media query ve style.css) — v tom případě ubírá
 // místo ze šířky, ne z výšky. Mimo fullscreen (a na výšku i ve fullscreenu)
 // zůstává info panel pod plochou jako dřív.
 function isInfoPanelBesideCanvas() {
-  return document.fullscreenElement !== null && window.matchMedia('(orientation: landscape)').matches;
+  return isFullscreenActive() && window.matchMedia('(orientation: landscape)').matches;
 }
 
 function updateCanvasSize() {
@@ -178,7 +188,15 @@ function updateCanvasSize() {
   var infoPanel = document.getElementById('info-panel');
 
   var availableWidth = canvasArea.clientWidth - CANVAS_AREA_HORIZONTAL_RESERVE;
-  var reservedHeight = toolbar.offsetHeight + CANVAS_AREA_VERTICAL_RESERVE;
+  var reservedHeight = CANVAS_AREA_VERTICAL_RESERVE;
+
+  // Mimo fullscreen je toolbar normální řádek layoutu a zabírá místo shora.
+  // Ve fullscreenu je to plovoucí lišta přes canvas (viz .is-fullscreen
+  // #canvas-toolbar ve style.css, spec 13.6) — nezabírá layoutový prostor,
+  // takže se jeho výška neodečítá a plocha/graf dostanou celou výšku.
+  if (!isFullscreenActive()) {
+    reservedHeight = reservedHeight + toolbar.offsetHeight;
+  }
 
   if (isInfoPanelBesideCanvas()) {
     availableWidth = availableWidth - infoPanel.offsetWidth;
@@ -191,6 +209,22 @@ function updateCanvasSize() {
 
   updateCellPixelSize(availableWidth, availableHeight, gridConfig);
   resizeCanvasToGrid(canvas, gridConfig);
+  updateFitnessChartCanvasSize();
+}
+
+// Graf fitness (spec 8.1/13.6): rozměr canvasu se dopočítává z toho, kolik
+// místa mu CSS layout reálně přidělil — ve fullscreenu na šířku to díky
+// `#info-panel { align-self: stretch }` (viz style.css) je celá výška
+// plochy vedle simulace, ne pevných pár desítek pixelů jako dřív.
+function updateFitnessChartCanvasSize() {
+  var width = fitnessChartCanvas.clientWidth;
+  var height = fitnessChartCanvas.clientHeight;
+  if (width > 0) {
+    fitnessChartCanvas.width = width;
+  }
+  if (height > 0) {
+    fitnessChartCanvas.height = height;
+  }
 }
 
 window.addEventListener('resize', function () {
@@ -559,17 +593,26 @@ zoomSlider.addEventListener('input', function () {
   applyZoom(zoomWrapper, zoomFactor);
 });
 
-// --- Fullscreen (spec 10.6) -----------------------------------------------
+// --- Fullscreen (spec 10.6, 13.6) ------------------------------------------
 //
 // Fullscreen API je požádané přímo na #canvas-area — prohlížeč pak sám
 // zobrazí přes celou obrazovku jen tenhle prvek (a jeho potomky: canvas,
 // stats, kurzor, graf fitness), #controls jako sourozenec zůstane mimo,
 // není potřeba ho schovávat ručně.
+//
+// Skutečný fullscreen stav (document.fullscreenElement) se navíc zrcadlí do
+// třídy .is-fullscreen na #canvas-area (viz isFullscreenActive() výš) — CSS
+// i JS v celém souboru se ptají přes ni, ne přímo přes Fullscreen API. Důvod
+// je hlavně ověřitelnost: Fullscreen API vyžaduje "user activation" (reálný
+// klik), takže ho headless prohlížeč bez skutečné interakce nepustí — díky
+// samostatné třídě jde fullscreen layout nasimulovat i bez toho (viz
+// PROGRESS.md, sekce Vizuální ověřování).
 
 var fullscreenBtn = document.getElementById('fullscreen-btn');
+var canvasAreaEl = document.getElementById('canvas-area');
 
 function updateFullscreenButtonText() {
-  if (document.fullscreenElement) {
+  if (isFullscreenActive()) {
     fullscreenBtn.textContent = t('fullscreen_exit_btn');
   } else {
     fullscreenBtn.textContent = t('fullscreen_enter_btn');
@@ -580,16 +623,63 @@ fullscreenBtn.addEventListener('click', function () {
   if (document.fullscreenElement) {
     document.exitFullscreen();
   } else {
-    document.getElementById('canvas-area').requestFullscreen();
+    canvasAreaEl.requestFullscreen();
   }
 });
 
 // fullscreenchange se spustí při vstupu i výstupu (i po stisku Esc, kdy
 // exitFullscreen() nevoláme sami) — jediné spolehlivé místo pro obojí.
 document.addEventListener('fullscreenchange', function () {
+  if (document.fullscreenElement !== null) {
+    canvasAreaEl.classList.add('is-fullscreen');
+    showFullscreenToolbar();
+    scheduleFullscreenToolbarHide();
+  } else {
+    canvasAreaEl.classList.remove('is-fullscreen');
+    cancelFullscreenToolbarHide();
+    showFullscreenToolbar(); // mimo fullscreen se toolbar nikdy neschovává
+  }
   updateFullscreenButtonText();
   updateCanvasSize(); // dostupné místo se vstupem/výstupem z fullscreenu skokově změní
   redraw();
+});
+
+// --- Fullscreen: auto-hide ovládacího panelu (spec 13.6) -------------------
+//
+// Ve fullscreenu je #canvas-toolbar plovoucí lišta přes horní okraj plochy
+// (viz .is-fullscreen #canvas-toolbar ve style.css) — pohyb myší ji na
+// chvíli ukáže, po chvíli nečinnosti zase zmizí, stejný vzor jako ovládání
+// videopřehrávačů na celou obrazovku. Esc pro ukončení fullscreen na tomhle
+// vůbec nezávisí (řeší ho prohlížeč sám, viz fullscreenchange výš).
+var FULLSCREEN_TOOLBAR_HIDE_DELAY_MS = 2500;
+var fullscreenToolbarHideTimeoutId = null;
+
+function showFullscreenToolbar() {
+  document.getElementById('canvas-toolbar').classList.remove('toolbar-hidden');
+}
+
+function scheduleFullscreenToolbarHide() {
+  cancelFullscreenToolbarHide();
+  fullscreenToolbarHideTimeoutId = setTimeout(function () {
+    if (isFullscreenActive()) {
+      document.getElementById('canvas-toolbar').classList.add('toolbar-hidden');
+    }
+  }, FULLSCREEN_TOOLBAR_HIDE_DELAY_MS);
+}
+
+function cancelFullscreenToolbarHide() {
+  if (fullscreenToolbarHideTimeoutId !== null) {
+    clearTimeout(fullscreenToolbarHideTimeoutId);
+    fullscreenToolbarHideTimeoutId = null;
+  }
+}
+
+canvasAreaEl.addEventListener('mousemove', function () {
+  if (!isFullscreenActive()) {
+    return;
+  }
+  showFullscreenToolbar();
+  scheduleFullscreenToolbarHide();
 });
 
 // --- Sbalitelné sekce nastavení (accordion, spec 10.7) ---------------------

@@ -36,8 +36,8 @@ po prohlédnutí, necommituj.
 - [x] 13.3 — zrušit patičku
 - [x] 13.4 — populace až 1, deaktivovat irelevantní prvky (křížení, turnaj)
 - [x] 13.5 — centralizovat výchozí hodnoty (u save/load kódu) + tlačítko reset na výchozí
-- [ ] 13.6 — fullscreen: graf využije celou výšku, auto-hide ovládací panel při pohybu myší
-      (ověřit SCREENSHOTEM, tohle už dvakrát nefungovalo)
+- [x] 13.6 — fullscreen: graf využije celou výšku, auto-hide ovládací panel při pohybu myší
+      (ověřeno screenshotem, viz "Poznámky za běhu" — funguje potřetí napoprvé)
 - [ ] 13.7 — velikost plochy až 512
 - [ ] 13.8 — podmíněné zobrazení parametrů (velikost turnaje, počet bodů řezu, ...)
 - [ ] 13.9 — elitismus pod náhradu generace, default elitismus=0, náhrada=celá generace
@@ -48,4 +48,33 @@ text) a didaktický kód platí pořád.
 
 ## Poznámky za běhu
 
-(sem psát cokoliv, co by se mělo předat dál — nejasnosti, rozhodnutí za pochodu, co nefungovalo)
+**13.6 — jak se to ověřovalo bez skutečného Fullscreen API.** Headless
+Chromium odmítá `requestFullscreen()` bez opravdového uživatelského gesta
+(promise se zamítne, `:fullscreen` se nikdy neuplatní) — proto celá
+fullscreen logika teď nezávisí na CSS pseudo-třídě `:fullscreen` přímo, ale
+na JS-toggled třídě `.is-fullscreen` na `#canvas-area` (viz
+`isFullscreenActive()` v `main.js`, nastavuje/ruší ji `fullscreenchange`
+listener). Díky tomu šlo layout ověřit i bez reálného gesta — dočasně (jen
+pro test, ne v commitnutém kódu) přidán `<script>` kontrolovaný přes
+`?debugFullscreen=1`, který třídu nastaví ručně + navíc nasimuluje, že
+`#canvas-area` skutečně vyplňuje celý viewport (`position:fixed;inset:0`),
+což jinak zajišťuje prohlížeč sám při reálném fullscreenu. Ověřeno
+screenshoty (1600×1000):
+- Toolbar (běh simulace, zoom, fullscreen tlačítko) je plovoucí
+  poloprůhledná lišta přes horní okraj, plocha simulace pod ní vyplňuje
+  prakticky celou výšku okna.
+- Graf fitness vpravo (landscape orientace → info panel vedle plochy)
+  vyplňuje celou výšku sloupce, ne malý ~90px pruh jako dřív — `canvas`
+  atributy `width`/`height` se teď dopočítávají z reálné CSS velikosti
+  (`updateFitnessChartCanvasSize()` v `main.js`).
+- Auto-hide: toolbar zmizel (opacity 0) po ~2.5 s nečinnosti
+  (`--virtual-time-budget=4000`), a při simulovaném `mousemove` na
+  `#canvas-area` se okamžitě vrátil zpět.
+- Mimo fullscreen (běžný screenshot bez debug parametru) beze změny oproti
+  minulému kroku — žádná regrese.
+
+Skutečné volání Fullscreen API (klik na tlačítko myší v opravdovém
+prohlížeči) nebylo touhle cestou ověřeno, jen simulovaný CSS/JS stav — na
+reálném uživatelském kliknutí by se ale měla spustit úplně stejná větev
+kódu (`fullscreenchange` nastaví stejnou třídu `.is-fullscreen`), takže by
+se mělo chovat stejně.
