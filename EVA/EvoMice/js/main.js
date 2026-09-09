@@ -502,6 +502,32 @@ function adjustPopulationSize() {
 
 document.getElementById('population-size-slider').addEventListener('change', adjustPopulationSize);
 
+// --- Populace = 1: deaktivace irelevantních ovládacích prvků (spec 13.4) --
+//
+// Křížení potřebuje dva různé rodiče a turnajová selekce má "soutěžit" mezi
+// víc jedinci — u populace o velikosti 1 obojí ztrácí smysl. Prvky zůstávají
+// vidět (jen `disabled`), ať student pořád vidí, že existují — na rozdíl od
+// spec 13.8 níže, kde jde o prvky vázané na jinou, zrovna nezvolenou volbu.
+var POPULATION_SIZE_DEPENDENT_CONTROL_IDS = [
+  'crossover-rate-slider',
+  'crossover-type-select',
+  'crossover-points-slider',
+  'tournament-size-slider'
+];
+
+function updatePopulationSizeDependentControls() {
+  var targetSize = Number(document.getElementById('population-size-slider').value);
+  var singleIndividual = targetSize <= 1;
+  var i = 0;
+  while (i < POPULATION_SIZE_DEPENDENT_CONTROL_IDS.length) {
+    document.getElementById(POPULATION_SIZE_DEPENDENT_CONTROL_IDS[i]).disabled = singleIndividual;
+    i = i + 1;
+  }
+}
+
+document.getElementById('population-size-slider').addEventListener('input', updatePopulationSizeDependentControls);
+updatePopulationSizeDependentControls(); // úvodní stav podle výchozí hodnoty slideru
+
 document.getElementById('food-count-slider').addEventListener('change', function () {
   if (!isManualFoodModeActive()) {
     regenerateRandomFood();

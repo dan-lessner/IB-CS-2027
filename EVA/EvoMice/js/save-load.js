@@ -84,6 +84,7 @@ function applySettingsToUI(settings) {
     i = i + 1;
   }
   refreshSliderDisplays(); // main.js — hodnoty sliderů jsme změnili napřímo, bez 'input' eventu
+  updatePopulationSizeDependentControls(); // main.js — spec 13.4, taky bez 'input' eventu
 
   if (settings['food-mode'] === 'manual') {
     document.getElementById('food-mode-manual').checked = true;
