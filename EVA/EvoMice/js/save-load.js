@@ -54,9 +54,10 @@ var SAVE_LOAD_FIELDS = [
 //     stránky, ať HTML atributy value/checked nejsou druhé, nezávislé
 //     místo pravdy — i kdyby se časem rozešly, tenhle objekt vždycky
 //     "vyhraje" a přepíše je.
-// Hodnoty zatím zrcadlí aktuální HTML atributy (elitismus se na 0 podle
-// spec 13.9 přepne v samostatném kroku) a spec 13.1 (výchozí režim krmení
-// v UI "ruční kreslení").
+// Hodnoty odpovídají spec 13.1 (výchozí režim krmení v UI "ruční
+// kreslení") a spec 13.9 (elitismus 0, náhrada generace celá najednou —
+// nejagresivnější nastavení, dobrý výchozí bod pro demonstraci, že bez
+// elitismu se i dobrá řešení dají mezi generacemi ztratit).
 var DEFAULT_SETTINGS = {
   'population-size-slider': 80,
   'grid-size-slider': 48,
@@ -74,7 +75,7 @@ var DEFAULT_SETTINGS = {
   'mutation-type-select': 'bit-flip',
   'mutation-rate-slider': 0.02,
   'mutation-jump-radius-slider': 3,
-  'elite-count-slider': 2,
+  'elite-count-slider': 0,
   'replacement-mode-select': 'full',
   'replacement-percent-slider': 50,
   'speed-slider': 2,

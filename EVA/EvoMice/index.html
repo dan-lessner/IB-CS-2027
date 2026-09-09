@@ -261,12 +261,11 @@
           <span data-i18n="section_elitism_legend"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="section_elitism_legend_tooltip">?</span>
         </legend>
-        <label for="elite-count-slider">
-          <span data-i18n="elite_count_label"></span>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="elite_count_label_tooltip">?</span>
-          <span id="elite-count-value">2</span>
-          <input type="range" id="elite-count-slider" min="0" max="20" step="1" value="2">
-        </label>
+        <!-- Náhrada generace nad elitismem (spec 13.9) — jsou to dvě
+             nezávislé osy (viz tooltip u elite_count_label_tooltip a
+             section_elitism_legend_tooltip pro rozdíl), ale koncepčně
+             "kolik se toho vymění" dává smysl číst dřív než "co z toho
+             přežije navíc". -->
         <label for="replacement-mode-select">
           <span data-i18n="replacement_mode_label"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="replacement_mode_label_tooltip">?</span>
@@ -281,6 +280,12 @@
           <span class="help-icon" tabindex="0" data-i18n-tooltip="replacement_percent_label_tooltip">?</span>
           <span id="replacement-percent-value">50</span>
           <input type="range" id="replacement-percent-slider" min="1" max="100" step="1" value="50">
+        </label>
+        <label for="elite-count-slider">
+          <span data-i18n="elite_count_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="elite_count_label_tooltip">?</span>
+          <span id="elite-count-value">0</span>
+          <input type="range" id="elite-count-slider" min="0" max="20" step="1" value="0">
         </label>
       </fieldset>
 

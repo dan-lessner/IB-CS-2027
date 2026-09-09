@@ -40,7 +40,7 @@ po prohlédnutí, necommituj.
       (ověřeno screenshotem, viz "Poznámky za běhu" — funguje potřetí napoprvé)
 - [x] 13.7 — velikost plochy až 512
 - [x] 13.8 — podmíněné zobrazení parametrů (velikost turnaje, počet bodů řezu, ...)
-- [ ] 13.9 — elitismus pod náhradu generace, default elitismus=0, náhrada=celá generace
+- [x] 13.9 — elitismus pod náhradu generace, default elitismus=0, náhrada=celá generace
 - [ ] 13.10 — seed nahoru k resetu, zrušit vlastní panel
 
 Malé samostatně commitovatelné kroky, commit+push po každém. i18n (žádný natvrdo zadrátovaný
