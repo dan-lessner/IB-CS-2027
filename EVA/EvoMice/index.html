@@ -183,7 +183,11 @@
             <option value="tournament" data-i18n="selection_tournament"></option>
           </select>
         </label>
-        <label for="tournament-size-slider">
+        <!-- Vidět jen pro turnajovou selekci (spec 13.8) — jinde nedává
+             smysl, ne jen dočasně jako u spec 13.4, proto se rovnou celá
+             skrývá (viz updateConditionalControlsVisibility() v main.js). -->
+        <label for="tournament-size-slider"
+               data-show-when-select="selection-method-select" data-show-when-value="tournament">
           <span data-i18n="tournament_size_label"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="tournament_size_label_tooltip">?</span>
           <span id="tournament-size-value">3</span>
@@ -214,7 +218,8 @@
             <option value="rectangle-point" data-i18n="crossover_rectangle_point"></option>
           </select>
         </label>
-        <label for="crossover-points-slider">
+        <label for="crossover-points-slider"
+               data-show-when-select="crossover-type-select" data-show-when-value="multi-point">
           <span data-i18n="crossover_points_label"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="crossover_points_label_tooltip">?</span>
           <span id="crossover-points-value">3</span>
@@ -235,13 +240,15 @@
             <option value="geometric-jump" data-i18n="mutation_geometric_jump"></option>
           </select>
         </label>
-        <label for="mutation-rate-slider">
+        <label for="mutation-rate-slider"
+               data-show-when-select="mutation-type-select" data-show-when-value="bit-flip">
           <span data-i18n="mutation_rate_label"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="mutation_rate_label_tooltip">?</span>
           <span id="mutation-rate-value">0.02</span>
           <input type="range" id="mutation-rate-slider" min="0" max="0.3" step="0.005" value="0.02">
         </label>
-        <label for="mutation-jump-radius-slider">
+        <label for="mutation-jump-radius-slider"
+               data-show-when-select="mutation-type-select" data-show-when-value="geometric-jump">
           <span data-i18n="mutation_jump_radius_label"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="mutation_jump_radius_label_tooltip">?</span>
           <span id="mutation-jump-radius-value">3</span>
@@ -268,7 +275,8 @@
             <option value="partial" data-i18n="replacement_partial"></option>
           </select>
         </label>
-        <label for="replacement-percent-slider">
+        <label for="replacement-percent-slider"
+               data-show-when-select="replacement-mode-select" data-show-when-value="partial">
           <span data-i18n="replacement_percent_label"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="replacement_percent_label_tooltip">?</span>
           <span id="replacement-percent-value">50</span>

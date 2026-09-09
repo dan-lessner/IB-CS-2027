@@ -562,6 +562,37 @@ function updatePopulationSizeDependentControls() {
 document.getElementById('population-size-slider').addEventListener('input', updatePopulationSizeDependentControls);
 updatePopulationSizeDependentControls(); // úvodní stav podle výchozí hodnoty slideru
 
+// --- Podmíněné zobrazení parametrů vázaných na konkrétní volbu (spec 13.8) -
+//
+// Na rozdíl od spec 13.4 výš tady nejde o dočasnou nerelevanci (populace
+// zrovna má 1 jedince) — tyhle prvky dávají smysl JEN pro jednu konkrétní
+// volbu typu (např. velikost turnaje jen pro turnajovou selekci), pro
+// jakoukoliv jinou volbu ne, proto se rovnou skrývají, ne jen deaktivují.
+// Značeno atributy data-show-when-select/-value přímo na <label> v HTML —
+// obecný mechanismus, ať se pro každou dvojici (select, závislý prvek)
+// nepíše samostatná funkce zvlášť.
+var CONDITIONAL_CONTROL_LABELS = document.querySelectorAll('[data-show-when-select]');
+
+function updateConditionalControlsVisibility() {
+  var i = 0;
+  while (i < CONDITIONAL_CONTROL_LABELS.length) {
+    var label = CONDITIONAL_CONTROL_LABELS[i];
+    var controllingSelect = document.getElementById(label.getAttribute('data-show-when-select'));
+    var requiredValue = label.getAttribute('data-show-when-value');
+    label.style.display = (controllingSelect.value === requiredValue) ? '' : 'none';
+    i = i + 1;
+  }
+}
+
+var conditionalControlSelectIds = ['selection-method-select', 'crossover-type-select', 'mutation-type-select', 'replacement-mode-select'];
+var conditionalSelectIndex = 0;
+while (conditionalSelectIndex < conditionalControlSelectIds.length) {
+  document.getElementById(conditionalControlSelectIds[conditionalSelectIndex])
+    .addEventListener('change', updateConditionalControlsVisibility);
+  conditionalSelectIndex = conditionalSelectIndex + 1;
+}
+updateConditionalControlsVisibility(); // úvodní stav podle výchozích hodnot selectů
+
 document.getElementById('food-count-slider').addEventListener('change', function () {
   if (!isManualFoodModeActive()) {
     regenerateRandomFood();
