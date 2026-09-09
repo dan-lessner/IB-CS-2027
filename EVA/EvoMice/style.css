@@ -129,6 +129,18 @@ main {
   width: 120px;
 }
 
+/* Seed (spec 13.10: přesunuto z vlastní sekce nahoru, k tlačítku reset). */
+#seed-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+#seed-control input[type="number"] {
+  width: 5em;
+}
+
 /* Fullscreen (spec 10.6, doladěno 13.6): #canvas-area je požádaný element
    Fullscreen API (viz main.js) — prohlížeč ho sám vykreslí přes celou
    obrazovku, sourozenec #controls tím pádem zmizí bez ohledu na cokoliv

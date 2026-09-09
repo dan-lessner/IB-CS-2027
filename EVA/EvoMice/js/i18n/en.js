@@ -82,9 +82,7 @@ var I18N_EN = {
   replacement_partial: 'gradually, worst X % (survives until replaced by a better offspring)',
   replacement_percent_label: 'What % gets replaced (gradual only):',
 
-  section_seed_legend: 'Random seed',
   seed_label: 'Seed',
-  reseed_btn: 'Set seed and reset',
 
   zoom_label: 'Zoom level',
 
@@ -160,9 +158,7 @@ var I18N_EN = {
   replacement_mode_label_tooltip: '"Whole generation" replaces all non-elite individuals at once with new offspring. "Gradual" replaces only the given percentage of the worst ones, the rest stays unchanged.',
   replacement_percent_label_tooltip: 'What percentage of non-elite individuals (the lowest fitness ones) gets replaced with new offspring in gradual mode.',
 
-  section_seed_legend_tooltip: 'The random seed makes the simulation run repeatable — the same seed leads to the same run.',
-  seed_label_tooltip: 'The number used to initialize the pseudo-random number generator.',
-  reseed_btn_tooltip: 'Sets the random number generator to the given seed and performs a full simulation reset.',
+  seed_label_tooltip: 'The number used to initialize the pseudo-random number generator — makes the simulation run repeatable, the same seed leads to the same run. The "New random population (reset)" button always uses the current value of this field.',
 
   zoom_label_tooltip: 'Scales the rendered simulation panel using a CSS transform; it does not affect grid resolution or coordinate precision.',
 

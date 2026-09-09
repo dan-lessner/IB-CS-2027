@@ -35,6 +35,14 @@
           <button type="button" id="reset-btn" data-i18n="reset_btn"></button>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="reset_btn_tooltip">?</span>
         </span>
+        <!-- Seed patří k resetu (spec 13.10, spec 4 "Inicializace") — reset
+             tlačítko výš vždycky čte aktuální hodnotu tohodle pole, žádné
+             samostatné "nastavit seed" tlačítko navíc není potřeba. -->
+        <label id="seed-control" for="seed-input">
+          <span data-i18n="seed_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="seed_label_tooltip">?</span>
+          <input type="number" id="seed-input" value="42" step="1">
+        </label>
         <label id="speed-control" for="speed-slider">
           <span data-i18n="speed_label"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="speed_label_tooltip">?</span>
@@ -287,22 +295,6 @@
           <span id="elite-count-value">0</span>
           <input type="range" id="elite-count-slider" min="0" max="20" step="1" value="0">
         </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>
-          <span data-i18n="section_seed_legend"></span>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_seed_legend_tooltip">?</span>
-        </legend>
-        <label for="seed-input">
-          <span data-i18n="seed_label"></span>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="seed_label_tooltip">?</span>
-          <input type="number" id="seed-input" value="42" step="1">
-        </label>
-        <span class="btn-with-help">
-          <button type="button" id="reseed-btn" data-i18n="reseed_btn"></button>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="reseed_btn_tooltip">?</span>
-        </span>
       </fieldset>
 
       <fieldset>

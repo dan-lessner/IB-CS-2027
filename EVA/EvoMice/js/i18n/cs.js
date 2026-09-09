@@ -80,9 +80,7 @@ var I18N_CS = {
   replacement_partial: 'postupně nejhorší X % (přežívá dokud ji nenahradí lepší)',
   replacement_percent_label: 'Kolik % se nahradí (jen pro postupnou):',
 
-  section_seed_legend: 'Random seed',
   seed_label: 'Seed',
-  reseed_btn: 'Nastavit seed a resetovat',
 
   zoom_label: 'Přiblížení',
 
@@ -158,9 +156,7 @@ var I18N_CS = {
   replacement_mode_label_tooltip: '"Celá generace" nahradí najednou všechny ne-elitní jedince novými potomky. "Postupná" nahradí jen zadané procento nejhorších, zbytek zůstává beze změny.',
   replacement_percent_label_tooltip: 'Kolik procent ne-elitních jedinců (s nejnižší fitness) se v postupném režimu nahradí novými potomky.',
 
-  section_seed_legend_tooltip: 'Random seed dělá běh simulace opakovatelný — stejný seed vede ke stejnému průběhu.',
-  seed_label_tooltip: 'Číslo, kterým se inicializuje generátor pseudonáhodných čísel.',
-  reseed_btn_tooltip: 'Nastaví generátor náhodných čísel na zadaný seed a provede kompletní reset simulace.',
+  seed_label_tooltip: 'Číslo, kterým se inicializuje generátor pseudonáhodných čísel — dělá běh simulace opakovatelný, stejný seed vede ke stejnému průběhu. Tlačítko "Nová náhodná populace (reset)" vždycky použije aktuální hodnotu tohohle pole.',
 
   zoom_label_tooltip: 'Škáluje vykreslený panel simulace pomocí CSS transformace; neovlivňuje velikost mřížky ani přesnost souřadnic.',
 

@@ -434,12 +434,10 @@ document.getElementById('step-btn').addEventListener('click', function () {
   stepOnce();
 });
 
+// Jediné tlačítko "reset" pokrývá i změnu seedu (spec 13.10) — vždycky
+// čte aktuální hodnotu #seed-input, samostatné "nastavit seed" tlačítko by
+// dělalo přesně to samé.
 document.getElementById('reset-btn').addEventListener('click', function () {
-  stopRunning();
-  resetSimulation();
-});
-
-document.getElementById('reseed-btn').addEventListener('click', function () {
   stopRunning();
   resetSimulation();
 });
