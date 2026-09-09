@@ -116,6 +116,19 @@ main {
   width: 120px;
 }
 
+/* Rychlost běhu (spec 13.2: přesunuto z bočního panelu k ploše) — stejný
+   vzhled jako #zoom-control vedle sebe v toolbaru. */
+#speed-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+#speed-control input[type="range"] {
+  width: 120px;
+}
+
 /* Fullscreen (spec 10.6): #canvas-area je požádaný element Fullscreen API
    (viz main.js) — prohlížeč ho sám vykreslí přes celou obrazovku, sourozenec
    #controls tím pádem zmizí bez ohledu na cokoliv dalšího. Vlastní styl jen

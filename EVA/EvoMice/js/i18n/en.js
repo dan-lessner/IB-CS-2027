@@ -28,7 +28,6 @@ var I18N_EN = {
   fitness_chart_legend_avg: 'average',
   fitness_chart_legend_max: 'maximum',
 
-  section_run_legend: 'Simulation run',
   start_btn: 'Start',
   pause_btn: 'Pause',
   step_btn: 'Step',
@@ -120,7 +119,6 @@ var I18N_EN = {
 
   fullscreen_btn_tooltip: 'Shows the simulation area (and the information below it) across the whole screen, without the settings panel. Cell size adjusts to fit.',
 
-  section_run_legend_tooltip: 'Controls for running the evolution: how many generations run automatically and how fast, or one step at a time by hand.',
   start_pause_btn_tooltip: 'This button toggles repeated calls to the generation step on and off, at a regular interval set by the speed control. The space bar does the same thing (unless another control currently has focus).',
   step_btn_tooltip: 'Runs exactly one step of evolution (one generation evaluation) and stays paused.',
   reset_btn_tooltip: 'Creates a new random starting population with the same parameters and resets the generation counter.',

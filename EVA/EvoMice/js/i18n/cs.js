@@ -26,7 +26,6 @@ var I18N_CS = {
   fitness_chart_legend_avg: 'průměr',
   fitness_chart_legend_max: 'maximum',
 
-  section_run_legend: 'Běh simulace',
   start_btn: 'Start',
   pause_btn: 'Pauza',
   step_btn: 'Krok po kroku',
@@ -118,7 +117,6 @@ var I18N_CS = {
 
   fullscreen_btn_tooltip: 'Zobrazí plochu se simulací (a informace pod ní) přes celou obrazovku, bez panelu nastavení. Velikost buněk se tomu přizpůsobí.',
 
-  section_run_legend_tooltip: 'Ovládání běhu evoluce: kolik generací proběhne automaticky za sebou a jak rychle, nebo krok po kroku ručně.',
   start_pause_btn_tooltip: 'Tlačítko střídavě spouští a zastavuje opakované volání kroku generace v pravidelném intervalu daném nastavenou rychlostí. Stejnou funkci má i mezerník (pokud fokus nemá jiný ovládací prvek).',
   step_btn_tooltip: 'Provede přesně jeden krok evoluce (jedno vyhodnocení generace) a zůstane zastavené.',
   reset_btn_tooltip: 'Vytvoří novou náhodnou počáteční populaci se stejnými parametry a vynuluje počítadlo generací.',

@@ -19,6 +19,29 @@
   <main>
     <section id="canvas-area">
       <div id="canvas-toolbar">
+        <!-- Běh simulace (start/pauza, krok po kroku, reset, rychlost) je
+             tady, přímo u plochy, ne v bočním panelu nastavení (spec 13.2) —
+             logicky patří k "jak se plocha zrovna hýbe", stejně jako zoom a
+             fullscreen tlačítko vedle. -->
+        <span class="btn-with-help">
+          <button type="button" id="start-pause-btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="start_pause_btn_tooltip">?</span>
+        </span>
+        <span class="btn-with-help">
+          <button type="button" id="step-btn" data-i18n="step_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="step_btn_tooltip">?</span>
+        </span>
+        <span class="btn-with-help">
+          <button type="button" id="reset-btn" data-i18n="reset_btn"></button>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="reset_btn_tooltip">?</span>
+        </span>
+        <label id="speed-control" for="speed-slider">
+          <span data-i18n="speed_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="speed_label_tooltip">?</span>
+          <span id="speed-value">2</span>
+          <input type="range" id="speed-slider" min="0" max="30" step="1" value="2">
+        </label>
+
         <span class="btn-with-help">
           <button type="button" id="fullscreen-btn"></button>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="fullscreen_btn_tooltip">?</span>
@@ -61,31 +84,6 @@
     </section>
 
     <aside id="controls">
-
-      <fieldset>
-        <legend>
-          <span data-i18n="section_run_legend"></span>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_run_legend_tooltip">?</span>
-        </legend>
-        <span class="btn-with-help">
-          <button type="button" id="start-pause-btn"></button>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="start_pause_btn_tooltip">?</span>
-        </span>
-        <span class="btn-with-help">
-          <button type="button" id="step-btn" data-i18n="step_btn"></button>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="step_btn_tooltip">?</span>
-        </span>
-        <span class="btn-with-help">
-          <button type="button" id="reset-btn" data-i18n="reset_btn"></button>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="reset_btn_tooltip">?</span>
-        </span>
-        <label for="speed-slider">
-          <span data-i18n="speed_label"></span>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="speed_label_tooltip">?</span>
-          <span id="speed-value">2</span>
-          <input type="range" id="speed-slider" min="0" max="30" step="1" value="2">
-        </label>
-      </fieldset>
 
       <fieldset>
         <legend>

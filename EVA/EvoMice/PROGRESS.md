@@ -32,7 +32,7 @@ po prohlédnutí, necommituj.
 ## Plán v5 (spec sekce 13)
 
 - [x] 13.1 — výchozí režim krmení v UI = "ruční kreslení" (počáteční rozhození zůstává)
-- [ ] 13.2 — přesunout blok "Běh simulace" k ploše (k zoomu/fullscreen)
+- [x] 13.2 — přesunout blok "Běh simulace" k ploše (k zoomu/fullscreen)
 - [ ] 13.3 — zrušit patičku
 - [ ] 13.4 — populace až 1, deaktivovat irelevantní prvky (křížení, turnaj)
 - [ ] 13.5 — centralizovat výchozí hodnoty (u save/load kódu) + tlačítko reset na výchozí
