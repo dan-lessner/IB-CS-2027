@@ -10,8 +10,6 @@ var I18N_CS = {
   subtitle: 'Evoluční simulace myší hledajících krmení (genetický algoritmus)',
 
   stats_line: 'generace: {gen} · nakrmeno: {fed} / {total}',
-  status_loading: 'EvoMice se načítá…',
-  status_running: 'EvoMice: simulace běží. "Start" spustí generace samočinně, "Krok po kroku" jednu po druhé.',
 
   cursor_position_none: 'kurzor: mimo plochu',
   cursor_position_label: 'kurzor: x = {x}, y = {y}',

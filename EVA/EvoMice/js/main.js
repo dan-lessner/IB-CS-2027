@@ -6,18 +6,6 @@
 // Strukturální věci (velikost mřížky, seed) vyžadují restart simulace,
 // protože mění délku genomu / počáteční náhodnou řadu.
 
-// lastStatusKey si pamatuje poslední zobrazený stavový klíč, aby ho šlo
-// znovu přeložit při přepnutí jazyka (viz onLanguageChanged níže).
-var lastStatusKey = 'status_loading';
-
-function setStatus(key) {
-  lastStatusKey = key;
-  var el = document.getElementById('status-line');
-  if (el !== null) {
-    el.textContent = t(key);
-  }
-}
-
 var canvas = document.getElementById('sim-canvas');
 var ctx = canvas.getContext('2d');
 
@@ -607,7 +595,6 @@ function onLanguageChanged() {
   updateCursorPositionLine();
   updateStartPauseButtonText();
   updateFullscreenButtonText();
-  setStatus(lastStatusKey);
   // save-load.js se načítá až po tomhle souboru a má vlastní obdobný
   // stavový řádek (#saveload-status-line) — stejný "volitelný hook" vzor
   // jako setLanguage() používá pro tuhle funkci samotnou (viz i18n.js).
@@ -621,4 +608,3 @@ function onLanguageChanged() {
 updateStartPauseButtonText();
 updateFullscreenButtonText();
 resetSimulation(true); // spec 13.1: první krmení je vždy náhodně rozhozené, i když UI ukazuje "ruční"
-setStatus('status_running');

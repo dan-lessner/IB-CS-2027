@@ -12,8 +12,6 @@ var I18N_EN = {
   subtitle: 'Evolutionary simulation of mice searching for food (genetic algorithm)',
 
   stats_line: 'generation: {gen} · fed: {fed} / {total}',
-  status_loading: 'EvoMice is loading…',
-  status_running: 'EvoMice: simulation running. "Start" runs generations automatically, "Step" runs one at a time.',
 
   cursor_position_none: 'cursor: outside the area',
   cursor_position_label: 'cursor: x = {x}, y = {y}',
