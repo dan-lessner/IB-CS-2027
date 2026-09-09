@@ -1,0 +1,413 @@
+/* EvoMice — základní vzhled stránky */
+
+/* --- Layout: CSS Grid (spec 12.1) -----------------------------------------
+   Tohle je už třetí kolo stejného problému (scroll #controls, uříznutý graf
+   fitness) — dvakrát záplatovaný flexbox (v2.5, v3.1) to pořád nespolehlivě
+   řešil. Grid je tu záměrně, ne flexbox: každá úroveň dostane explicitní
+   řádky/sloupce s pevnou/`1fr` výškou, takže `min-height: 0` na vnořených
+   scroll kontejnerech má vždycky jasně dané "od čeho" omezovat — na rozdíl
+   od flexboxu, kde na to mělo vliv i nenápadné `align-items` sourozenců
+   (viz git historie v3.1 pro detail toho, co přesně se tam rozbíjelo). */
+
+/* html/body vyplní celou výšku okna a stránka sama neroluje — rolují jen
+   #canvas-area (resp. jeho `#zoom-wrapper`) a #controls uvnitř main, každý
+   nezávisle (viz níže). */
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: #1e1e24;
+  color: #e8e8ec;
+  display: grid;
+  /* header podle obsahu, main vyplní zbytek, footer podle obsahu. */
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+}
+
+header {
+  padding: 1rem 1.5rem 0.5rem 1.5rem;
+  position: relative;
+}
+
+#lang-switcher {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+}
+
+#lang-switcher button {
+  background: #26262e;
+  color: #e8e8ec;
+  border: 1px solid #3a3a44;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  margin-left: 0.4rem;
+  cursor: pointer;
+}
+
+#lang-switcher button[aria-pressed="true"] {
+  background: #3a3a44;
+  font-weight: bold;
+  border-color: #6a6a78;
+}
+
+header h1 {
+  margin: 0;
+}
+
+header .subtitle {
+  margin: 0.25rem 0 0 0;
+  color: #a0a0ac;
+  font-size: 0.95rem;
+}
+
+main {
+  display: grid;
+  /* Plocha se simulací dostane zbylou šířku, panel nastavení pevných 300px
+     (stejné číslo jako dřívější flex-basis, jen teď je to grid sloupec). */
+  grid-template-columns: 1fr 300px;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
+  /* main musí mít omezenou výšku (dědí z body → grid-template-rows: ... 1fr
+     ...), aby min-height: 0 na potomcích níže mělo co omezovat — jinak by
+     se řádek grid kontejneru prostě zvětšil podle obsahu a "vlastní scroll"
+     by nikdy nenastal (přesně tohle byla podstata regrese v2.5/v3, viz
+     git historie v3.1 — s Gridem navíc odpadá i křehká závislost na
+     `align-items` sourozenců, defaultní `stretch` platí pro oba grid
+     sloupce bez dalšího vysvětlování). */
+  min-height: 0;
+  overflow: hidden;
+}
+
+#canvas-area {
+  display: grid;
+  /* Toolbar (fullscreen tlačítko) podle obsahu, zbytek (canvas + stats +
+     kurzor + graf fitness, viz #zoom-wrapper) vyplní zbylou výšku. */
+  grid-template-rows: auto 1fr;
+  min-height: 0;
+  min-width: 0; /* ať grid sloupec nejde přes šířku dané canvasem/obsahem */
+  overflow: hidden;
+}
+
+#canvas-toolbar {
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Zoom patří k zobrazení, ne k nastavení simulace (spec 12.3) — proto žije
+   v #canvas-toolbar vedle fullscreen tlačítka místo ve fieldsetu
+   nastavení. Vlastní <label> (ne .btn-with-help), protože obsahuje slider,
+   ne tlačítko. */
+#zoom-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+#zoom-control input[type="range"] {
+  width: 120px;
+}
+
+/* Fullscreen (spec 10.6): #canvas-area je požádaný element Fullscreen API
+   (viz main.js) — prohlížeč ho sám vykreslí přes celou obrazovku, sourozenec
+   #controls tím pádem zmizí bez ohledu na cokoliv dalšího. Vlastní styl jen
+   dolaďuje pozadí (jinak bílé/černé podle prohlížeče) a vystředění obsahu. */
+#canvas-area:fullscreen {
+  background: #1e1e24;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+/* Fullscreen: rozložení info panelu (stats, kurzor, graf fitness) vůči
+   ploše (spec 12.2). Výchozí (na výšku, mobil) — info pod plochou, tak jak
+   je to i mimo fullscreen. Přepnutí na "vedle plochy" řeší media query
+   podle orientace viewportu níže, ne pevné rozhodnutí. */
+#canvas-area:fullscreen #zoom-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+#canvas-area:fullscreen #info-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Na šířku (landscape) — víc šířky než výšky displeje — dá info panel
+   vedle plochy místo pod ni, ať se využije prostor po stranách, který by
+   jinak zůstal prázdný. */
+@media (orientation: landscape) {
+  #canvas-area:fullscreen #zoom-wrapper {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  #canvas-area:fullscreen #info-panel {
+    align-items: flex-start;
+    flex: 0 0 280px;
+    text-align: left;
+  }
+}
+
+#zoom-wrapper {
+  /* Zoom (viz applyZoom v render.js) se aplikuje na tenhle obal, ne na
+     samotný canvas — škáluje se tak celý panel simulace (canvas + stats +
+     souřadnice kurzoru + graf fitness) jako jeden celek. */
+  display: inline-block;
+  min-height: 0;
+  max-width: 100%;
+  max-height: 100%;
+  /* Normálně (zoom = 1) se canvas vejde přesně, viz updateCanvasSize()
+     v main.js — velikost buňky se dopočítává z dostupné šířky i výšky.
+     Scroll tu zůstává jako záchranná síť pro zoom > 1 (spec 8.1: zoom
+     smí panel zvětšit nad dostupné místo, pak logicky přijde na řadu
+     scroll) a pro krajně malé mřížky, kde by ani MIN_CELL_PIXEL_SIZE
+     nestačil. */
+  overflow: auto;
+}
+
+#canvas-container {
+  max-width: 100%;
+  border: 1px solid #3a3a44;
+  background: #101014;
+  display: inline-block;
+}
+
+#sim-canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+#controls {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  background: #26262e;
+  border: 1px solid #3a3a44;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+#controls fieldset {
+  border: 2px solid #4a4a58;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem 0.75rem 0.75rem;
+}
+
+#controls legend {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.05rem;
+  font-weight: bold;
+  padding: 0 0.3rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Šipka signalizující sbalitelnost (spec 10.7) — čistě vizuální, klik na ni
+   samotnou funguje stejně jako klik kamkoliv jinam do legendy (mimo tooltip
+   ikonku). Otáčí se podle .collapsed na fieldsetu. */
+#controls legend::before {
+  content: '▾';
+  font-size: 0.7em;
+  color: #a0a0ac;
+}
+
+#controls fieldset.collapsed legend::before {
+  content: '▸';
+}
+
+/* Sbalená sekce: schová všechno kromě legendy samotné (ta zůstává klikatelná
+   pro rozbalení zpět). */
+#controls fieldset.collapsed > *:not(legend) {
+  display: none;
+}
+
+/* Tlačítko + jeho tooltip ikonka pohromadě na jednom řádku (buttony samy
+   o sobě nejsou v <label>, takže je potřeba vlastní obalový prvek). */
+.btn-with-help {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0.25rem 0.25rem 0.25rem 0;
+}
+
+.btn-with-help button {
+  margin: 0;
+}
+
+/* --- Tooltip ikonky ("?" v kroužku) --------------------------------------
+   Čistě CSS bublina: text je v atributu data-tooltip (naplní ho i18n.js,
+   viz applyTooltips()) a zobrazí se přes ::after / content: attr(...).
+   Zobrazení jen na hoveru/focusu SAMOTNÉ ikonky, ne okolního textu — proto
+   je to samostatný prvek, ne title na labelu. */
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1em;
+  height: 1.1em;
+  border-radius: 50%;
+  border: 1px solid #6a6a78;
+  color: #c8c8d0;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: help;
+  position: relative;
+  user-select: none;
+}
+
+.help-icon:hover,
+.help-icon:focus {
+  outline: none;
+  border-color: #e8b84b;
+  color: #e8b84b;
+}
+
+/* Pozn.: #controls má vlastní overflow-y: auto (viz v2.5, nezávislý scroll
+   panelu nastavení) — bublina tooltipu je součástí DOM toku uvnitř tohohle
+   scrollovaného panelu, takže se u ikonek těsně u horního/dolního okraje
+   viditelné oblasti může useknout. Přijatelný kompromis, oprava (např.
+   "portálování" bubliny mimo scrollovaný kontejner) by vyžadovala JS navíc. */
+.help-icon::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 50%;
+  bottom: 135%;
+  transform: translateX(-50%);
+  background: #101014;
+  border: 1px solid #3a3a44;
+  color: #e8e8ec;
+  padding: 0.4rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: normal;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  z-index: 20;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.help-icon:hover::after,
+.help-icon:focus::after {
+  visibility: visible;
+  opacity: 1;
+}
+
+#controls label {
+  display: block;
+  margin: 0.4rem 0;
+  font-size: 0.9rem;
+}
+
+#controls input[type="range"] {
+  width: 100%;
+}
+
+#save-link-output {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 0.8rem;
+  background: #1e1e24;
+  color: #e8e8ec;
+  border: 1px solid #3a3a44;
+  border-radius: 4px;
+  padding: 0.3rem;
+}
+
+#saveload-status-line {
+  font-size: 0.85rem;
+  color: #a0a0ac;
+  margin: 0.5rem 0 0 0;
+  min-height: 1.2em; /* stálá výška, ať se fieldset "neposkakuje" podle toho, jestli je zpráva zrovna zobrazená */
+}
+
+#controls button {
+  margin: 0.25rem 0.25rem 0.25rem 0;
+}
+
+#stats-line {
+  font-family: monospace;
+  color: #a0a0ac;
+  margin: 0.5rem 0 0 0;
+}
+
+#cursor-position-line {
+  font-family: monospace;
+  color: #a0a0ac;
+  margin: 0.2rem 0 0 0;
+}
+
+#fitness-chart-area {
+  margin-top: 0.75rem;
+}
+
+#fitness-chart-area .chart-title {
+  margin: 0 0 0.25rem 0;
+  color: #a0a0ac;
+  font-size: 0.85rem;
+}
+
+#fitness-chart-canvas {
+  display: block;
+  border: 1px solid #3a3a44;
+  background: #101014;
+  max-width: 100%;
+}
+
+#fitness-chart-area .chart-legend {
+  margin: 0.3rem 0 0 0;
+  font-size: 0.8rem;
+  color: #a0a0ac;
+}
+
+.legend-swatch {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+  margin: 0 0.3rem 0 0.8rem;
+}
+
+.legend-swatch:first-child {
+  margin-left: 0;
+}
+
+.legend-swatch-min {
+  background: #5a8bd6;
+}
+
+.legend-swatch-avg {
+  background: #c77dff;
+}
+
+.legend-swatch-max {
+  background: #ff6f61;
+}
+
+footer {
+  padding: 0.5rem 1.5rem 1rem 1.5rem;
+  color: #a0a0ac;
+  font-size: 0.85rem;
+}
