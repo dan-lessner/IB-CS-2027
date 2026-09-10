@@ -12,7 +12,19 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
 
 - v1-v4 (viz `personal-playground/EvoMice` git historie, kód je stejný, jen bez dev-dokumentace
   přenesen sem 2026-09-09) — hotovo.
-- **v5 (spec sekce 13) — hotovo (2026-09-09), všech 10 kroků commitnuto a vizuálně ověřeno.**
+- v5 (spec sekce 13) — hotovo (2026-09-09), všech 10 kroků commitnuto a vizuálně ověřeno.
+- **v6 (spec sekce 14) — v implementaci od 2026-09-10.**
+
+## Plán v6 (spec sekce 14) — bakterie + responzivní layout
+
+- [ ] 14.1 — přejmenování metafory myši → bakterie na agaru (i18n, UI, README, přiměřeně kód)
+- [ ] 14.2 — responzivní layout: plocha = co největší čtverec v landscape, dynamická velikost
+      buněk, dynamický strop posuvníku velikosti plochy (min. 1px/pozice), ovládání+graf mezi
+      plochou a nastavením, zoom se scrollbary + panning
+      **POVINNĚ ověřit Chromium screenshoty na víc velikostí okna** (široký landscape, úzký
+      landscape/telefon na šířku, portrait telefon) — tohle je opakovaně nejrizikovější místo.
+
+Malé samostatně commitovatelné kroky, commit+push po každém.
 
 ## Vizuální ověřování (nové od v5)
 
