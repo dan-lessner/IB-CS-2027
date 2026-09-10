@@ -9,7 +9,11 @@
 // zůstává jen jako rozumný výchozí stav, než proběhne první přepočet.
 var CELL_PIXEL_SIZE = 6;
 
-var MIN_CELL_PIXEL_SIZE = 2; // pod tímhle už by buňky byly prakticky neviditelné
+// 1 px je skutečné dno (spec 14.2: bakterie nesmí "zmizet" pod rozlišení) —
+// posuvník velikosti plochy má dynamický strop přesně tak, aby na tohle
+// dno nikdy nesáhl (viz computeMaxGridSize() v main.js), takže se sem
+// prakticky nikdy nedorazí, je to jen poslední pojistka.
+var MIN_CELL_PIXEL_SIZE = 1;
 var MAX_CELL_PIXEL_SIZE = 20; // nad tímhle by malá mřížka zbytečně zabírala celou obrazovku
 
 var COLOR_BACKGROUND = '#101014';
@@ -171,15 +175,19 @@ function drawScene(ctx, canvas, gridConfig, population, foodList, foodCapacity) 
 
 // --- Zoom ---------------------------------------------------------------
 //
-// Zoom je čistě vizuální: škáluje CELÝ panel simulace (canvas + stats +
-// souřadnice kurzoru + graf fitness — viz element #zoom-wrapper v
-// index.html), neovlivňuje rozlišení mřížky ani souřadnice (viz
-// specifikace, bod 6.4).
+// Zoom je čistě vizuální: škáluje jen #canvas-container (canvas samotný),
+// neovlivňuje rozlišení mřížky ani souřadnice (spec 6.4). Od 14.2 se
+// aplikuje jen na samotnou plochu, ne na celý panel simulace — #canvas-area
+// kolem něj má `overflow: auto` (viz style.css), takže jakmile je
+// #canvas-container přiblížením větší než dostupné místo, prohlížeč sám
+// nabídne posuvníky pro výřez (spec 14.2); tažení pravým tlačítkem myši po
+// ploše ten výřez navíc posouvá (panning, viz attachCanvasPanning() v
+// main.js).
 //
 // Použitá je CSS vlastnost `zoom`, ne `transform: scale`. Rozdíl je v tom,
 // že `zoom` mění i to, kolik místa prvek v layoutu zabírá (transform ne) —
-// díky tomu panel při zmenšení nezůstává obalený prázdným místem "navíc"
-// podle své původní velikosti (spec 8.1, oprava chyby v1).
-function applyZoom(panelElement, zoomFactor) {
-  panelElement.style.zoom = zoomFactor;
+// díky tomu právě vzniká reálný přetékající obsah, na který #canvas-area
+// zareaguje posuvníky, místo aby zůstal jen vizuálně zvětšený na místě.
+function applyZoom(canvasContainerElement, zoomFactor) {
+  canvasContainerElement.style.zoom = zoomFactor;
 }

@@ -17,79 +17,86 @@
   </header>
 
   <main>
-    <section id="canvas-area">
-      <div id="canvas-toolbar">
-        <!-- Běh simulace (start/pauza, krok po kroku, reset, rychlost) je
-             tady, přímo u plochy, ne v bočním panelu nastavení (spec 13.2) —
-             logicky patří k "jak se plocha zrovna hýbe", stejně jako zoom a
-             fullscreen tlačítko vedle. -->
-        <span class="btn-with-help">
-          <button type="button" id="start-pause-btn"></button>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="start_pause_btn_tooltip">?</span>
-        </span>
-        <span class="btn-with-help">
-          <button type="button" id="step-btn" data-i18n="step_btn"></button>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="step_btn_tooltip">?</span>
-        </span>
-        <span class="btn-with-help">
-          <button type="button" id="reset-btn" data-i18n="reset_btn"></button>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="reset_btn_tooltip">?</span>
-        </span>
-        <!-- Seed patří k resetu (spec 13.10, spec 4 "Inicializace") — reset
-             tlačítko výš vždycky čte aktuální hodnotu tohodle pole, žádné
-             samostatné "nastavit seed" tlačítko navíc není potřeba. -->
-        <label id="seed-control" for="seed-input">
-          <span data-i18n="seed_label"></span>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="seed_label_tooltip">?</span>
-          <input type="number" id="seed-input" value="42" step="1">
-        </label>
-        <label id="speed-control" for="speed-slider">
-          <span data-i18n="speed_label"></span>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="speed_label_tooltip">?</span>
-          <span id="speed-value">2</span>
-          <input type="range" id="speed-slider" min="0" max="30" step="1" value="2">
-        </label>
-
-        <span class="btn-with-help">
-          <button type="button" id="fullscreen-btn"></button>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="fullscreen_btn_tooltip">?</span>
-        </span>
-        <!-- Zoom patří k zobrazení plochy, ne k nastavení simulace (spec
-             12.3) — proto je tady vedle fullscreen tlačítka, ne ve fieldsetu
-             nastavení. -->
-        <label id="zoom-control" for="zoom-slider">
-          <span data-i18n="zoom_label"></span>
-          <span class="help-icon" tabindex="0" data-i18n-tooltip="zoom_label_tooltip">?</span>
-          <input type="range" id="zoom-slider" min="0.5" max="4" step="0.1" value="1">
-        </label>
-      </div>
-      <!-- Zoom (viz applyZoom v render.js) škáluje tenhle obal jako celek,
-           ne jen canvas uvnitř — viz spec 8.1. -->
-      <div id="zoom-wrapper">
+    <!-- simulation-wrapper drží plochu i prostřední pruh pohromadě jako
+         jeden celek (spec 14.2) — je to i požádaný element Fullscreen API
+         (viz main.js), ať se ve fullscreenu ukáže obojí, ne jen holá
+         plocha. #controls (nastavení) je záměrně mimo, stejně jako dřív. -->
+    <div id="simulation-wrapper">
+      <!-- Plocha (Petriho miska) — jen samotný canvas, žádné ovládání ani
+           informace uvnitř (spec 14.2: co největší čtverec, nic ho nesmí
+           zmenšovat). Zoom (CSS zoom na #canvas-container, viz applyZoom v
+           render.js) roztáhne canvas-container nad rozměr #canvas-area,
+           čímž se tu (overflow: auto) objeví posuvníky pro výřez; tažením
+           pravým tlačítkem myši lze výřez posouvat (panning), viz
+           attachCanvasPanning() v main.js. -->
+      <section id="canvas-area">
         <div id="canvas-container">
           <canvas id="sim-canvas"></canvas>
         </div>
-        <!-- Samostatný obal pro "info" prvky (stats, kurzor, graf fitness) —
-             ve fullscreenu ho jde jako celek přesunout vedle plochy místo
-             pod ni (spec 12.2), viz #canvas-area:fullscreen #zoom-wrapper
-             ve style.css. Mimo fullscreen je to jen neviditelný wrapper,
-             nic nemění. -->
-        <div id="info-panel">
-          <p id="stats-line"></p>
-          <p id="cursor-position-line" data-i18n="cursor_position_none"></p>
+      </section>
 
-          <div id="fitness-chart-area">
-            <p class="chart-title" data-i18n="fitness_chart_title"></p>
-            <canvas id="fitness-chart-canvas" width="320" height="90"></canvas>
-            <p class="chart-legend">
-              <span class="legend-swatch legend-swatch-min"></span><span data-i18n="fitness_chart_legend_min"></span>
-              <span class="legend-swatch legend-swatch-avg"></span><span data-i18n="fitness_chart_legend_avg"></span>
-              <span class="legend-swatch legend-swatch-max"></span><span data-i18n="fitness_chart_legend_max"></span>
-            </p>
-          </div>
+      <!-- Ovládání běhu simulace (start/pauza, krok, reset, seed, rychlost),
+           zoom, fullscreen, souřadnice kurzoru a graf fitness — to všechno
+           žije v prostředním pruhu MEZI plochou a panelem nastavení (spec
+           14.2), ne nad/přes plochu a ne přes nastavení, ať plocha dostane
+           co největší dostupný čtverec. -->
+      <section id="middle-panel">
+        <div id="run-controls">
+          <span class="btn-with-help">
+            <button type="button" id="start-pause-btn"></button>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="start_pause_btn_tooltip">?</span>
+          </span>
+          <span class="btn-with-help">
+            <button type="button" id="step-btn" data-i18n="step_btn"></button>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="step_btn_tooltip">?</span>
+          </span>
+          <span class="btn-with-help">
+            <button type="button" id="reset-btn" data-i18n="reset_btn"></button>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="reset_btn_tooltip">?</span>
+          </span>
+          <!-- Seed patří k resetu (spec 13.10, spec 4 "Inicializace") — reset
+               tlačítko výš vždycky čte aktuální hodnotu tohodle pole, žádné
+               samostatné "nastavit seed" tlačítko navíc není potřeba. -->
+          <label id="seed-control" for="seed-input">
+            <span data-i18n="seed_label"></span>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="seed_label_tooltip">?</span>
+            <input type="number" id="seed-input" value="42" step="1">
+          </label>
+          <label id="speed-control" for="speed-slider">
+            <span data-i18n="speed_label"></span>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="speed_label_tooltip">?</span>
+            <span id="speed-value">2</span>
+            <input type="range" id="speed-slider" min="0" max="30" step="1" value="2">
+          </label>
+
+          <span class="btn-with-help">
+            <button type="button" id="fullscreen-btn"></button>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="fullscreen_btn_tooltip">?</span>
+          </span>
+          <!-- Zoom patří k zobrazení plochy, ne k nastavení simulace (spec
+               12.3) — proto je tady vedle fullscreen tlačítka, ne ve
+               fieldsetu nastavení. -->
+          <label id="zoom-control" for="zoom-slider">
+            <span data-i18n="zoom_label"></span>
+            <span class="help-icon" tabindex="0" data-i18n-tooltip="zoom_label_tooltip">?</span>
+            <input type="range" id="zoom-slider" min="0.5" max="4" step="0.1" value="1">
+          </label>
         </div>
-      </div>
-    </section>
+
+        <p id="stats-line"></p>
+        <p id="cursor-position-line" data-i18n="cursor_position_none"></p>
+
+        <div id="fitness-chart-area">
+          <p class="chart-title" data-i18n="fitness_chart_title"></p>
+          <canvas id="fitness-chart-canvas" width="320" height="90"></canvas>
+          <p class="chart-legend">
+            <span class="legend-swatch legend-swatch-min"></span><span data-i18n="fitness_chart_legend_min"></span>
+            <span class="legend-swatch legend-swatch-avg"></span><span data-i18n="fitness_chart_legend_avg"></span>
+            <span class="legend-swatch legend-swatch-max"></span><span data-i18n="fitness_chart_legend_max"></span>
+          </p>
+        </div>
+      </section>
+    </div>
 
     <aside id="controls">
 

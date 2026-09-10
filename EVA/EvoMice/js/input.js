@@ -9,10 +9,9 @@
 function canvasPositionToCell(canvas, gridConfig, clientX, clientY) {
   var rect = canvas.getBoundingClientRect();
 
-  // rect už zohledňuje případný CSS zoom celého panelu (viz applyZoom
-  // v render.js), takže poměr canvas.width / rect.width nám dá zpět
-  // "zoom faktor", i když se zoom aplikuje na obalový #zoom-wrapper,
-  // ne přímo na canvas.
+  // rect už zohledňuje případný CSS zoom (viz applyZoom v render.js), takže
+  // poměr canvas.width / rect.width nám dá zpět "zoom faktor", i když se
+  // zoom aplikuje na obalový #canvas-container, ne přímo na canvas.
   var scaleX = canvas.width / rect.width;
   var scaleY = canvas.height / rect.height;
 
@@ -51,7 +50,10 @@ function attachManualFoodPainting(canvas, getGridConfigFn, isActiveFn, onPaintCe
   }
 
   canvas.addEventListener('mousedown', function (event) {
-    if (!isActiveFn()) {
+    // Pravé tlačítko je vyhrazené pro panning výřezu při zoomu (spec 14.2,
+    // viz posluchače na #canvas-area v main.js) — kreslení krmení reaguje
+    // jen na levé tlačítko, ať se ty dvě interakce navzájem neruší.
+    if (!isActiveFn() || event.button !== 0) {
       return;
     }
     isPainting = true;

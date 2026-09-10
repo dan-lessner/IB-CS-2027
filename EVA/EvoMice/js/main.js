@@ -145,67 +145,36 @@ function readParamsFromUI() {
   return params;
 }
 
-// --- Velikost canvasu: responzivní vůči dostupnému místu (spec 10.6, 12.1) -
+// --- Velikost canvasu: co největší čtverec z dostupného místa (spec 14.2) -
 //
 // CELL_PIXEL_SIZE (js/render.js) není pevná konstanta — dopočítá se z
-// aktuální šířky I výšky #canvas-area, ať plocha nikdy nepřeteče (spec
-// 12.1) a mřížka zabírá dostupné místo rozumně bez ohledu na velikost okna
-// nebo počet buněk. Volá se při resetu (mění se gridConfig) i při resize
-// okna/přepnutí fullscreenu (mění se dostupné místo, gridConfig zůstává).
+// aktuální šířky I výšky #canvas-area, ať plocha nikdy nepřeteče a mřížka
+// zabírá dostupné místo rozumně bez ohledu na velikost okna nebo počet
+// buněk. Volá se při resetu (mění se gridConfig) i při resize okna/přepnutí
+// fullscreenu (mění se dostupné místo, gridConfig zůstává).
 //
-// Dostupná výška pro samotný canvas = výška #canvas-area mínus vše, co nad
-// canvasem/pod ním v #zoom-wrapper reálně zabírá místo (souřadnice kurzoru,
-// graf fitness) a toolbar nad tím — jinak by se cell size počítal, jako
-// kdyby canvas mohl zabrat celou výšku #canvas-area, a zbytek by se stejně
-// jako dřív jen uřízl/scrolloval.
-var CANVAS_AREA_HORIZONTAL_RESERVE = 8; // malá rezerva na okraj #canvas-container
-var CANVAS_AREA_VERTICAL_RESERVE = 8; // malá rezerva na okraje/mezery navíc
+// Od 14.2 je #canvas-area jen samotná plocha (žádné ovládání, žádný graf
+// uvnitř, viz index.html/style.css) — dostupné místo je tedy prostě celý
+// obsah #canvas-area, nic se z něj neodečítá kromě malé okrajové rezervy.
+// Díky tomu, že CELL_PIXEL_SIZE vychází z min(šířka, výška), je výsledný
+// canvas vždycky čtverec (gridConfig má stejný počet buněk na obou osách),
+// a to největší možný, který se do #canvas-area vejde — přesně spec 14.2.
+var CANVAS_AREA_RESERVE = 8; // malá rezerva na okraj #canvas-container
 
 // isFullscreenActive() je jediné místo, které se ptá na skutečný stav
-// Fullscreen API (viz #canvas-area.is-fullscreen, spec 13.6) — zbytek kódu
-// (tahle funkce, CSS ve style.css) se ptá přes ni, ne přímo přes
+// Fullscreen API (viz #simulation-wrapper.is-fullscreen, spec 13.6/14.2) —
+// zbytek kódu (tahle funkce, CSS ve style.css) se ptá přes ni, ne přímo přes
 // document.fullscreenElement, ať jde chování ověřit/vynutit i mimo reálné
 // volání requestFullscreen() (to headless prohlížeč bez uživatelského gesta
 // obvykle odmítne, viz poznámka u fullscreenchange listeneru níže).
 function isFullscreenActive() {
-  return document.getElementById('canvas-area').classList.contains('is-fullscreen');
-}
-
-// Ve fullscreenu na šířku (landscape) sedí #info-panel vedle plochy místo
-// pod ní (spec 12.2, viz media query ve style.css) — v tom případě ubírá
-// místo ze šířky, ne z výšky. Mimo fullscreen (a na výšku i ve fullscreenu)
-// zůstává info panel pod plochou jako dřív.
-function isInfoPanelBesideCanvas() {
-  return isFullscreenActive() && window.matchMedia('(orientation: landscape)').matches;
+  return document.getElementById('simulation-wrapper').classList.contains('is-fullscreen');
 }
 
 function updateCanvasSize() {
   var canvasArea = document.getElementById('canvas-area');
-  var toolbar = document.getElementById('canvas-toolbar');
-  var statsLine = document.getElementById('stats-line');
-  var cursorLine = document.getElementById('cursor-position-line');
-  var fitnessChartArea = document.getElementById('fitness-chart-area');
-  var infoPanel = document.getElementById('info-panel');
-
-  var availableWidth = canvasArea.clientWidth - CANVAS_AREA_HORIZONTAL_RESERVE;
-  var reservedHeight = CANVAS_AREA_VERTICAL_RESERVE;
-
-  // Mimo fullscreen je toolbar normální řádek layoutu a zabírá místo shora.
-  // Ve fullscreenu je to plovoucí lišta přes canvas (viz .is-fullscreen
-  // #canvas-toolbar ve style.css, spec 13.6) — nezabírá layoutový prostor,
-  // takže se jeho výška neodečítá a plocha/graf dostanou celou výšku.
-  if (!isFullscreenActive()) {
-    reservedHeight = reservedHeight + toolbar.offsetHeight;
-  }
-
-  if (isInfoPanelBesideCanvas()) {
-    availableWidth = availableWidth - infoPanel.offsetWidth;
-  } else {
-    reservedHeight = reservedHeight + statsLine.offsetHeight +
-      cursorLine.offsetHeight + fitnessChartArea.offsetHeight;
-  }
-
-  var availableHeight = canvasArea.clientHeight - reservedHeight;
+  var availableWidth = canvasArea.clientWidth - CANVAS_AREA_RESERVE;
+  var availableHeight = canvasArea.clientHeight - CANVAS_AREA_RESERVE;
 
   updateCellPixelSize(availableWidth, availableHeight, gridConfig);
   resizeCanvasToGrid(canvas, gridConfig);
@@ -213,9 +182,8 @@ function updateCanvasSize() {
 }
 
 // Graf fitness (spec 8.1/13.6): rozměr canvasu se dopočítává z toho, kolik
-// místa mu CSS layout reálně přidělil — ve fullscreenu na šířku to díky
-// `#info-panel { align-self: stretch }` (viz style.css) je celá výška
-// plochy vedle simulace, ne pevných pár desítek pixelů jako dřív.
+// místa mu CSS layout reálně přidělil (#middle-panel, viz style.css), ne z
+// pevné konstanty.
 function updateFitnessChartCanvasSize() {
   var width = fitnessChartCanvas.clientWidth;
   var height = fitnessChartCanvas.clientHeight;
@@ -227,7 +195,55 @@ function updateFitnessChartCanvasSize() {
   }
 }
 
+// --- Dynamický strop posuvníku velikosti plochy (spec 14.2) ---------------
+//
+// Horní mez posuvníku "velikost plochy (buněk na stranu)" už není pevných
+// 512 (spec 13.7) — musí se přizpůsobit tomu, kolik místa má #canvas-area
+// právě teď k dispozici, ať přenejhorším vyjde přesně MIN_CELL_PIXEL_SIZE
+// (1 px, viz render.js) na buňku, ne méně (bakterie by pod tím rozlišením
+// prakticky zmizely). Používá stejnou dostupnou plochu jako
+// updateCanvasSize() výš, ale počítá naopak: kolik buněk se vejde, ne jak
+// velká má být jedna buňka pro pevný počet buněk.
+var GRID_SIZE_SLIDER_ABSOLUTE_MIN = 8; // shoduje se s min atributem v HTML
+
+function computeMaxGridSize() {
+  var canvasArea = document.getElementById('canvas-area');
+  var availableSide = Math.min(
+    canvasArea.clientWidth - CANVAS_AREA_RESERVE,
+    canvasArea.clientHeight - CANVAS_AREA_RESERVE
+  );
+  var maxCells = Math.floor(availableSide / MIN_CELL_PIXEL_SIZE);
+  if (maxCells < GRID_SIZE_SLIDER_ABSOLUTE_MIN) {
+    maxCells = GRID_SIZE_SLIDER_ABSOLUTE_MIN;
+  }
+  return maxCells;
+}
+
+// Přepočítá strop posuvníku podle aktuální velikosti okna a — pokud právě
+// zvolená hodnota nový (nižší) strop přesáhne — srovná ji dolů na něj
+// (spec 14.2). Volá se při startu (ještě před úplně první resetSimulation(),
+// viz "Úvodní inicializace" níže — tam stačí jen srovnat hodnotu slideru,
+// samotný reset už provede save-load.js) i při každém resize okna (tam už
+// simulace běží, takže srovnání hodnoty musí být doprovázené i skutečným
+// restartem, ať gridConfig odpovídá tomu, co slider ukazuje).
+function updateGridSizeCap() {
+  var slider = document.getElementById('grid-size-slider');
+  var maxCells = computeMaxGridSize();
+  slider.max = maxCells;
+  if (Number(slider.value) > maxCells) {
+    slider.value = maxCells;
+    document.getElementById('grid-size-value').textContent = String(maxCells);
+    if (gridConfig !== undefined) {
+      // Velikost plochy mění délku genomu — vyžaduje restart, stejně jako
+      // ruční změna posuvníkem (viz 'change' listener u grid-size-slider níže).
+      stopRunning();
+      resetSimulation();
+    }
+  }
+}
+
 window.addEventListener('resize', function () {
+  updateGridSizeCap();
   updateCanvasSize();
   redraw();
 });
@@ -611,34 +627,73 @@ document.getElementById('food-capacity-slider').addEventListener('change', funct
 
 // --- Zoom ovládání --------------------------------------------------------
 //
-// Zoom škáluje celý panel simulace (#zoom-wrapper: canvas + stats +
-// souřadnice kurzoru + graf fitness), ne jen samotný canvas — viz applyZoom
-// v render.js a spec 8.1.
-
-var zoomWrapper = document.getElementById('zoom-wrapper');
+// Zoom (od 14.2) škáluje jen #canvas-container (samotnou plochu), ne celý
+// panel simulace — viz applyZoom v render.js. #canvas-area kolem něj má
+// `overflow: auto` (style.css), takže přiblížení nad dostupné místo samo
+// vyvolá posuvníky pro výřez (spec 14.2).
+var canvasContainerEl = document.getElementById('canvas-container');
 var zoomSlider = document.getElementById('zoom-slider');
 zoomSlider.addEventListener('input', function () {
   var zoomFactor = Number(zoomSlider.value);
-  applyZoom(zoomWrapper, zoomFactor);
+  applyZoom(canvasContainerEl, zoomFactor);
 });
 
-// --- Fullscreen (spec 10.6, 13.6) ------------------------------------------
+// --- Panning: tažení pravým tlačítkem myši posouvá přiblížený výřez -------
 //
-// Fullscreen API je požádané přímo na #canvas-area — prohlížeč pak sám
-// zobrazí přes celou obrazovku jen tenhle prvek (a jeho potomky: canvas,
-// stats, kurzor, graf fitness), #controls jako sourozenec zůstane mimo,
-// není potřeba ho schovávat ručně.
+// Levé tlačítko je už obsazené ručním kreslením krmení (attachManualFoodPainting
+// výš) — panning proto poslouchá pravé tlačítko (button === 2) a potlačuje
+// kontextové menu prohlížeče na ploše, ať tažení nic nepřeruší (spec 14.2:
+// "tažení myší po ploše posouvá zobrazený výřez, ne jen klasický scroll
+// kolečkem" — klasické kolečko/posuvníky navíc dál fungují samy od sebe
+// díky `overflow: auto` na #canvas-area, tohle je jen alternativa navíc).
+var canvasAreaEl = document.getElementById('canvas-area');
+var isPanning = false;
+var panLastClientX = 0;
+var panLastClientY = 0;
+
+canvasAreaEl.addEventListener('contextmenu', function (event) {
+  event.preventDefault();
+});
+
+canvasAreaEl.addEventListener('mousedown', function (event) {
+  if (event.button !== 2) {
+    return;
+  }
+  isPanning = true;
+  panLastClientX = event.clientX;
+  panLastClientY = event.clientY;
+});
+
+window.addEventListener('mousemove', function (event) {
+  if (!isPanning) {
+    return;
+  }
+  canvasAreaEl.scrollLeft = canvasAreaEl.scrollLeft - (event.clientX - panLastClientX);
+  canvasAreaEl.scrollTop = canvasAreaEl.scrollTop - (event.clientY - panLastClientY);
+  panLastClientX = event.clientX;
+  panLastClientY = event.clientY;
+});
+
+window.addEventListener('mouseup', function () {
+  isPanning = false;
+});
+
+// --- Fullscreen (spec 10.6, 13.6, přestavěno pro 14.2) ---------------------
+//
+// Fullscreen API je požádané na #simulation-wrapper (plocha + prostřední
+// pruh s ovládáním a grafem, viz index.html) — prohlížeč pak sám zobrazí
+// přes celou obrazovku jen tenhle prvek a jeho potomky, #controls jako
+// sourozenec zůstane mimo, není potřeba ho schovávat ručně.
 //
 // Skutečný fullscreen stav (document.fullscreenElement) se navíc zrcadlí do
-// třídy .is-fullscreen na #canvas-area (viz isFullscreenActive() výš) — CSS
-// i JS v celém souboru se ptají přes ni, ne přímo přes Fullscreen API. Důvod
-// je hlavně ověřitelnost: Fullscreen API vyžaduje "user activation" (reálný
-// klik), takže ho headless prohlížeč bez skutečné interakce nepustí — díky
-// samostatné třídě jde fullscreen layout nasimulovat i bez toho (viz
-// PROGRESS.md, sekce Vizuální ověřování).
-
+// třídy .is-fullscreen na #simulation-wrapper (viz isFullscreenActive()
+// výš) — CSS i JS v celém souboru se ptají přes ni, ne přímo přes
+// Fullscreen API. Důvod je hlavně ověřitelnost: Fullscreen API vyžaduje
+// "user activation" (reálný klik), takže ho headless prohlížeč bez skutečné
+// interakce nepustí — díky samostatné třídě jde fullscreen layout
+// nasimulovat i bez toho (viz PROGRESS.md, sekce Vizuální ověřování).
 var fullscreenBtn = document.getElementById('fullscreen-btn');
-var canvasAreaEl = document.getElementById('canvas-area');
+var simulationWrapperEl = document.getElementById('simulation-wrapper');
 
 function updateFullscreenButtonText() {
   if (isFullscreenActive()) {
@@ -652,7 +707,7 @@ fullscreenBtn.addEventListener('click', function () {
   if (document.fullscreenElement) {
     document.exitFullscreen();
   } else {
-    canvasAreaEl.requestFullscreen();
+    simulationWrapperEl.requestFullscreen();
   }
 });
 
@@ -660,55 +715,14 @@ fullscreenBtn.addEventListener('click', function () {
 // exitFullscreen() nevoláme sami) — jediné spolehlivé místo pro obojí.
 document.addEventListener('fullscreenchange', function () {
   if (document.fullscreenElement !== null) {
-    canvasAreaEl.classList.add('is-fullscreen');
-    showFullscreenToolbar();
-    scheduleFullscreenToolbarHide();
+    simulationWrapperEl.classList.add('is-fullscreen');
   } else {
-    canvasAreaEl.classList.remove('is-fullscreen');
-    cancelFullscreenToolbarHide();
-    showFullscreenToolbar(); // mimo fullscreen se toolbar nikdy neschovává
+    simulationWrapperEl.classList.remove('is-fullscreen');
   }
   updateFullscreenButtonText();
-  updateCanvasSize(); // dostupné místo se vstupem/výstupem z fullscreenu skokově změní
+  updateGridSizeCap(); // dostupné místo se vstupem/výstupem z fullscreenu skokově změní
+  updateCanvasSize();
   redraw();
-});
-
-// --- Fullscreen: auto-hide ovládacího panelu (spec 13.6) -------------------
-//
-// Ve fullscreenu je #canvas-toolbar plovoucí lišta přes horní okraj plochy
-// (viz .is-fullscreen #canvas-toolbar ve style.css) — pohyb myší ji na
-// chvíli ukáže, po chvíli nečinnosti zase zmizí, stejný vzor jako ovládání
-// videopřehrávačů na celou obrazovku. Esc pro ukončení fullscreen na tomhle
-// vůbec nezávisí (řeší ho prohlížeč sám, viz fullscreenchange výš).
-var FULLSCREEN_TOOLBAR_HIDE_DELAY_MS = 2500;
-var fullscreenToolbarHideTimeoutId = null;
-
-function showFullscreenToolbar() {
-  document.getElementById('canvas-toolbar').classList.remove('toolbar-hidden');
-}
-
-function scheduleFullscreenToolbarHide() {
-  cancelFullscreenToolbarHide();
-  fullscreenToolbarHideTimeoutId = setTimeout(function () {
-    if (isFullscreenActive()) {
-      document.getElementById('canvas-toolbar').classList.add('toolbar-hidden');
-    }
-  }, FULLSCREEN_TOOLBAR_HIDE_DELAY_MS);
-}
-
-function cancelFullscreenToolbarHide() {
-  if (fullscreenToolbarHideTimeoutId !== null) {
-    clearTimeout(fullscreenToolbarHideTimeoutId);
-    fullscreenToolbarHideTimeoutId = null;
-  }
-}
-
-canvasAreaEl.addEventListener('mousemove', function () {
-  if (!isFullscreenActive()) {
-    return;
-  }
-  showFullscreenToolbar();
-  scheduleFullscreenToolbarHide();
 });
 
 // --- Sbalitelné sekce nastavení (accordion, spec 10.7) ---------------------
@@ -752,6 +766,11 @@ function onLanguageChanged() {
 
 updateStartPauseButtonText();
 updateFullscreenButtonText();
+// Strop posuvníku velikosti plochy potřebuje znát dostupné místo dřív, než
+// se poprvé přečte jeho hodnota (spec 14.2) — #canvas-area má ale rozměr
+// určený čistě CSS layoutem stránky (grid/flex, viz style.css), ne obsahem
+// canvasu, takže tohle jde spočítat i před úplně první resetSimulation().
+updateGridSizeCap();
 // Skutečná první resetSimulation() proběhne až v js/save-load.js
 // (applyInitialSettings(), spec 13.5) — tam se napřed aplikují
 // DEFAULT_SETTINGS (jedno místo pravdy pro výchozí hodnoty) a případně
