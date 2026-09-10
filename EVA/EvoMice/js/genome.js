@@ -1,8 +1,9 @@
-// EvoMice — datový model: mřížka, kódování genomu, myš a krmení.
+// EvoMice — datový model: mřížka, kódování genomu, bakterie a krmení.
 //
-// Genom myši je pole bitů (0/1), pevné délky, které kóduje souřadnici (x, y)
-// na mřížce: prvních `bitsX` bitů je x, zbylých `bitsY` bitů je y.
-// Tahle souřadnice je celý "život" myši — žádná jiná informace v genomu není.
+// Genom bakterie je pole bitů (0/1), pevné délky, které kóduje souřadnici
+// (x, y) na mřížce: prvních `bitsX` bitů je x, zbylých `bitsY` bitů je y.
+// Tahle souřadnice je celý "život" bakterie — žádná jiná informace v genomu
+// není.
 
 // --- Konfigurace mřížky -----------------------------------------------
 
@@ -73,31 +74,32 @@ function decodeGenome(genome, gridConfig) {
   return { x: x, y: y };
 }
 
-// --- Myš (jedinec populace) --------------------------------------------
+// --- Bakterie (jedinec populace) ----------------------------------------
 
-// Vytvoří myš na dané souřadnici. Genom se rovnou zakóduje ze souřadnice.
-function createMouse(x, y, gridConfig) {
-  var mouse = {
+// Vytvoří bakterii na dané souřadnici. Genom se rovnou zakóduje ze souřadnice.
+function createBacterium(x, y, gridConfig) {
+  var bacterium = {
     genome: encodeGenome(x, y, gridConfig),
     x: x,
     y: y,
     fitness: 0
   };
-  return mouse;
+  return bacterium;
 }
 
 // Po změně genomu (mutace/křížení na úrovni bitů) je potřeba přepočítat
 // dekódovanou souřadnici x/y, aby odpovídala aktuálnímu genomu.
-function syncMousePositionFromGenome(mouse, gridConfig) {
-  var decoded = decodeGenome(mouse.genome, gridConfig);
-  mouse.x = decoded.x;
-  mouse.y = decoded.y;
+function syncBacteriumPositionFromGenome(bacterium, gridConfig) {
+  var decoded = decodeGenome(bacterium.genome, gridConfig);
+  bacterium.x = decoded.x;
+  bacterium.y = decoded.y;
 }
 
-// Opačný směr: po geometrické operaci (myš dostala novou souřadnici přímo,
-// ne přes bity) je potřeba znovu zakódovat genom, aby zůstal zdrojem pravdy.
-function syncMouseGenomeFromPosition(mouse, gridConfig) {
-  mouse.genome = encodeGenome(mouse.x, mouse.y, gridConfig);
+// Opačný směr: po geometrické operaci (bakterie dostala novou souřadnici
+// přímo, ne přes bity) je potřeba znovu zakódovat genom, aby zůstal zdrojem
+// pravdy.
+function syncBacteriumGenomeFromPosition(bacterium, gridConfig) {
+  bacterium.genome = encodeGenome(bacterium.x, bacterium.y, gridConfig);
 }
 
 // --- Krmení --------------------------------------------------------------
@@ -153,23 +155,23 @@ function runGenomeSelfTests() {
     gridIndex = gridIndex + 1;
   }
 
-  // Test 3: createMouse uloží genom odpovídající zadané souřadnici.
+  // Test 3: createBacterium uloží genom odpovídající zadané souřadnici.
   var gridConfig64 = createGridConfig(64, 64);
-  var mouse = createMouse(10, 20, gridConfig64);
-  var decodedMouse = decodeGenome(mouse.genome, gridConfig64);
+  var bacterium = createBacterium(10, 20, gridConfig64);
+  var decodedBacterium = decodeGenome(bacterium.genome, gridConfig64);
   console.assert(
-    decodedMouse.x === 10 && decodedMouse.y === 20,
-    'createMouse: genom neodpovídá zadané souřadnici'
+    decodedBacterium.x === 10 && decodedBacterium.y === 20,
+    'createBacterium: genom neodpovídá zadané souřadnici'
   );
   testsRun = testsRun + 1;
 
-  // Test 4: syncMousePositionFromGenome a syncMouseGenomeFromPosition jsou navzájem konzistentní.
-  mouse.genome[0] = mouse.genome[0] === 0 ? 1 : 0; // ručně "zmutujeme" první bit
-  syncMousePositionFromGenome(mouse, gridConfig64);
-  syncMouseGenomeFromPosition(mouse, gridConfig64);
-  var recheck = decodeGenome(mouse.genome, gridConfig64);
+  // Test 4: syncBacteriumPositionFromGenome a syncBacteriumGenomeFromPosition jsou navzájem konzistentní.
+  bacterium.genome[0] = bacterium.genome[0] === 0 ? 1 : 0; // ručně "zmutujeme" první bit
+  syncBacteriumPositionFromGenome(bacterium, gridConfig64);
+  syncBacteriumGenomeFromPosition(bacterium, gridConfig64);
+  var recheck = decodeGenome(bacterium.genome, gridConfig64);
   console.assert(
-    recheck.x === mouse.x && recheck.y === mouse.y,
+    recheck.x === bacterium.x && recheck.y === bacterium.y,
     'sync funkce nejsou navzájem konzistentní'
   );
   testsRun = testsRun + 1;

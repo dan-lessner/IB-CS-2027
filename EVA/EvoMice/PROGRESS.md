@@ -17,7 +17,7 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
 
 ## Plán v6 (spec sekce 14) — bakterie + responzivní layout
 
-- [ ] 14.1 — přejmenování metafory myši → bakterie na agaru (i18n, UI, README, přiměřeně kód)
+- [x] 14.1 — přejmenování metafory myši → bakterie na agaru (i18n, UI, README, přiměřeně kód)
 - [ ] 14.2 — responzivní layout: plocha = co největší čtverec v landscape, dynamická velikost
       buněk, dynamický strop posuvníku velikosti plochy (min. 1px/pozice), ovládání+graf mezi
       plochou a nastavením, zoom se scrollbary + panning
@@ -59,6 +59,21 @@ Malé samostatně commitovatelné kroky, commit+push po každém. i18n (žádný
 text) a didaktický kód platí pořád.
 
 ## Poznámky za běhu
+
+**14.1 — rozsah přejmenování.** "Myš" v kódu měla dva různé významy —
+jedinec populace (přejmenováno na "bakterie"/`bacterium`, viz i18n slovníky
+a funkce/proměnné v `genome.js`/`ga.js`/`render.js`/`save-load.js`) a
+počítačová myš jako vstupní zařízení (`mousemove`/`mouseup`/`mousedown`,
+komentáře o "kurzoru myši" v `input.js` a `food_mode_manual_tooltip`) — ty
+zůstaly beze změny, jde o jiný pojem. Žádné README pro EvoMice v repu
+neexistuje (jen `PROGRESS.md`), není tedy co upravovat. Obecný pojem
+"plocha" (velikost plochy, `#canvas-area`, `gridConfig`) zůstal jako
+technický/UI název beze změny na "miska"/"agar" — je to napříč HTML/CSS/JS
+příliš rozšířené na bezpečné přejmenování v tomhle kroku a spec vyžaduje
+jen přejmenování jedince ("myš/myši" → "bakterie"), ne nutně názvu plochy.
+Self-testy (`node` na `rng.js`+`genome.js`+`ga.js`) po přejmenování
+proběhly beze změny v počtu ověření (2346 + 222), stránka byla ověřena
+screenshotem bez JS chyb v konzoli/síti.
 
 **13.6 — jak se to ověřovalo bez skutečného Fullscreen API.** Headless
 Chromium odmítá `requestFullscreen()` bez opravdového uživatelského gesta

@@ -6,14 +6,14 @@
 
 var I18N_CS = {
 
-  page_title: 'EvoMice — evoluční simulace myší',
-  subtitle: 'Evoluční simulace myší hledajících krmení (genetický algoritmus)',
+  page_title: 'EvoMice — evoluční simulace bakterií',
+  subtitle: 'Evoluční simulace bakterií na Petriho misce hledajících krmení (genetický algoritmus)',
 
   stats_line: 'generace: {gen} · nakrmeno: {fed} / {total}',
 
   cursor_position_none: 'kurzor: mimo plochu',
   cursor_position_label: 'kurzor: x = {x}, y = {y}',
-  cursor_mice_segment: ' · myší na buňce: {count}',
+  cursor_bacteria_segment: ' · bakterií na buňce: {count}',
   cursor_food_segment: ' · krmení: {amount}/{capacity}',
 
   fullscreen_enter_btn: 'Celá obrazovka',
@@ -86,13 +86,13 @@ var I18N_CS = {
 
   section_saveload_legend: 'Uložení a načtení',
   reset_defaults_btn: 'Reset na výchozí nastavení',
-  saveload_include_board_label: 'Uložit i stav plochy (myši, krmení)',
+  saveload_include_board_label: 'Uložit i stav plochy (bakterie, krmení)',
   save_cookie_btn: 'Uložit do cookie',
   load_cookie_btn: 'Načíst z cookie',
   clear_cookie_btn: 'Smazat cookie',
   save_link_btn: 'Uložit do odkazu',
   save_link_output_label: 'Odkaz (zkopírovat Ctrl+C):',
-  cookie_consent_message: 'Uložení do cookie znamená, že si prohlížeč na tomto zařízení uloží aktuální nastavení simulace (volitelně i pozice myší a krmení) do souboru cookie, dokud ho sami nesmažete nebo nevyprší platnost (1 rok). Pokračovat?',
+  cookie_consent_message: 'Uložení do cookie znamená, že si prohlížeč na tomto zařízení uloží aktuální nastavení simulace (volitelně i pozice bakterií a krmení) do souboru cookie, dokud ho sami nesmažete nebo nevyprší platnost (1 rok). Pokračovat?',
   saveload_status_cookie_declined: 'Uložení do cookie zrušeno — souhlas nebyl udělen.',
   saveload_status_cookie_saved: 'Nastavení uloženo do cookie.',
   saveload_status_cookie_missing: 'V cookie nejsou uložená žádná data.',
@@ -120,22 +120,22 @@ var I18N_CS = {
   reset_btn_tooltip: 'Vytvoří novou náhodnou počáteční populaci se stejnými parametry a vynuluje počítadlo generací.',
   speed_label_tooltip: 'Určuje, kolikrát za sekundu se při spuštěném běhu automaticky provede krok generace. Při 0 "Start" (i mezerník) jen provede jeden krok, stejně jako tlačítko "Krok po kroku".',
 
-  section_population_legend_tooltip: 'Populace je množina jedinců (myší), z níž se v každé generaci vybírají rodiče; velikost mřížky určuje délku binárního genomu.',
-  population_size_label_tooltip: 'Mění počet myší v populaci; při zvětšení se přidají nové náhodné jedinci, při zmenšení se odeberou.',
+  section_population_legend_tooltip: 'Populace je množina jedinců (bakterií), z níž se v každé generaci vybírají rodiče; velikost mřížky určuje délku binárního genomu.',
+  population_size_label_tooltip: 'Mění počet bakterií v populaci; při zvětšení se přidají nové náhodné jedinci, při zmenšení se odeberou.',
   grid_size_label_tooltip: 'Mění počet buněk mřížky na stranu, a tím i délku binárního genomu (počet bitů na osu) — vyžaduje kompletní reset simulace.',
 
-  section_food_legend_tooltip: 'Krmení definuje prostředí, vůči kterému se počítá fitness jednotlivých myší. Barva buňky na ploše ukazuje zbývající množství krmení (černá až zelená), vnitřní čtverec myši barvu podle toho, kolik dalších myší stojí na stejné buňce (žlutá až červená).',
+  section_food_legend_tooltip: 'Krmení definuje prostředí, vůči kterému se počítá fitness jednotlivých bakterií. Barva buňky na ploše ukazuje zbývající množství krmení (černá až zelená), vnitřní čtverec bakterie barvu podle toho, kolik dalších bakterií stojí na stejné buňce (žlutá až červená).',
   food_count_label_tooltip: 'Určuje, kolik buněk krmení vznikne při náhodném rozhození.',
   food_capacity_label_tooltip: 'Kolik generací (kolikrát "snězeno") vydrží jedna buňka krmení, než dojde — čím výše, tím pomaleji krmení ubývá. Barva buňky krmení na ploše ukazuje, kolik z kapacity ještě zbývá (černá = došlo, zelená = plná).',
   food_mode_random_tooltip: 'Zadaný počet krmítek se umístí na náhodně vybrané buňky mřížky.',
   food_mode_manual_tooltip: 'Buňky krmení se určují kliknutím nebo tažením kurzoru myši přímo po ploše.',
   regenerate_food_btn_tooltip: 'Znovu náhodně rozmístí krmení podle aktuálně nastaveného množství.',
   clear_food_btn_tooltip: 'Odstraní veškeré aktuálně umístěné krmení z plochy.',
-  food_depletes_label_tooltip: 'Po vyhodnocení generace ubyde krmení na buňkách, kde stála aspoň jedna myš.',
+  food_depletes_label_tooltip: 'Po vyhodnocení generace ubyde krmení na buňkách, kde stála aspoň jedna bakterie.',
   food_replenishes_label_tooltip: 'Krmení, které ubylo, se doplní zpátky na původní počet na nová náhodná místa — nezávisle na tom, jestli bylo rozhozeno náhodně nebo nakresleno ručně.',
 
-  section_fitness_legend_tooltip: 'Fitness vyjadřuje, jak dobře je jedinec přizpůsobený prostředí — tady jde o polohu myši vůči krmení.',
-  fitness_type_label_tooltip: 'Binární varianta počítá fitness 1, pokud myš stojí přesně na buňce s krmením, jinak 0. Spojitá varianta počítá fitness jako 1 / (1 + vzdálenost) k nejbližšímu krmení.',
+  section_fitness_legend_tooltip: 'Fitness vyjadřuje, jak dobře je jedinec přizpůsobený prostředí — tady jde o polohu bakterie vůči krmení.',
+  fitness_type_label_tooltip: 'Binární varianta počítá fitness 1, pokud bakterie stojí přesně na buňce s krmením, jinak 0. Spojitá varianta počítá fitness jako 1 / (1 + vzdálenost) k nejbližšímu krmení.',
 
   section_selection_legend_tooltip: 'Selekce rozhoduje, kteří jedinci se stanou rodiči další generace — čím vyšší fitness, tím vyšší šance.',
   selection_method_label_tooltip: 'Ruletová selekce vybírá rodiče s pravděpodobností úměrnou jeho podílu na celkové fitness populace. Turnajová selekce vybere náhodnou skupinu jedinců a rodičem se stane ten s nejvyšší fitness v ní.',
@@ -160,8 +160,8 @@ var I18N_CS = {
 
   zoom_label_tooltip: 'Škáluje vykreslený panel simulace pomocí CSS transformace; neovlivňuje velikost mřížky ani přesnost souřadnic.',
 
-  section_saveload_legend_tooltip: 'Aktuální nastavení (volitelně i pozice myší a krmení) jde uložit do cookie prohlížeče nebo do odkazu, a později zase načíst zpátky.',
-  saveload_include_board_label_tooltip: 'Když je zapnuto, uloží/obnoví se i přesné pozice všech myší a krmení, ne jen hodnoty ovládacích prvků.',
+  section_saveload_legend_tooltip: 'Aktuální nastavení (volitelně i pozice bakterií a krmení) jde uložit do cookie prohlížeče nebo do odkazu, a později zase načíst zpátky.',
+  saveload_include_board_label_tooltip: 'Když je zapnuto, uloží/obnoví se i přesné pozice všech bakterií a krmení, ne jen hodnoty ovládacích prvků.',
   save_cookie_btn_tooltip: 'Uloží aktuální nastavení (a volitelně stav plochy) do cookie v tomto prohlížeči — poprvé si vyžádá výslovný souhlas.',
   load_cookie_btn_tooltip: 'Nastaví ovládací prvky a resetuje simulaci podle dat naposledy uložených do cookie.',
   clear_cookie_btn_tooltip: 'Smaže cookie s uloženým nastavením z tohoto prohlížeče.',

@@ -1,4 +1,4 @@
-// EvoMice — vykreslování na canvas (mřížka, myši, krmení) a zoom.
+// EvoMice — vykreslování na canvas (mřížka, bakterie, krmení) a zoom.
 //
 // Vykreslování je čistě "hloupé": dostane aktuální stav (mřížka, populace,
 // krmení) a překreslí canvas. Nerozhoduje o ničem evolučním ani o vstupu.
@@ -21,8 +21,8 @@ var COLOR_GRID_LINE = '#1c1c22';
 var COLOR_FOOD_EMPTY = '#101014'; // stejná jako pozadí — vyprázdněné krmení splyne s plochou
 var COLOR_FOOD_FULL = '#4caf50';
 
-// Hustota myší (spec 10.3): vnitřní čtverec myši je barvený podle toho, kolik
-// dalších myší stojí na stejné buňce vůči nejvyšší hustotě v aktuálním
+// Hustota bakterií (spec 10.3): vnitřní čtverec bakterie je barvený podle
+// toho, kolik dalších bakterií stojí na stejné buňce vůči nejvyšší hustotě v aktuálním
 // snímku — žlutá (nízká hustota) až po červenou (nejvyšší hustota).
 var COLOR_DENSITY_LOW = '#ffeb3b';
 var COLOR_DENSITY_HIGH = '#e53935';
@@ -91,7 +91,7 @@ function drawGridLines(ctx, gridConfig) {
 
 // Vykreslí jednu buňku jako vyplněný čtverec — volitelně menší a odsazenou
 // od okraje (inset), aby zbytek buňky pod ní zůstal vidět (spec 10.3, hustota
-// myší přes krmení).
+// bakterií přes krmení).
 function drawCell(ctx, x, y, color, inset) {
   var size = CELL_PIXEL_SIZE - inset * 2;
   ctx.fillStyle = color;
@@ -137,36 +137,36 @@ function drawFood(ctx, foodList, foodCapacity) {
   }
 }
 
-// Myši se kreslí jako menší čtverec odsazený od okraje buňky (spec 10.3) —
-// zbytek buňky (okraj) tak zůstává vidět v barvě krmení pod ní. Barva
-// vnitřního čtverce vyjadřuje lokální hustotu myší na téhle buňce vůči
-// nejvyšší hustotě v aktuálním snímku.
-var MOUSE_INSET = 1; // px odsazení od okraje buňky
+// Bakterie se kreslí jako menší čtverec odsazený od okraje buňky (spec
+// 10.3) — zbytek buňky (okraj) tak zůstává vidět v barvě krmení pod ní.
+// Barva vnitřního čtverce vyjadřuje lokální hustotu bakterií na téhle buňce
+// vůči nejvyšší hustotě v aktuálním snímku.
+var BACTERIUM_INSET = 1; // px odsazení od okraje buňky
 
-function drawMice(ctx, population) {
-  var maxDensity = computeMaxMouseDensity(population);
+function drawBacteria(ctx, population) {
+  var maxDensity = computeMaxBacteriaDensity(population);
   var i = 0;
   while (i < population.length) {
-    var mouse = population[i];
-    var density = countMiceOnCell(mouse.x, mouse.y, population);
+    var bacterium = population[i];
+    var density = countBacteriaOnCell(bacterium.x, bacterium.y, population);
     var densityRatio = 0;
     if (maxDensity > 0) {
       densityRatio = density / maxDensity;
     }
     var color = interpolateColor(COLOR_DENSITY_LOW, COLOR_DENSITY_HIGH, densityRatio);
-    drawCell(ctx, mouse.x, mouse.y, color, MOUSE_INSET);
+    drawCell(ctx, bacterium.x, bacterium.y, color, BACTERIUM_INSET);
     i = i + 1;
   }
 }
 
 // Hlavní vykreslovací krok: překreslí celou scénu od začátku.
-// Pořadí je důležité — krmení se kreslí pod myši, aby myš stojící na
-// krmení byla vidět (myší vnitřní čtverec "vyhraje" uprostřed buňky).
+// Pořadí je důležité — krmení se kreslí pod bakterie, aby bakterie stojící
+// na krmení byla vidět (její vnitřní čtverec "vyhraje" uprostřed buňky).
 function drawScene(ctx, canvas, gridConfig, population, foodList, foodCapacity) {
   drawBackground(ctx, canvas);
   drawGridLines(ctx, gridConfig);
   drawFood(ctx, foodList, foodCapacity);
-  drawMice(ctx, population);
+  drawBacteria(ctx, population);
 }
 
 // --- Zoom ---------------------------------------------------------------

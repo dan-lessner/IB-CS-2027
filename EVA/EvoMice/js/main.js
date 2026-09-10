@@ -36,7 +36,7 @@ function currentFoodCapacity() {
 function redraw() {
   drawScene(ctx, canvas, gridConfig, population, foodList, currentFoodCapacity());
   updateStatsLine();
-  updateCursorPositionLine(); // myši/krmení pod kurzorem se mění i beze pohybu kurzoru (další generace)
+  updateCursorPositionLine(); // bakterie/krmení pod kurzorem se mění i beze pohybu kurzoru (další generace)
   drawFitnessChart(fitnessChartCtx, fitnessChartCanvas);
 }
 
@@ -58,7 +58,7 @@ function updateStatsLine() {
   var fedCount = 0;
   var i = 0;
   while (i < population.length) {
-    if (isMouseFed(population[i], foodList)) {
+    if (isBacteriumFed(population[i], foodList)) {
       fedCount = fedCount + 1;
     }
     i = i + 1;
@@ -74,9 +74,9 @@ function updateStatsLine() {
 
 var lastCursorCell = null; // null = kurzor není nad plochou
 
-// Kromě souřadnic doplní (spec 10.4) počet myší a množství krmení na dané
-// buňce — ale jen když tam něco je, ať řádek nepůsobí zbytečně "upovídaně"
-// u prázdných buněk.
+// Kromě souřadnic doplní (spec 10.4) počet bakterií a množství krmení na
+// dané buňce — ale jen když tam něco je, ať řádek nepůsobí zbytečně
+// "upovídaně" u prázdných buněk.
 function updateCursorPositionLine() {
   var el = document.getElementById('cursor-position-line');
   if (el === null) {
@@ -91,9 +91,9 @@ function updateCursorPositionLine() {
   var y = lastCursorCell.y;
   var text = t('cursor_position_label', { x: x, y: y });
 
-  var miceCount = countMiceOnCell(x, y, population);
-  if (miceCount > 0) {
-    text = text + t('cursor_mice_segment', { count: miceCount });
+  var bacteriaCount = countBacteriaOnCell(x, y, population);
+  if (bacteriaCount > 0) {
+    text = text + t('cursor_bacteria_segment', { count: bacteriaCount });
   }
 
   var foodAmount = foodAmountOnCell(x, y, foodList);

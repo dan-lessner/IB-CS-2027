@@ -134,13 +134,13 @@ function applySettingsToUI(settings) {
   }
 }
 
-// --- Sběr / aplikace stavu plochy (myši + krmení) — volitelná součást ------
+// --- Sběr / aplikace stavu plochy (bakterie + krmení) — volitelná součást --
 
 function collectBoardState() {
-  var mice = [];
+  var bacteria = [];
   var i = 0;
   while (i < population.length) {
-    mice.push({ x: population[i].x, y: population[i].y });
+    bacteria.push({ x: population[i].x, y: population[i].y });
     i = i + 1;
   }
 
@@ -151,15 +151,15 @@ function collectBoardState() {
     j = j + 1;
   }
 
-  return { mice: mice, food: food };
+  return { bacteria: bacteria, food: food };
 }
 
 function applyBoardState(boardState) {
   var newPopulation = [];
   var i = 0;
-  while (i < boardState.mice.length) {
-    var mouseCoord = boardState.mice[i];
-    newPopulation.push(createMouse(mouseCoord.x, mouseCoord.y, gridConfig));
+  while (i < boardState.bacteria.length) {
+    var bacteriumCoord = boardState.bacteria[i];
+    newPopulation.push(createBacterium(bacteriumCoord.x, bacteriumCoord.y, gridConfig));
     i = i + 1;
   }
   population = newPopulation;

@@ -92,7 +92,7 @@ function stepGeneration(population, foodList, gridConfig, params, rng) {
     }
 
     childCoord = mutate(childCoord, gridConfig, params, rng);
-    nextGeneration.push(createMouse(childCoord.x, childCoord.y, gridConfig));
+    nextGeneration.push(createBacterium(childCoord.x, childCoord.y, gridConfig));
 
     k = k + 1;
   }
@@ -106,8 +106,8 @@ function stepGeneration(population, foodList, gridConfig, params, rng) {
 // Kolik jedinců (mimo elitu) se má tuhle generaci nahradit novými potomky?
 // Tahle jedna funkce pokrývá dvě položky ze zadání zároveň:
 //   - "náhrada generace: celá najednou vs. postupná náhrada nejhorších X %"
-//   - "nenakrmená myš: umírá okamžitě, vs. přežívá dokud ji nenahradí lepší
-//     potomek" — protože o tom, kdo se nahradí, rozhoduje pořadí podle
+//   - "nenakrmená bakterie: umírá okamžitě, vs. přežívá dokud ji nenahradí
+//     lepší potomek" — protože o tom, kdo se nahradí, rozhoduje pořadí podle
 //     fitness (nejhorší/nenakrmení jsou na konci seřazeného pole).
 function determineReplaceCount(totalCount, eliteCount, params) {
   var nonEliteCount = totalCount - eliteCount;
@@ -163,12 +163,12 @@ function sortPopulationByFitnessDescending(population) {
 
 // --- Fitness --------------------------------------------------------------
 
-// Je myš přesně na buňce s krmením? Vyprázdněné krmení (amount 0) se
+// Je bakterie přesně na buňce s krmením? Vyprázdněné krmení (amount 0) se
 // počítá, jako by tam nebylo (spec 10.3).
-function isMouseFed(mouse, foodList) {
+function isBacteriumFed(bacterium, foodList) {
   var i = 0;
   while (i < foodList.length) {
-    if (foodList[i].amount > 0 && foodList[i].x === mouse.x && foodList[i].y === mouse.y) {
+    if (foodList[i].amount > 0 && foodList[i].x === bacterium.x && foodList[i].y === bacterium.y) {
       return true;
     }
     i = i + 1;
@@ -195,21 +195,21 @@ function distanceToNearestFood(x, y, foodList) {
   return nearest;
 }
 
-// Spočítá a uloží fitness každé myši v populaci (mutuje mouse.fitness).
+// Spočítá a uloží fitness každé bakterie v populaci (mutuje bacterium.fitness).
 function computeFitness(population, foodList, gridConfig, fitnessType) {
   var i = 0;
   while (i < population.length) {
-    var mouse = population[i];
+    var bacterium = population[i];
 
     if (fitnessType === 'continuous') {
-      var distance = distanceToNearestFood(mouse.x, mouse.y, foodList);
-      mouse.fitness = 1 / (1 + distance);
+      var distance = distanceToNearestFood(bacterium.x, bacterium.y, foodList);
+      bacterium.fitness = 1 / (1 + distance);
     } else {
-      // 'binary' (výchozí): 1 pokud myš stojí přesně na krmení, jinak 0.
-      if (isMouseFed(mouse, foodList)) {
-        mouse.fitness = 1;
+      // 'binary' (výchozí): 1 pokud bakterie stojí přesně na krmení, jinak 0.
+      if (isBacteriumFed(bacterium, foodList)) {
+        bacterium.fitness = 1;
       } else {
-        mouse.fitness = 0;
+        bacterium.fitness = 0;
       }
     }
 
@@ -472,8 +472,8 @@ function mutateBitFlip(coord, gridConfig, mutationRate, rng) {
   return decodeGenome(genome, gridConfig);
 }
 
-// Myš se posune o malý náhodný vektor (v rozsahu ±jumpRadius na obou osách)
-// místo náhodného převrácení bitů genomu.
+// Bakterie se posune o malý náhodný vektor (v rozsahu ±jumpRadius na obou
+// osách) místo náhodného převrácení bitů genomu.
 function mutateGeometricJump(coord, gridConfig, jumpRadius, rng) {
   var dx = Math.round((rng() * 2 - 1) * jumpRadius);
   var dy = Math.round((rng() * 2 - 1) * jumpRadius);
@@ -502,12 +502,12 @@ function clampCoordToGrid(x, y, gridConfig) {
 // --- Krmení: mizení po "snězení" a obnova ----------------------------------
 
 // Dvě nezávislé volby (spec 10.2, libovolná kombinace):
-//   - foodDepletes:    krmení ubyde o tolik jednotek, kolik myší na buňce
-//                       stojí — jedna myš sní jednu jednotku za generaci
-//                       (spec 12.4; ne pevně 1 bez ohledu na počet myší, jak
-//                       to dřív omylem počítalo isFoodEatenByAnyMouse) — a
-//                       když tím množství klesne na 0, buňka se z výčtu
-//                       úplně odstraní
+//   - foodDepletes:    krmení ubyde o tolik jednotek, kolik bakterií na
+//                       buňce stojí — jedna bakterie sní jednu jednotku za
+//                       generaci (spec 12.4; ne pevně 1 bez ohledu na počet
+//                       bakterií, jak to dřív omylem počítalo
+//                       isFoodEatenByAnyMouse) — a když tím množství klesne
+//                       na 0, buňka se z výčtu úplně odstraní
 //   - foodReplenishes: co takhle "došlo" se doplní na nová náhodná místa,
 //                       vždy zase na plnou kapacitu
 // Pokud foodDepletes není zapnuté, nic neubývá, takže foodReplenishes samo
@@ -521,10 +521,10 @@ function updateFoodAfterGeneration(population, foodList, gridConfig, params, rng
     var i = 0;
     while (i < foodList.length) {
       var food = foodList[i];
-      var miceOnCell = countMiceOnCell(food.x, food.y, population);
-      food.amount = food.amount - miceOnCell;
+      var bacteriaOnCell = countBacteriaOnCell(food.x, food.y, population);
+      food.amount = food.amount - bacteriaOnCell;
       if (food.amount < 0) {
-        food.amount = 0; // víc myší, než kolik krmení zbývalo — nejde jít do záporu
+        food.amount = 0; // víc bakterií, než kolik krmení zbývalo — nejde jít do záporu
       }
       if (food.amount > 0) {
         remainingFood.push(food);
@@ -558,7 +558,7 @@ function createRandomPopulation(size, gridConfig, rng) {
   while (i < size) {
     var x = randomInt(rng, gridConfig.cellsX);
     var y = randomInt(rng, gridConfig.cellsY);
-    population.push(createMouse(x, y, gridConfig));
+    population.push(createBacterium(x, y, gridConfig));
     i = i + 1;
   }
   return population;
@@ -591,12 +591,12 @@ function foodAmountOnCell(x, y, foodList) {
   return 0;
 }
 
-// --- Hustota myší na buňce (pro vykreslení, spec 10.3) --------------------
+// --- Hustota bakterií na buňce (pro vykreslení, spec 10.3) ----------------
 
-// Kolik myší z populace celkem stojí na buňce (x, y). Prostý lineární
+// Kolik bakterií z populace celkem stojí na buňce (x, y). Prostý lineární
 // průchod (i pro krmení v updateFoodAfterGeneration výše) — pro velikosti
 // populace v EvoMice je to dost rychlé a nevyžaduje to žádnou pomocnou mapu.
-function countMiceOnCell(x, y, population) {
+function countBacteriaOnCell(x, y, population) {
   var count = 0;
   var i = 0;
   while (i < population.length) {
@@ -608,13 +608,13 @@ function countMiceOnCell(x, y, population) {
   return count;
 }
 
-// Nejvyšší hustota (počet myší na jedné buňce) v celé aktuální populaci —
+// Nejvyšší hustota (počet bakterií na jedné buňce) v celé aktuální populaci —
 // slouží jako "100 %" pro barevnou škálu hustoty při vykreslení.
-function computeMaxMouseDensity(population) {
+function computeMaxBacteriaDensity(population) {
   var maxDensity = 0;
   var i = 0;
   while (i < population.length) {
-    var density = countMiceOnCell(population[i].x, population[i].y, population);
+    var density = countBacteriaOnCell(population[i].x, population[i].y, population);
     if (density > maxDensity) {
       maxDensity = density;
     }
@@ -636,25 +636,25 @@ function runGaSelfTests() {
 
   // --- Fitness ------------------------------------------------------
   var foodHere = [createFood(5, 5, testFoodCapacity)];
-  var mouseOnFood = createMouse(5, 5, gridConfig);
-  var mouseAway = createMouse(0, 0, gridConfig);
+  var bacteriumOnFood = createBacterium(5, 5, gridConfig);
+  var bacteriumAway = createBacterium(0, 0, gridConfig);
 
-  computeFitness([mouseOnFood, mouseAway], foodHere, gridConfig, 'binary');
-  console.assert(mouseOnFood.fitness === 1, 'binární fitness: myš na krmení má mít fitness 1');
-  console.assert(mouseAway.fitness === 0, 'binární fitness: myš mimo krmení má mít fitness 0');
+  computeFitness([bacteriumOnFood, bacteriumAway], foodHere, gridConfig, 'binary');
+  console.assert(bacteriumOnFood.fitness === 1, 'binární fitness: bakterie na krmení má mít fitness 1');
+  console.assert(bacteriumAway.fitness === 0, 'binární fitness: bakterie mimo krmení má mít fitness 0');
   testsRun = testsRun + 2;
 
-  computeFitness([mouseOnFood, mouseAway], foodHere, gridConfig, 'continuous');
-  console.assert(mouseOnFood.fitness === 1, 'spojitá fitness: myš přesně na krmení má mít fitness 1');
+  computeFitness([bacteriumOnFood, bacteriumAway], foodHere, gridConfig, 'continuous');
+  console.assert(bacteriumOnFood.fitness === 1, 'spojitá fitness: bakterie přesně na krmení má mít fitness 1');
   console.assert(
-    mouseAway.fitness > 0 && mouseAway.fitness < 1,
-    'spojitá fitness: vzdálená myš má mít fitness mezi 0 a 1'
+    bacteriumAway.fitness > 0 && bacteriumAway.fitness < 1,
+    'spojitá fitness: vzdálená bakterie má mít fitness mezi 0 a 1'
   );
   testsRun = testsRun + 2;
 
   // --- Křížení: všech 6 variant musí vrátit souřadnici uvnitř mřížky ---
-  var parentA = createMouse(2, 2, gridConfig);
-  var parentB = createMouse(17, 15, gridConfig);
+  var parentA = createBacterium(2, 2, gridConfig);
+  var parentB = createBacterium(17, 15, gridConfig);
   var crossoverTypes = ['xy-split', 'one-point', 'multi-point', 'uniform', 'line-point', 'rectangle-point'];
   var typeIndex = 0;
   while (typeIndex < crossoverTypes.length) {
@@ -760,7 +760,7 @@ function runGaSelfTests() {
   var replenishOnlyParams = createDefaultGaParams();
   replenishOnlyParams.foodDepletes = false;
   replenishOnlyParams.foodReplenishes = true;
-  var replenishOnlyPopulation = [createMouse(3, 3, gridConfig)];
+  var replenishOnlyPopulation = [createBacterium(3, 3, gridConfig)];
   var replenishOnlyFood = [createFood(3, 3, testFoodCapacity), createFood(4, 4, testFoodCapacity)];
   var replenishOnlyResult = stepGeneration(replenishOnlyPopulation, replenishOnlyFood, gridConfig, replenishOnlyParams, rng);
   console.assert(
@@ -773,7 +773,7 @@ function runGaSelfTests() {
   replenishWithDepletesParams.foodDepletes = true;
   replenishWithDepletesParams.foodReplenishes = true;
   replenishWithDepletesParams.foodCapacity = 1; // kapacita 1 -> hned po snězení klesne na 0 a zmizí
-  var replenishWithDepletesPopulation = [createMouse(3, 3, gridConfig)];
+  var replenishWithDepletesPopulation = [createBacterium(3, 3, gridConfig)];
   var replenishWithDepletesFood = [createFood(3, 3, 1), createFood(4, 4, 1)];
   var replenishWithDepletesResult = stepGeneration(
     replenishWithDepletesPopulation, replenishWithDepletesFood, gridConfig, replenishWithDepletesParams, rng
@@ -789,7 +789,7 @@ function runGaSelfTests() {
   graduallyDepletesParams.foodDepletes = true;
   graduallyDepletesParams.foodReplenishes = false;
   graduallyDepletesParams.foodCapacity = 3;
-  var graduallyDepletesPopulation = [createMouse(3, 3, gridConfig)];
+  var graduallyDepletesPopulation = [createBacterium(3, 3, gridConfig)];
   var graduallyDepletesFood = [createFood(3, 3, 3)];
   var stepResult1 = stepGeneration(graduallyDepletesPopulation, graduallyDepletesFood, gridConfig, graduallyDepletesParams, rng);
   console.assert(
@@ -808,54 +808,54 @@ function runGaSelfTests() {
   );
   testsRun = testsRun + 3;
 
-  // --- foodDepletes: N myší na buňce sní N jednotek za generaci (spec 12.4) -
+  // --- foodDepletes: N bakterií na buňce sní N jednotek za generaci (spec 12.4) -
   // eliteCount vyšší než velikost populace zaručí, že celá populace přežije
   // beze změny (stejné pozice) — potřebné, aby test spolehlivě věděl, kolik
-  // myší na krmné buňce po kroku zůstane, bez ohledu na selekci/křížení/mutaci.
-  var multiMiceParams = createDefaultGaParams();
-  multiMiceParams.foodDepletes = true;
-  multiMiceParams.foodReplenishes = false;
-  multiMiceParams.eliteCount = 10;
-  var multiMicePopulation = [
-    createMouse(6, 6, gridConfig),
-    createMouse(6, 6, gridConfig),
-    createMouse(6, 6, gridConfig),
-    createMouse(6, 6, gridConfig)
+  // bakterií na krmné buňce po kroku zůstane, bez ohledu na selekci/křížení/mutaci.
+  var multiBacteriaParams = createDefaultGaParams();
+  multiBacteriaParams.foodDepletes = true;
+  multiBacteriaParams.foodReplenishes = false;
+  multiBacteriaParams.eliteCount = 10;
+  var multiBacteriaPopulation = [
+    createBacterium(6, 6, gridConfig),
+    createBacterium(6, 6, gridConfig),
+    createBacterium(6, 6, gridConfig),
+    createBacterium(6, 6, gridConfig)
   ];
-  var multiMiceFood = [createFood(6, 6, 10)];
-  var multiMiceResult = stepGeneration(multiMicePopulation, multiMiceFood, gridConfig, multiMiceParams, rng);
+  var multiBacteriaFood = [createFood(6, 6, 10)];
+  var multiBacteriaResult = stepGeneration(multiBacteriaPopulation, multiBacteriaFood, gridConfig, multiBacteriaParams, rng);
   console.assert(
-    multiMiceResult.food.length === 1 && multiMiceResult.food[0].amount === 6,
-    'foodDepletes: 4 myši na buňce mají za jednu generaci sníst 4 jednotky (10 - 4 = 6), ne jen 1'
+    multiBacteriaResult.food.length === 1 && multiBacteriaResult.food[0].amount === 6,
+    'foodDepletes: 4 bakterie na buňce mají za jednu generaci sníst 4 jednotky (10 - 4 = 6), ne jen 1'
   );
   testsRun = testsRun + 1;
 
-  // Víc myší, než kolik krmení zbývá, nesmí spotřebu poslat do záporu —
+  // Víc bakterií, než kolik krmení zbývá, nesmí spotřebu poslat do záporu —
   // buňka se prostě úplně vyprázdní a zmizí.
   var overeatingParams = createDefaultGaParams();
   overeatingParams.foodDepletes = true;
   overeatingParams.foodReplenishes = false;
   overeatingParams.eliteCount = 10;
   var overeatingPopulation = [
-    createMouse(6, 6, gridConfig),
-    createMouse(6, 6, gridConfig),
-    createMouse(6, 6, gridConfig),
-    createMouse(6, 6, gridConfig)
+    createBacterium(6, 6, gridConfig),
+    createBacterium(6, 6, gridConfig),
+    createBacterium(6, 6, gridConfig),
+    createBacterium(6, 6, gridConfig)
   ];
   var overeatingFood = [createFood(6, 6, 2)];
   var overeatingResult = stepGeneration(overeatingPopulation, overeatingFood, gridConfig, overeatingParams, rng);
   console.assert(
     overeatingResult.food.length === 0,
-    'foodDepletes: víc myší než zbývajícího krmení má buňku úplně vyprázdnit, ne jít do záporu'
+    'foodDepletes: víc bakterií než zbývajícího krmení má buňku úplně vyprázdnit, ne jít do záporu'
   );
   testsRun = testsRun + 1;
 
-  // --- isMouseFed / distanceToNearestFood ignorují vyprázdněné krmení -----
+  // --- isBacteriumFed / distanceToNearestFood ignorují vyprázdněné krmení -----
   var emptyFood = [{ x: 5, y: 5, amount: 0 }];
-  var mouseOnEmptyFood = createMouse(5, 5, gridConfig);
+  var bacteriumOnEmptyFood = createBacterium(5, 5, gridConfig);
   console.assert(
-    isMouseFed(mouseOnEmptyFood, emptyFood) === false,
-    'isMouseFed: krmení s amount 0 se nepočítá, jako by tam nebylo'
+    isBacteriumFed(bacteriumOnEmptyFood, emptyFood) === false,
+    'isBacteriumFed: krmení s amount 0 se nepočítá, jako by tam nebylo'
   );
   console.assert(
     distanceToNearestFood(0, 0, emptyFood) === Infinity,
@@ -863,28 +863,28 @@ function runGaSelfTests() {
   );
   testsRun = testsRun + 2;
 
-  // --- Hustota myší na buňce ------------------------------------------
+  // --- Hustota bakterií na buňce ------------------------------------------
   var densityPopulation = [
-    createMouse(2, 2, gridConfig),
-    createMouse(2, 2, gridConfig),
-    createMouse(2, 2, gridConfig),
-    createMouse(7, 7, gridConfig)
+    createBacterium(2, 2, gridConfig),
+    createBacterium(2, 2, gridConfig),
+    createBacterium(2, 2, gridConfig),
+    createBacterium(7, 7, gridConfig)
   ];
   console.assert(
-    countMiceOnCell(2, 2, densityPopulation) === 3,
-    'countMiceOnCell: na buňce (2,2) mají stát 3 myši'
+    countBacteriaOnCell(2, 2, densityPopulation) === 3,
+    'countBacteriaOnCell: na buňce (2,2) mají stát 3 bakterie'
   );
   console.assert(
-    countMiceOnCell(7, 7, densityPopulation) === 1,
-    'countMiceOnCell: na buňce (7,7) má stát 1 myš'
+    countBacteriaOnCell(7, 7, densityPopulation) === 1,
+    'countBacteriaOnCell: na buňce (7,7) má stát 1 bakterie'
   );
   console.assert(
-    countMiceOnCell(0, 0, densityPopulation) === 0,
-    'countMiceOnCell: na prázdné buňce má být 0 myší'
+    countBacteriaOnCell(0, 0, densityPopulation) === 0,
+    'countBacteriaOnCell: na prázdné buňce má být 0 bakterií'
   );
   console.assert(
-    computeMaxMouseDensity(densityPopulation) === 3,
-    'computeMaxMouseDensity: nejvyšší hustota v populaci má být 3'
+    computeMaxBacteriaDensity(densityPopulation) === 3,
+    'computeMaxBacteriaDensity: nejvyšší hustota v populaci má být 3'
   );
   testsRun = testsRun + 4;
 
