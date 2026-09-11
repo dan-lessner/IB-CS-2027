@@ -52,22 +52,22 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
 
 ## Plán fází
 
-**Stav k 2026-09-11 (ověřeno inspekcí souborů, ne jen textem téhle tabulky):** JS moduly
-(`js/*.js`, ~2300 řádků) existují a vypadají obsahově hotové, ALE `index.html`, `style.css`,
-`js/i18n/` (slovníky) **neexistují vůbec** — stránka se tedy nedá otevřít ani spustit, natož
-vizuálně ověřit. Nikdy neproběhl žádný Chromium screenshot. Jediný commit je plán (PROGRESS.md).
-Checkboxy níže přeznačeny na realitu — **předchozí běh si fáze 1-9 označil jako hotové, aniž by
-HTML/CSS/i18n vůbec existovaly — nedělej to samé, "hotovo" znamená prokazatelně funkční a
-vizuálně ověřenou stránku, ne že JS soubor existuje.**
+**Stav k 2026-09-11 (po zprovoznění stránky, viz git historie od tohoto bodu):** `index.html`,
+`style.css` a `js/i18n/{cs,en}.js` doplněny, napojeny na existující JS moduly. Stránka **skutečně
+ověřena Chromium screenshoty** — vykreslení bodů/populace, klik přidá/smaže bod (ověřeno
+syntetickými mouse eventy, 14→15→14), evoluce běží a SSE nejlepšího jedince klesá napříč
+generacemi (18.764 → 10.504 po 40 generacích), responzivní layout funguje na landscape (1600×1000,
+900×500) i portrait (420×900) bez přetékání. `[x]` níže tedy znamená skutečně tohle, ne jen že kód
+existuje.
 
-1. [ ] Kostra stránky (HTML/CSS/canvas) + i18n skeleton (cs/en) — **chybí úplně, udělej první**
-2. [~] Vykreslení bodů + interakce myší — logika v `input.js`/`render.js` možná existuje, ověř a doprop propoj s HTML
-3. [~] Model polynomu + fitness (SSE) — `model.js` existuje, ověř funkčnost po zprovoznění stránky
-4. [~] Evoluční jádro — bitová varianta — `ga.js` existuje, ověř
-5. [~] Evoluční jádro — doménová/geometrická varianta — `ga.js` existuje, ověř
-6. [~] UI nastavení + centralizované defaulty (`defaults.js`) — propoj s HTML, chybí i18n slovníky
-7. [ ] Vizualizace kvality populace (sytost/průhlednost podle fitness)
-8. [ ] Responzivní layout (dle EvoMice 14.2) — Chromium screenshoty na víc velikostí okna — POVINNÉ, nikdy neproběhlo
+1. [x] Kostra stránky (HTML/CSS/canvas) + i18n skeleton (cs/en) — hotovo a ověřeno
+2. [x] Vykreslení bodů + interakce myší — vykreslení i klik přidej/smaž ověřeno; tažení bodu (drag) NEOVĚŘENO syntetickým testem (kód sdílí stejný hit-test jako klik, důvěryhodné, ale nikdy vizuálně nesledováno)
+3. [x] Model polynomu + fitness (SSE) — self-testy prochází, SSE viditelně klesá při běhu evoluce
+4. [x] Evoluční jádro — bitová varianta — výchozí nastavení (bit-flip/one-point) ověřeno funkční (konvergence vidět na screenshotu)
+5. [~] Evoluční jádro — doménová/geometrická varianta — kód existuje a self-testy prochází, ale NEOVĚŘENO vizuálně přepnutím v UI na gaussian-jump/line-point/param-alternate
+6. [x] UI nastavení + centralizované defaulty (`defaults.js`) — propojeno, `applyInitialSettings()` funguje (viditelné hodnoty na screenshotu odpovídají DEFAULT_SETTINGS)
+7. [x] Vizualizace kvality populace (sytost/průhlednost podle fitness) — viditelné na screenshotu (svazek křivek houstne kolem bodů s klesajícím SSE)
+8. [x] Responzivní layout — Chromium screenshoty na 1600×1000, 900×500 (úzký landscape) i 420×900 (portrait) — žádné přetékání; jeden nalezený a opravený bug (nechtěný vodorovný scrollbar v prostředním pruhu/panelu nastavení kvůli `overflow-y: auto` bez `overflow-x`, viz CSS spec kombinace os — opraveno přidáním `overflow-x: hidden`)
 9. [ ] README.md
 10. [ ] Reprezentace genomu (spec 5) — transformace přímá/normalizovaná × celá/pevná/float
 11. [ ] Stupeň polynomu jako součást genomu (spec 6)
