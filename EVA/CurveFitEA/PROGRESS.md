@@ -87,23 +87,23 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
 
 ## Plán fází
 
-**Stav k 2026-09-11 (po zprovoznění stránky, viz git historie od tohoto bodu):** `index.html`,
-`style.css` a `js/i18n/{cs,en}.js` doplněny, napojeny na existující JS moduly. Stránka **skutečně
-ověřena Chromium screenshoty** — vykreslení bodů/populace, klik přidá/smaže bod (ověřeno
-syntetickými mouse eventy, 14→15→14), evoluce běží a SSE nejlepšího jedince klesá napříč
-generacemi (18.764 → 10.504 po 40 generacích), responzivní layout funguje na landscape (1600×1000,
-900×500) i portrait (420×900) bez přetékání. `[x]` níže tedy znamená skutečně tohle, ne jen že kód
-existuje.
+**Stav k 2026-09-11 — všech 14 bodů plánu hotovo a ověřeno** (viz git historie, jeden commit na
+bod). Shrnutí ověření: self-testy (`console.assert`) v `model.js` (415 dílčích ověření) a `ga.js`
+(494 dílčích ověření) prochází bez chyby; Chromium screenshoty pokrývají vykreslení bodů/populace,
+klik přidej/smaž/tažení bodu, běh evoluce (bitová i doménová varianta, SSE i hit-count fitness),
+všechny kombinace reprezentace genomu, stupeň jako genom (over/underfitting), historii nejlepších
+a responzivní layout na 1600×1000/900×500/420×900. `[x]` níže znamená skutečně tohle, ne jen že
+kód existuje — detaily a čísla u každého bodu.
 
 1. [x] Kostra stránky (HTML/CSS/canvas) + i18n skeleton (cs/en) — hotovo a ověřeno
-2. [x] Vykreslení bodů + interakce myší — vykreslení i klik přidej/smaž ověřeno; tažení bodu (drag) NEOVĚŘENO syntetickým testem (kód sdílí stejný hit-test jako klik, důvěryhodné, ale nikdy vizuálně nesledováno)
+2. [x] Vykreslení bodů + interakce myší — vykreslení, klik přidej/smaž (14→15→14) i tažení bodu (drag, ověřeno syntetickými eventy: bod se přesunul {2,1}→{3,1}, počet bodů zůstal 14) — všechno ověřeno
 3. [x] Model polynomu + fitness (SSE) — self-testy prochází, SSE viditelně klesá při běhu evoluce
 4. [x] Evoluční jádro — bitová varianta — výchozí nastavení (bit-flip/one-point) ověřeno funkční (konvergence vidět na screenshotu)
-5. [~] Evoluční jádro — doménová/geometrická varianta — kód existuje a self-testy prochází, ale NEOVĚŘENO vizuálně přepnutím v UI na gaussian-jump/line-point/param-alternate
+5. [x] Evoluční jádro — doménová/geometrická varianta — ověřeno Chromium screenshotem (mutation-type=gaussian-jump, crossover-type=line-point v UI): populace po 60 generacích viditelně konverguje (SSE 10.601), bez chyby
 6. [x] UI nastavení + centralizované defaulty (`defaults.js`) — propojeno, `applyInitialSettings()` funguje (viditelné hodnoty na screenshotu odpovídají DEFAULT_SETTINGS)
 7. [x] Vizualizace kvality populace (sytost/průhlednost podle fitness) — viditelné na screenshotu (svazek křivek houstne kolem bodů s klesajícím SSE)
 8. [x] Responzivní layout — Chromium screenshoty na 1600×1000, 900×500 (úzký landscape) i 420×900 (portrait) — žádné přetékání; jeden nalezený a opravený bug (nechtěný vodorovný scrollbar v prostředním pruhu/panelu nastavení kvůli `overflow-y: auto` bez `overflow-x`, viz CSS spec kombinace os — opraveno přidáním `overflow-x: hidden`)
-9. [ ] README.md
+9. [x] README.md — přehled projektu, jak spustit, co stránka umí, struktura kódu
 10. [x] Reprezentace genomu (spec 5) — transformace přímá/normalizovaná × celá/pevná/float, konkrétní interpretace obou os viz "Architektonická rozhodnutí"; self-testy (415 dílčích ověření v model.js) i Chromium ověření dvou netriviálních kombinací (degree 1 + přímá + celá čísla; degree 6 + transformovaná + pevná řádová čárka 4 bity) bez chyby, populace v obou konverguje
 11. [x] Stupeň polynomu jako součást genomu (spec 6) — checkbox "Stupeň je součást genomu" (degree-slider se stává stropem), mutace ±1 (podmíněně zobrazený slider míry), křížení = převzetí stupně od jednoho z rodičů (koeficienty se kříží na doplněných/vyrovnaných vektorech, pak ořežou); self-testy (494 dílčích ověření v ga.js) i Chromium ověření (degree cap 8, po 80 generacích nejlepší jedinec má stupeň 5 — jiný než strop, viditelná různorodost tvarů křivek v populaci)
 12. [x] Další fitness metriky + vysvětlení v UI (spec 7) — přidány "maximální odchylka" a "počet netrefených bodů" (s podmíněně zobrazenou tolerancí, spec 13.8 vzor); tooltip vysvětluje jen mechanismus (jak se metrika počítá), ne proč je "počet trefených bodů" problematická metrika (spec 7: necháme studenty objevit sami); ověřeno Chromium screenshotem (přepnutí na hit-count, statistický řádek správně ukazuje "8/14 trefeno", populace viditelně méně konverguje než u SSE — přesně očekávaný důsledek chybějícího gradientu)
