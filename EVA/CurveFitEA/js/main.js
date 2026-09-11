@@ -478,10 +478,14 @@ window.addEventListener('mouseup', function () {
 // DRAG_MOVE_THRESHOLD_PX (js/input.js) — teprve pak jde o tažení, ne klik.
 var pointDragState = null; // { pointIndex: number|null, moved: bool, startClientX, startClientY }
 
+// Spec 2: souřadnice bodů jsou vždy přirozená čísla (celá, nezáporná) —
+// platí stejně pro ruční úpravu myší jako pro počáteční náhodné rozhození
+// (viz generateInitialPoints v model.js). Kurzor se tedy vždy "přichytí" na
+// nejbližší celočíselný bod uvnitř viditelné plochy.
 function clampWorldPoint(world) {
   return {
-    x: clampNumber(world.x, WORLD_X_MIN, WORLD_X_MAX),
-    y: clampNumber(world.y, worldConfig.yMin, worldConfig.yMax)
+    x: Math.round(clampNumber(world.x, WORLD_X_MIN, WORLD_X_MAX)),
+    y: Math.round(clampNumber(world.y, 0, worldConfig.yMax))
   };
 }
 

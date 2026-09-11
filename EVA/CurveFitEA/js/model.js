@@ -227,18 +227,39 @@ function estimateCurveRange(coeffs) {
 // Vygeneruje počáteční sadu bodů: náhodné x v doméně, y = skrytý model +
 // gaussovský šum (spec 2: "referenční křivka + náhodný šum", evoluce skrytý
 // model nikdy neuvidí, jen výsledné body).
+//
+// Souřadnice bodů jsou vždy přirozená čísla (spec 2: "celá, nezáporná" —
+// čitelnější pro studenty). Nejdřív se vygenerují syrové (desetinné, možná
+// záporné) hodnoty, pak se všechna y posunou tak, aby minimum vyšlo >= 0
+// (posun měřítka, nezkresluje TVAR dat na rozdíl od prostého ořezání
+// záporných hodnot na 0), a nakonec se zaokrouhlí na celá čísla (x i y).
 function generateInitialPoints(rng) {
   var hiddenCoeffs = generateHiddenCoeffs(rng);
   var curveRange = estimateCurveRange(hiddenCoeffs);
   var noiseSigma = Math.max(NOISE_SIGMA_MIN, NOISE_SIGMA_RATIO * curveRange);
 
-  var points = [];
+  var rawPoints = [];
+  var minY = Infinity;
   var i = 0;
   while (i < INITIAL_POINT_COUNT) {
     var x = randomRange(rng, WORLD_X_MIN, WORLD_X_MAX);
     var y = evaluatePolynomial(hiddenCoeffs, x) + randomGaussian(rng) * noiseSigma;
-    points.push({ x: x, y: y });
+    rawPoints.push({ x: x, y: y });
+    if (y < minY) {
+      minY = y;
+    }
     i = i + 1;
+  }
+
+  var yShift = minY < 0 ? -minY : 0;
+  var points = [];
+  var j = 0;
+  while (j < rawPoints.length) {
+    points.push({
+      x: Math.round(rawPoints[j].x),
+      y: Math.round(rawPoints[j].y + yShift)
+    });
+    j = j + 1;
   }
   return points;
 }
@@ -400,6 +421,29 @@ function runModelSelfTests() {
   }
   console.assert(samePoints, 'generateInitialPoints: stejný seed musí dát stejné body');
   testsRun = testsRun + 2;
+
+  // generateInitialPoints (spec 2): souřadnice jsou vždy přirozená čísla
+  // (celá, nezáporná) — ověř přes víc různých seedů, ať to není náhoda.
+  var naturalSeeds = [1, 2, 3, 1000, 99999];
+  var seedIdx = 0;
+  while (seedIdx < naturalSeeds.length) {
+    var naturalPoints = generateInitialPoints(createRng(naturalSeeds[seedIdx]));
+    var np = 0;
+    while (np < naturalPoints.length) {
+      var point = naturalPoints[np];
+      console.assert(
+        Number.isInteger(point.x) && Number.isInteger(point.y),
+        'generateInitialPoints: souřadnice musí být celá čísla (seed ' + naturalSeeds[seedIdx] + ')'
+      );
+      console.assert(
+        point.x >= 0 && point.y >= 0,
+        'generateInitialPoints: souřadnice musí být nezáporné (seed ' + naturalSeeds[seedIdx] + ')'
+      );
+      testsRun = testsRun + 2;
+      np = np + 1;
+    }
+    seedIdx = seedIdx + 1;
+  }
 
   var yRange = computeWorldYRange(pointsA);
   console.assert(yRange.yMax > yRange.yMin, 'computeWorldYRange: yMax musí být větší než yMin');

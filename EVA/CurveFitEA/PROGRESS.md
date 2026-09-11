@@ -73,7 +73,7 @@ existuje.
 11. [ ] Stupeň polynomu jako součást genomu (spec 6)
 12. [ ] Další fitness metriky + vysvětlení v UI (spec 7)
 13. [ ] Historie nejlepších jedinců, blednoucí stopa (spec 3)
-14. [ ] Přirozená čísla pro souřadnice bodů (spec 2)
+14. [x] Přirozená čísla pro souřadnice bodů (spec 2) — ověřeno: `generateInitialPoints` posune y (ať minimum vyjde ≥0) a zaokrouhlí, `clampWorldPoint` (ruční editace myší) zaokrouhluje a ořezává na [0, yMax]/[WORLD_X_MIN, WORLD_X_MAX]; self-testy (200 dílčích ověření v model.js) i JSON dump reálných vygenerovaných bodů v Chromium potvrzují jen celá nezáporná čísla
 
 `[~]` = kód možná existuje, ale NEOVĚŘENO během stránky v prohlížeči — nepovažuj za hotové, dokud
 to nevidíš fungovat na screenshotu.
