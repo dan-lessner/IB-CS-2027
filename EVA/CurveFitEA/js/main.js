@@ -92,7 +92,8 @@ function togglePinnedCurve(index) {
 
 function redraw() {
   var fitnessType = document.getElementById('fitness-type-select').value;
-  computeFitness(population, points, fitnessType); // vždy čerstvé vůči aktuálním bodům
+  var fitnessTolerance = Number(document.getElementById('fitness-tolerance-slider').value);
+  computeFitness(population, points, fitnessType, fitnessTolerance); // vždy čerstvé vůči aktuálním bodům
 
   var historyToShow = isHistoryVisible() ? bestHistory : [];
   var result = drawScene(ctx, population, points, worldConfig, highlightedCurveIndex(), historyToShow);
@@ -119,11 +120,25 @@ function findBestIndividual() {
   return best;
 }
 
+var FITNESS_TYPE_LABEL_KEYS = {
+  sse: 'fitness_sse',
+  mae: 'fitness_mae',
+  'max-error': 'fitness_max_error',
+  'hit-count': 'fitness_hit_count'
+};
+
 function updateStatsLine(fitnessType) {
   var statsEl = document.getElementById('stats-line');
   var best = findBestIndividual();
-  var metricLabel = fitnessType === 'mae' ? t('fitness_mae') : t('fitness_sse');
-  var bestErrorText = best === null ? '—' : best.error.toFixed(3);
+  var metricLabel = t(FITNESS_TYPE_LABEL_KEYS[fitnessType] || 'fitness_sse');
+  // 'hit-count' ukládá jako "chybu" počet NEtrefených bodů (viz computeError
+  // v model.js) — čitelnější je ukázat přímo počet trefených bodů.
+  var bestErrorText = '—';
+  if (best !== null) {
+    bestErrorText = fitnessType === 'hit-count'
+      ? t('stats_hit_count_value', { hits: points.length - best.error, total: points.length })
+      : best.error.toFixed(3);
+  }
   statsEl.textContent = t('stats_line', { gen: generationCount, metric: metricLabel, error: bestErrorText });
 }
 
@@ -155,6 +170,7 @@ function readParamsFromUI() {
 
   params.degree = Number(document.getElementById('degree-slider').value);
   params.fitnessType = document.getElementById('fitness-type-select').value;
+  params.fitnessTolerance = Number(document.getElementById('fitness-tolerance-slider').value);
 
   params.selectionMethod = document.getElementById('selection-method-select').value;
   params.tournamentSize = Number(document.getElementById('tournament-size-slider').value);
@@ -304,7 +320,8 @@ function updateConditionalControlsVisibility() {
 }
 
 var conditionalControlSelectIds = [
-  'selection-method-select', 'crossover-type-select', 'mutation-type-select', 'replacement-mode-select'
+  'selection-method-select', 'crossover-type-select', 'mutation-type-select', 'replacement-mode-select',
+  'fitness-type-select'
 ];
 var conditionalSelectIndex = 0;
 while (conditionalSelectIndex < conditionalControlSelectIds.length) {
@@ -426,7 +443,8 @@ var SLIDER_DISPLAY_PAIRS = [
   ['mutation-rate-slider', 'mutation-rate-value'],
   ['mutation-sigma-slider', 'mutation-sigma-value'],
   ['replacement-percent-slider', 'replacement-percent-value'],
-  ['elite-count-slider', 'elite-count-value']
+  ['elite-count-slider', 'elite-count-value'],
+  ['fitness-tolerance-slider', 'fitness-tolerance-value']
 ];
 
 function wireSliderDisplay(sliderId, displayId) {

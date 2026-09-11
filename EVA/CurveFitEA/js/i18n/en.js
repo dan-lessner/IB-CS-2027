@@ -29,7 +29,10 @@ var I18N_EN = {
   // --- Stats line -----------------------------------------------------------
   fitness_sse: 'sum of squared errors (SSE)',
   fitness_mae: 'mean absolute error (MAE)',
+  fitness_max_error: 'maximum error',
+  fitness_hit_count: 'number of missed points',
   stats_line: 'Generation: {gen} | Best individual — {metric}: {error}',
+  stats_hit_count_value: '{hits}/{total} hit',
 
   // --- Section: polynomial degree --------------------------------------------
   section_degree_legend: 'Polynomial degree',
@@ -53,7 +56,9 @@ var I18N_EN = {
   section_fitness_legend: 'Fitness (fitting error)',
   section_fitness_legend_tooltip: 'The metric used to judge how well a curve fits the points — lower error means higher fitness.',
   fitness_type_label: 'Error metric',
-  fitness_type_label_tooltip: 'SSE = sum of squared errors (least squares method). MAE = mean of absolute error values.',
+  fitness_type_label_tooltip: 'SSE = sum of squared errors (least squares method). MAE = mean of absolute error values. Maximum error = the single worst deviation. Number of missed points = how many points are farther from the curve than the given tolerance.',
+  fitness_tolerance_label: 'Tolerance (point hit)',
+  fitness_tolerance_label_tooltip: 'A point counts as "hit" if its vertical distance from the curve is at most this much.',
 
   // --- Section: selection --------------------------------------------------------
   section_selection_legend: 'Parent selection',

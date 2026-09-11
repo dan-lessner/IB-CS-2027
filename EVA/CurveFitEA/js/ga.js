@@ -14,7 +14,8 @@
 function createDefaultGaParams() {
   return {
     degree: 1,                     // stupeň polynomu (spec 1: 1 = přímka, výchozí)
-    fitnessType: 'sse',            // 'sse' (výchozí) | 'mae'
+    fitnessType: 'sse',            // 'sse' (výchozí) | 'mae' | 'max-error' | 'hit-count'
+    fitnessTolerance: 1,           // použito jen pro 'hit-count' (spec 7)
 
     selectionMethod: 'roulette',   // 'roulette' (fitness-proporcionální) | 'tournament'
     tournamentSize: 3,
@@ -42,7 +43,7 @@ function createDefaultGaParams() {
 function stepGeneration(population, points, params, rng) {
   // 1) Ohodnoť aktuální populaci — nižší chyba (SSE/MAE) = vyšší fitness.
   var coeffRange = computeCoeffRange(points);
-  computeFitness(population, points, params.fitnessType);
+  computeFitness(population, points, params.fitnessType, params.fitnessTolerance);
 
   // 2) Seřaď od nejlepší po nejhorší — elitismus i "náhrada nejhorších X %"
   //    z tohohle pořadí přímo vychází.
@@ -152,11 +153,11 @@ function sortPopulationByFitnessDescending(population) {
 // Chyba (SSE/MAE, viz model.js computeError) je "čím míň, tím líp" — pro
 // selekci/řazení potřebujeme opak ("čím víc, tím líp"), proto fitness =
 // 1 / (1 + chyba). Nikdy nedělí nulou (chyba >= 0), 0 chyby -> fitness 1.
-function computeFitness(population, points, fitnessType) {
+function computeFitness(population, points, fitnessType, fitnessTolerance) {
   var i = 0;
   while (i < population.length) {
     var individual = population[i];
-    individual.error = computeError(individual.coeffs, points, fitnessType);
+    individual.error = computeError(individual.coeffs, points, fitnessType, fitnessTolerance);
     individual.fitness = 1 / (1 + individual.error);
     i = i + 1;
   }

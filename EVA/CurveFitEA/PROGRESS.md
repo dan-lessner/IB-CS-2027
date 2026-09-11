@@ -76,7 +76,7 @@ existuje.
 9. [ ] README.md
 10. [ ] Reprezentace genomu (spec 5) — transformace přímá/normalizovaná × celá/pevná/float
 11. [ ] Stupeň polynomu jako součást genomu (spec 6)
-12. [ ] Další fitness metriky + vysvětlení v UI (spec 7)
+12. [x] Další fitness metriky + vysvětlení v UI (spec 7) — přidány "maximální odchylka" a "počet netrefených bodů" (s podmíněně zobrazenou tolerancí, spec 13.8 vzor); tooltip vysvětluje jen mechanismus (jak se metrika počítá), ne proč je "počet trefených bodů" problematická metrika (spec 7: necháme studenty objevit sami); ověřeno Chromium screenshotem (přepnutí na hit-count, statistický řádek správně ukazuje "8/14 trefeno", populace viditelně méně konverguje než u SSE — přesně očekávaný důsledek chybějícího gradientu)
 13. [x] Historie nejlepších jedinců, blednoucí stopa (spec 3) — checkbox "Historie nejlepších jedinců" (fieldset Zobrazení), stopa se plní v `stepOnce()` PŘED evolučním krokem (aktuální nejlepší jedinec se zapíše, teprve pak vznikne nová generace) a maže se při libovolném resetu; ověřeno screenshotem (purpurová stopa viditelná mezi modrými křivkami populace, viz zoomovaný výřez)
 14. [x] Přirozená čísla pro souřadnice bodů (spec 2) — ověřeno: `generateInitialPoints` posune y (ať minimum vyjde ≥0) a zaokrouhlí, `clampWorldPoint` (ruční editace myší) zaokrouhluje a ořezává na [0, yMax]/[WORLD_X_MIN, WORLD_X_MAX]; self-testy (200 dílčích ověření v model.js) i JSON dump reálných vygenerovaných bodů v Chromium potvrzují jen celá nezáporná čísla
 

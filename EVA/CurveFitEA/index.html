@@ -138,7 +138,16 @@
           <select id="fitness-type-select">
             <option value="sse" data-i18n="fitness_sse"></option>
             <option value="mae" data-i18n="fitness_mae"></option>
+            <option value="max-error" data-i18n="fitness_max_error"></option>
+            <option value="hit-count" data-i18n="fitness_hit_count"></option>
           </select>
+        </label>
+        <label for="fitness-tolerance-slider"
+               data-show-when-select="fitness-type-select" data-show-when-value="hit-count">
+          <span data-i18n="fitness_tolerance_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="fitness_tolerance_label_tooltip">?</span>
+          <span id="fitness-tolerance-value">1</span>
+          <input type="range" id="fitness-tolerance-slider" min="0.1" max="5" step="0.1" value="1">
         </label>
       </fieldset>
 

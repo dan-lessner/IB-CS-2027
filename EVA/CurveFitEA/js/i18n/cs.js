@@ -29,7 +29,10 @@ var I18N_CS = {
   // --- Statistický řádek -----------------------------------------------------
   fitness_sse: 'součet čtverců odchylek (SSE)',
   fitness_mae: 'průměrná absolutní odchylka (MAE)',
+  fitness_max_error: 'maximální odchylka',
+  fitness_hit_count: 'počet netrefených bodů',
   stats_line: 'Generace: {gen} | Nejlepší jedinec — {metric}: {error}',
+  stats_hit_count_value: '{hits}/{total} trefeno',
 
   // --- Sekce: stupeň polynomu -------------------------------------------------
   section_degree_legend: 'Stupeň polynomu',
@@ -53,7 +56,9 @@ var I18N_CS = {
   section_fitness_legend: 'Fitness (chyba prokládání)',
   section_fitness_legend_tooltip: 'Metrika, podle které se posuzuje, jak dobře křivka sedí na body — nižší chyba = vyšší fitness.',
   fitness_type_label: 'Metrika chyby',
-  fitness_type_label_tooltip: 'SSE = součet čtverců odchylek (metoda nejmenších čtverců). MAE = průměr absolutních hodnot odchylek.',
+  fitness_type_label_tooltip: 'SSE = součet čtverců odchylek (metoda nejmenších čtverců). MAE = průměr absolutních hodnot odchylek. Maximální odchylka = nejhorší jednotlivá odchylka. Počet netrefených bodů = kolik bodů je od křivky dál než zadaná tolerance.',
+  fitness_tolerance_label: 'Tolerance (trefení bodu)',
+  fitness_tolerance_label_tooltip: 'Bod je považovaný za "trefený", pokud je jeho svislá vzdálenost od křivky nejvýš tolik.',
 
   // --- Sekce: selekce ------------------------------------------------------------
   section_selection_legend: 'Selekce rodičů',

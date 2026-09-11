@@ -147,26 +147,68 @@ function createIndividual(coeffs) {
   return { coeffs: coeffs, fitness: 0, error: 0 };
 }
 
-// --- Chyba (fitness metrika) — spec 1: SSE výchozí, MAE jako alternativa --
-
-function computeError(coeffs, points, metricType) {
+// --- Chyba (fitness metrika) — spec 1 a spec 7: SSE výchozí, další na výběr -
+//
+// 'sse' a 'mae' jsou klasické spojité chybové metriky (čím míň, tím líp,
+// hladký gradient směrem k lepšímu řešení). 'max-error' je taky spojitá
+// (nejhorší jednotlivá odchylka), ale citlivá jen na nejhůř trefený bod —
+// ignoruje, jak dobře sedí všechny ostatní. 'hit-count' je záměrně
+// "objevná" metrika (spec 7): na první pohled dává smysl ("kolik bodů
+// křivka trefila"), ale nerozlišuje kvalitu mezi netrefenými body vůbec —
+// dokud se bod nedostane do tolerance, je úplně jedno, jestli je od křivky
+// o kousek nebo o hony (žádný gradient). Necháváme to studenty objevit
+// sami (stejná filozofie jako EvoMice tooltips — mechanismus se vysvětlí,
+// důsledek ne), proto tolerance je jediný parametr, se kterým sami zkusí
+// pohnout.
+//
+// `tolerance` se používá jen pro 'hit-count' (vzdálenost bod<->křivka, do
+// které je bod považovaný za "trefený").
+function computeError(coeffs, points, metricType, tolerance) {
   if (points.length === 0) {
     return 0;
   }
+
+  if (metricType === 'hit-count') {
+    return points.length - countHitPoints(coeffs, points, tolerance);
+  }
+
   var sumSquares = 0;
   var sumAbs = 0;
+  var maxAbs = 0;
   var i = 0;
   while (i < points.length) {
     var predicted = evaluatePolynomial(coeffs, points[i].x);
     var diff = predicted - points[i].y;
+    var absDiff = Math.abs(diff);
     sumSquares = sumSquares + diff * diff;
-    sumAbs = sumAbs + Math.abs(diff);
+    sumAbs = sumAbs + absDiff;
+    if (absDiff > maxAbs) {
+      maxAbs = absDiff;
+    }
     i = i + 1;
   }
   if (metricType === 'mae') {
     return sumAbs / points.length;
   }
+  if (metricType === 'max-error') {
+    return maxAbs;
+  }
   return sumSquares; // 'sse' (výchozí)
+}
+
+// Kolik bodů je od křivky vzdáleno nejvýš `tolerance` (spec 7: "počet
+// trefených bodů, s nastavitelnou tolerancí").
+function countHitPoints(coeffs, points, tolerance) {
+  var hitCount = 0;
+  var i = 0;
+  while (i < points.length) {
+    var predicted = evaluatePolynomial(coeffs, points[i].x);
+    if (Math.abs(predicted - points[i].y) <= tolerance) {
+      hitCount = hitCount + 1;
+    }
+    i = i + 1;
+  }
+  return hitCount;
 }
 
 // Součet čtverců odchylek — používá se pro vizualizaci "čtverečků" u
@@ -393,6 +435,34 @@ function runModelSelfTests() {
   // computeError: prázdná sada bodů nesmí spadnout (dělení nulou) a má dát 0.
   console.assert(computeError([1, 2, 3], [], 'sse') === 0, 'computeError: prázdná sada bodů (sse) má dát 0');
   console.assert(computeError([1, 2, 3], [], 'mae') === 0, 'computeError: prázdná sada bodů (mae) má dát 0');
+  console.assert(computeError([1, 2, 3], [], 'hit-count') === 0, 'computeError: prázdná sada bodů (hit-count) má dát 0');
+  console.assert(computeError([1, 2, 3], [], 'max-error') === 0, 'computeError: prázdná sada bodů (max-error) má dát 0');
+  testsRun = testsRun + 4;
+
+  // computeError (spec 7): max-error a hit-count.
+  var mixedCoeffs = [1]; // konstanta 1
+  var mixedPoints = [
+    { x: WORLD_X_MIN, y: evaluatePolynomial(mixedCoeffs, WORLD_X_MIN) + 0.5 }, // odchylka 0.5
+    { x: (WORLD_X_MIN + WORLD_X_MAX) / 2, y: evaluatePolynomial(mixedCoeffs, 0) + 5 }, // odchylka 5
+    { x: WORLD_X_MAX, y: evaluatePolynomial(mixedCoeffs, WORLD_X_MAX) } // odchylka 0 (přesná shoda)
+  ];
+  console.assert(
+    Math.abs(computeError(mixedCoeffs, mixedPoints, 'max-error') - 5) < 1e-9,
+    'computeError (max-error): musí vrátit největší jednotlivou odchylku'
+  );
+  console.assert(
+    computeError(mixedCoeffs, mixedPoints, 'hit-count', 1) === 1,
+    'computeError (hit-count): tolerance 1 -> 2 trefené body ze 3 (odchylky 0.5 a 0), tedy chyba (netrefené) = 1'
+  );
+  testsRun = testsRun + 2;
+  console.assert(
+    countHitPoints(mixedCoeffs, mixedPoints, 1) === 2,
+    'countHitPoints: s tolerancí 1 mají být trefené body s odchylkou 0.5 a 0 (2 z 3)'
+  );
+  console.assert(
+    countHitPoints(mixedCoeffs, mixedPoints, 10) === 3,
+    'countHitPoints: s dost velkou tolerancí jsou trefené všechny body'
+  );
   testsRun = testsRun + 2;
 
   // computeCoeffRange: prázdné body -> minimum; jinak podle max|y|.
