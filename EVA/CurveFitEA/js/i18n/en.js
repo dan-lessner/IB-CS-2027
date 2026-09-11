@@ -85,6 +85,21 @@ var I18N_EN = {
   crossover_points_label: 'Number of cut points',
   crossover_points_label_tooltip: 'How many times the source parent alternates across the genome bit string in multi-point crossover.',
 
+  // --- Section: genome representation (spec 5) ------------------------------------
+  section_genome_legend: 'Genome representation',
+  section_genome_legend_tooltip: 'How polynomial coefficients get encoded into the genome for bit-based operators (crossover/mutation) — independent of their degree or value.',
+  genome_transform_label: 'Coefficient transform',
+  genome_transform_label_tooltip: 'Direct: every coefficient shares the same range regardless of its order. Transformed: the range (and thus precision) of the i-th coefficient shrinks geometrically as the order grows.',
+  genome_transform_direct: 'Direct (shared range)',
+  genome_transform_normalized: 'Transformed (shrinking range)',
+  genome_numeric_label: 'Numeric representation (bit-based operators only)',
+  genome_numeric_label_tooltip: 'Integer: the coefficient is rounded, no decimal places at all. Fixed-point: an adjustable number of bits evenly covers the whole range. Float: same principle, but with a fixed, high bit count (fine resolution).',
+  genome_numeric_integer: 'Integer',
+  genome_numeric_fixed: 'Fixed-point',
+  genome_numeric_float: 'Float',
+  genome_fixed_bits_label: 'Bits per coefficient',
+  genome_fixed_bits_label_tooltip: 'How many bits encode a single coefficient in fixed-point mode — more bits means a finer quantization step within the same range.',
+
   // --- Section: mutation ---------------------------------------------------------
   section_mutation_legend: 'Mutation',
   section_mutation_legend_tooltip: 'A random change to a child genome — bitwise (bit flip), or domain-based (a small shift of a coefficient).',

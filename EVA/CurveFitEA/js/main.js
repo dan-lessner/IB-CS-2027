@@ -172,6 +172,10 @@ function readParamsFromUI() {
   params.fitnessType = document.getElementById('fitness-type-select').value;
   params.fitnessTolerance = Number(document.getElementById('fitness-tolerance-slider').value);
 
+  params.genomeTransform = document.getElementById('genome-transform-select').value;
+  params.genomeNumeric = document.getElementById('genome-numeric-select').value;
+  params.genomeFixedBits = Number(document.getElementById('genome-fixed-bits-slider').value);
+
   params.selectionMethod = document.getElementById('selection-method-select').value;
   params.tournamentSize = Number(document.getElementById('tournament-size-slider').value);
 
@@ -321,7 +325,7 @@ function updateConditionalControlsVisibility() {
 
 var conditionalControlSelectIds = [
   'selection-method-select', 'crossover-type-select', 'mutation-type-select', 'replacement-mode-select',
-  'fitness-type-select'
+  'fitness-type-select', 'genome-numeric-select'
 ];
 var conditionalSelectIndex = 0;
 while (conditionalSelectIndex < conditionalControlSelectIds.length) {
@@ -444,7 +448,8 @@ var SLIDER_DISPLAY_PAIRS = [
   ['mutation-sigma-slider', 'mutation-sigma-value'],
   ['replacement-percent-slider', 'replacement-percent-value'],
   ['elite-count-slider', 'elite-count-value'],
-  ['fitness-tolerance-slider', 'fitness-tolerance-value']
+  ['fitness-tolerance-slider', 'fitness-tolerance-value'],
+  ['genome-fixed-bits-slider', 'genome-fixed-bits-value']
 ];
 
 function wireSliderDisplay(sliderId, displayId) {

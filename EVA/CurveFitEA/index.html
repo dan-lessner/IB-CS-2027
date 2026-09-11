@@ -208,6 +208,37 @@
 
       <fieldset>
         <legend>
+          <span data-i18n="section_genome_legend"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="section_genome_legend_tooltip">?</span>
+        </legend>
+        <label for="genome-transform-select">
+          <span data-i18n="genome_transform_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="genome_transform_label_tooltip">?</span>
+          <select id="genome-transform-select">
+            <option value="direct" data-i18n="genome_transform_direct"></option>
+            <option value="normalized" data-i18n="genome_transform_normalized"></option>
+          </select>
+        </label>
+        <label for="genome-numeric-select">
+          <span data-i18n="genome_numeric_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="genome_numeric_label_tooltip">?</span>
+          <select id="genome-numeric-select">
+            <option value="integer" data-i18n="genome_numeric_integer"></option>
+            <option value="fixed" data-i18n="genome_numeric_fixed"></option>
+            <option value="float" data-i18n="genome_numeric_float"></option>
+          </select>
+        </label>
+        <label for="genome-fixed-bits-slider"
+               data-show-when-select="genome-numeric-select" data-show-when-value="fixed">
+          <span data-i18n="genome_fixed_bits_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="genome_fixed_bits_label_tooltip">?</span>
+          <span id="genome-fixed-bits-value">8</span>
+          <input type="range" id="genome-fixed-bits-slider" min="2" max="20" step="1" value="8">
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>
           <span data-i18n="section_mutation_legend"></span>
           <span class="help-icon" tabindex="0" data-i18n-tooltip="section_mutation_legend_tooltip">?</span>
         </legend>

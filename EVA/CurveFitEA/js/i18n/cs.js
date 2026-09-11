@@ -85,6 +85,21 @@ var I18N_CS = {
   crossover_points_label: 'Počet bodů řezu',
   crossover_points_label_tooltip: 'Kolikrát se u vícebodového křížení střídá zdrojový rodič napříč bitovým řetězcem genomu.',
 
+  // --- Sekce: reprezentace genomu (spec 5) --------------------------------------
+  section_genome_legend: 'Reprezentace genomu',
+  section_genome_legend_tooltip: 'Jak se koeficienty polynomu kódují do genomu pro bitové operátory (křížení/mutace) — nezávisle na tom, jaký je jejich stupeň nebo hodnota.',
+  genome_transform_label: 'Transformace koeficientů',
+  genome_transform_label_tooltip: 'Přímá: každý koeficient sdílí stejný rozsah bez ohledu na svůj řád. Transformovaná: rozsah (a tedy i přesnost) i-tého koeficientu se geometricky zužuje s rostoucím řádem.',
+  genome_transform_direct: 'Přímá (sdílený rozsah)',
+  genome_transform_normalized: 'Transformovaná (zužující se rozsah)',
+  genome_numeric_label: 'Číselná reprezentace (jen bitové operátory)',
+  genome_numeric_label_tooltip: 'Celá čísla: koeficient se zaokrouhlí, žádná desetinná místa. Pevná řádová čárka: nastavitelný počet bitů rovnoměrně pokrývá celý rozsah. Float: stejný princip, ale s pevně vysokým počtem bitů (jemné rozlišení).',
+  genome_numeric_integer: 'Celá čísla',
+  genome_numeric_fixed: 'Pevná řádová čárka',
+  genome_numeric_float: 'Float',
+  genome_fixed_bits_label: 'Počet bitů na koeficient',
+  genome_fixed_bits_label_tooltip: 'Kolik bitů kóduje jeden koeficient u pevné řádové čárky — víc bitů = jemnější krok kvantování v rámci stejného rozsahu.',
+
   // --- Sekce: mutace ------------------------------------------------------------
   section_mutation_legend: 'Mutace',
   section_mutation_legend_tooltip: 'Náhodná změna genomu potomka — bitová (převrácení bitu), nebo doménová (drobný posun koeficientu).',

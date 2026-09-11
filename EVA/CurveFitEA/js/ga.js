@@ -17,6 +17,10 @@ function createDefaultGaParams() {
     fitnessType: 'sse',            // 'sse' (výchozí) | 'mae' | 'max-error' | 'hit-count'
     fitnessTolerance: 1,           // použito jen pro 'hit-count' (spec 7)
 
+    genomeTransform: 'direct',     // 'direct' (výchozí) | 'normalized' — spec 5.1, jen bitová varianta
+    genomeNumeric: 'float',        // 'integer' | 'fixed' | 'float' (výchozí) — spec 5.2, jen bitová varianta
+    genomeFixedBits: 8,            // použito jen pro genomeNumeric === 'fixed'
+
     selectionMethod: 'roulette',   // 'roulette' (fitness-proporcionální) | 'tournament'
     tournamentSize: 3,
 
@@ -228,18 +232,27 @@ function selectByRoulette(population, rng) {
 // jako EvoMice, jen genom místo x/y souřadnic) + doménové varianty (spec
 // 4.2 — střídavé přebírání celých koeficientů, bod mezi rodiči).
 
+// Konfigurace reprezentace genomu (spec 5) vytažená z GA parametrů — jedno
+// místo, odkud ji čtou všechny bitové operátory níže (encodeGenome/
+// decodeGenome v model.js), ať se nikde neopakuje `{transform: params...}`.
+function genomeConfigFromParams(params) {
+  return { transform: params.genomeTransform, numeric: params.genomeNumeric, fixedBits: params.genomeFixedBits };
+}
+
 function crossover(parentA, parentB, params, coeffRange, rng) {
+  var genomeConfig = genomeConfigFromParams(params);
+
   if (params.crossoverType === 'multi-point') {
-    var genomeA1 = encodeGenome(parentA.coeffs, coeffRange);
-    var genomeB1 = encodeGenome(parentB.coeffs, coeffRange);
+    var genomeA1 = encodeGenome(parentA.coeffs, coeffRange, genomeConfig);
+    var genomeB1 = encodeGenome(parentB.coeffs, coeffRange, genomeConfig);
     var childBits1 = crossoverMultiPointBits(genomeA1, genomeB1, params.crossoverPoints, rng);
-    return decodeGenome(childBits1, params.degree, coeffRange);
+    return decodeGenome(childBits1, params.degree, coeffRange, genomeConfig);
   }
   if (params.crossoverType === 'uniform') {
-    var genomeA2 = encodeGenome(parentA.coeffs, coeffRange);
-    var genomeB2 = encodeGenome(parentB.coeffs, coeffRange);
+    var genomeA2 = encodeGenome(parentA.coeffs, coeffRange, genomeConfig);
+    var genomeB2 = encodeGenome(parentB.coeffs, coeffRange, genomeConfig);
     var childBits2 = crossoverUniformBits(genomeA2, genomeB2, rng);
-    return decodeGenome(childBits2, params.degree, coeffRange);
+    return decodeGenome(childBits2, params.degree, coeffRange, genomeConfig);
   }
   if (params.crossoverType === 'param-alternate') {
     return crossoverParamAlternate(parentA, parentB, rng);
@@ -248,10 +261,10 @@ function crossover(parentA, parentB, params, coeffRange, rng) {
     return crossoverLinePoint(parentA, parentB, rng);
   }
   // výchozí varianta ('one-point'): klasický jednobodový crossover přes bity genomu
-  var genomeA0 = encodeGenome(parentA.coeffs, coeffRange);
-  var genomeB0 = encodeGenome(parentB.coeffs, coeffRange);
+  var genomeA0 = encodeGenome(parentA.coeffs, coeffRange, genomeConfig);
+  var genomeB0 = encodeGenome(parentB.coeffs, coeffRange, genomeConfig);
   var childBits0 = crossoverOnePointBits(genomeA0, genomeB0, rng);
-  return decodeGenome(childBits0, params.degree, coeffRange);
+  return decodeGenome(childBits0, params.degree, coeffRange, genomeConfig);
 }
 
 // Klasický jednobodový crossover přes celý binární řetězec (bity všech
@@ -408,7 +421,8 @@ function mutate(coeffs, params, coeffRange, rng) {
 }
 
 function mutateBitFlip(coeffs, params, coeffRange, rng) {
-  var genome = encodeGenome(coeffs, coeffRange);
+  var genomeConfig = genomeConfigFromParams(params);
+  var genome = encodeGenome(coeffs, coeffRange, genomeConfig);
   var i = 0;
   while (i < genome.length) {
     if (randomChance(rng, params.mutationRate)) {
@@ -420,7 +434,7 @@ function mutateBitFlip(coeffs, params, coeffRange, rng) {
     }
     i = i + 1;
   }
-  return decodeGenome(genome, params.degree, coeffRange);
+  return decodeGenome(genome, params.degree, coeffRange, genomeConfig);
 }
 
 // Každý koeficient se posune o malý náhodný vektor (gaussovské rozdělení,

@@ -46,6 +46,26 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
 - **Bez fitness grafu a bez save/load (cookie/URL):** CurveFitEA spec je na rozdíl od EvoMice
   nezmiňuje — vynecháno kvůli udržení rozsahu; centralizované defaulty + reset ano (spec 5,
   sdílená 13.5), ukládání/sdílení odkazem ne.
+- **Reprezentace genomu (spec 5) — konkrétní interpretace obou os:**
+  - **5.1 Transformace:** "přímá" = každý koeficient sdílí stejný `coeffRange` bez ohledu na
+    řád (dřívější/jediné dosavadní chování). "Transformovaná" = rozsah i-tého koeficientu se
+    geometricky zužuje (`coeffRange / 3^i`, viz `coeffRangeForIndex` v model.js) — nižší řády
+    (typicky větší co do velikosti po normalizaci x) dostanou stejný rozsah jako dřív, vyšší
+    řády (typicky menší) dostanou užší, tedy JEMNĚJŠÍ rozsah při stejném počtu bitů. Nešlo o
+    "kódovat surové a_i vs. normalizované u" (to je jiná, už dřív padlá otázka — normalizace x
+    je vždy zapnutá, viz `evaluatePolynomial`/`normalizeX`) — spec 5.1 popisuje kódování
+    KOEFICIENTŮ do bitů, ne vyhodnocení polynomu v x.
+  - **5.2 Číselná reprezentace:** týká se JEN bitové (ne doménové) varianty — doménová vždy
+    pracuje s plnou přesností JS float podle spec 4.2, žádné další kódování tam nedává smysl.
+    "Celá čísla" = přesně tolik bitů, kolik stačí na celá čísla v daném rozsahu (žádná kvantovací
+    mřížka navíc, dekódovaná hodnota je vždy PŘESNĚ to zaokrouhlené celé číslo). "Pevná řádová
+    čárka" = stejné rovnoměrné kvantování jako dřív, ale s NASTAVITELNÝM počtem bitů (slider,
+    default 8) — méně bitů = hrubší krok při zachování celého rozsahu (to je ten "kompromis
+    rozsah/přesnost při fixním počtu bitů" ze spec 5.2). "Float" = dřívější pevných 16 bitů
+    (`BITS_PER_COEFF_FLOAT`), referenční jemné rozlišení.
+  - Obě osy dohromady umožňují extrémní kombinaci (např. vysoký stupeň + "přímá" + "celá čísla")
+    demonstrující, že evoluce nenajde dobré řešení kvůli kódování, ne kvůli strategii — přesně
+    cíl spec 5.
 - **Historie nejlepších — strop na délku (spec 3):** stopa je omezená na posledních 150 generací
   (`HISTORY_MAX_LENGTH` v main.js), ne neomezená od resetu. Bez stropu by při dlouhém běhu rostlo
   pole koeficientů bez mezí (a s ním čas překreslení každého snímku — kreslí se všechny záznamy
@@ -74,7 +94,7 @@ existuje.
 7. [x] Vizualizace kvality populace (sytost/průhlednost podle fitness) — viditelné na screenshotu (svazek křivek houstne kolem bodů s klesajícím SSE)
 8. [x] Responzivní layout — Chromium screenshoty na 1600×1000, 900×500 (úzký landscape) i 420×900 (portrait) — žádné přetékání; jeden nalezený a opravený bug (nechtěný vodorovný scrollbar v prostředním pruhu/panelu nastavení kvůli `overflow-y: auto` bez `overflow-x`, viz CSS spec kombinace os — opraveno přidáním `overflow-x: hidden`)
 9. [ ] README.md
-10. [ ] Reprezentace genomu (spec 5) — transformace přímá/normalizovaná × celá/pevná/float
+10. [x] Reprezentace genomu (spec 5) — transformace přímá/normalizovaná × celá/pevná/float, konkrétní interpretace obou os viz "Architektonická rozhodnutí"; self-testy (415 dílčích ověření v model.js) i Chromium ověření dvou netriviálních kombinací (degree 1 + přímá + celá čísla; degree 6 + transformovaná + pevná řádová čárka 4 bity) bez chyby, populace v obou konverguje
 11. [ ] Stupeň polynomu jako součást genomu (spec 6)
 12. [x] Další fitness metriky + vysvětlení v UI (spec 7) — přidány "maximální odchylka" a "počet netrefených bodů" (s podmíněně zobrazenou tolerancí, spec 13.8 vzor); tooltip vysvětluje jen mechanismus (jak se metrika počítá), ne proč je "počet trefených bodů" problematická metrika (spec 7: necháme studenty objevit sami); ověřeno Chromium screenshotem (přepnutí na hit-count, statistický řádek správně ukazuje "8/14 trefeno", populace viditelně méně konverguje než u SSE — přesně očekávaný důsledek chybějícího gradientu)
 13. [x] Historie nejlepších jedinců, blednoucí stopa (spec 3) — checkbox "Historie nejlepších jedinců" (fieldset Zobrazení), stopa se plní v `stepOnce()` PŘED evolučním krokem (aktuální nejlepší jedinec se zapíše, teprve pak vznikne nová generace) a maže se při libovolném resetu; ověřeno screenshotem (purpurová stopa viditelná mezi modrými křivkami populace, viz zoomovaný výřez)

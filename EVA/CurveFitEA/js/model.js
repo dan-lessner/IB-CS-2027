@@ -72,21 +72,60 @@ function computeCoeffRange(points) {
   return Math.max(MIN_COEFF_RANGE, COEFF_RANGE_MARGIN_FACTOR * maxAbsY);
 }
 
-// --- Bitové kódování koeficientu (spec 4.1: "pevná délka/přesnost na
-// koeficient") -------------------------------------------------------------
+// --- Reprezentace genomu (spec 5) — dvě nezávislé osy nastavení ------------
 //
-// Analogie EvoMice encodeCoordinate/decodeCoordinate, ale pro reálné číslo
-// v rozsahu [-coeffRange, coeffRange] místo celočíselné souřadnice buňky.
-var BITS_PER_COEFF = 16;
+// Didaktický cíl (viz spec 5 úvod): umožnit narazit na situace, kdy evoluce
+// selže ne kvůli špatné strategii, ale kvůli nevhodně zvolenému KÓDOVÁNÍ.
+//
+// 5.1 Transformace: 'direct' kóduje každý koeficient se stejným sdíleným
+// rozsahem (coeffRange) bez ohledu na jeho řád — u vyšších stupňů polynomu
+// nutí koeficienty vysokých mocnin (typicky mnohem menší co do velikosti po
+// normalizaci x, viz normalizeX výš) sdílet stejně hrubé rozlišení jako
+// koeficient nultého řádu. 'normalized' naopak rozsah/přesnost i-tého
+// koeficientu geometricky zužuje s rostoucím řádem — lépe odpovídá
+// typickému měřítku vyšších koeficientů a dovoluje jemnější rozlišení tam,
+// kde na tom obvykle víc záleží.
+var GENOME_TRANSFORM_DECAY = 3; // 'normalized': rozsah i-tého koeficientu = coeffRange / DECAY^i
 
-function encodeCoeffToBits(value, coeffRange, bitCount) {
-  var maxInt = Math.pow(2, bitCount) - 1;
-  var clamped = clampNumber(value, -coeffRange, coeffRange);
-  var ratio = (clamped + coeffRange) / (2 * coeffRange); // 0..1
-  var intValue = Math.round(ratio * maxInt);
+function coeffRangeForIndex(coeffRange, index, transform) {
+  if (transform === 'normalized') {
+    return coeffRange / Math.pow(GENOME_TRANSFORM_DECAY, index);
+  }
+  return coeffRange; // 'direct' (výchozí)
+}
 
+// 5.2 Číselná reprezentace — týká se jen BITOVÉHO kódování (doménová
+// varianta v ga.js pracuje vždy přímo s plnou přesností JS float, spec 4.2
+// nic jiného nezmiňuje). 'integer' použije jen tolik bitů, kolik je potřeba
+// na celá čísla v daném rozsahu (žádná desetinná místa vůbec), 'fixed'
+// použije nastavitelný počet bitů (méně bitů = hrubší rozlišení při
+// zachování celého rozsahu — kompromis rozsah/přesnost při fixním počtu
+// bitů), 'float' je výchozí jemné rozlišení (BITS_PER_COEFF_FLOAT bitů).
+var BITS_PER_COEFF_FLOAT = 16;
+var DEFAULT_FIXED_BITS = 8;
+
+function createDefaultGenomeConfig() {
+  return { transform: 'direct', numeric: 'float', fixedBits: DEFAULT_FIXED_BITS };
+}
+
+// Kolik bitů potřebuje jeden koeficient s daným (efektivním, už
+// transformovaným) rozsahem a zvolenou číselnou reprezentací.
+function bitsForCoeff(coeffRange, numeric, fixedBits) {
+  if (numeric === 'integer') {
+    var rangeInt = Math.max(1, Math.round(coeffRange));
+    return Math.max(1, Math.ceil(Math.log2(2 * rangeInt + 1)));
+  }
+  if (numeric === 'fixed') {
+    return Math.max(1, Math.round(fixedBits));
+  }
+  return BITS_PER_COEFF_FLOAT; // 'float' (výchozí)
+}
+
+// --- Zápis/čtení celého nezáporného čísla do/z pole bitů (sdílená pomocná
+// funkce pro obě větve kódování níže) ---------------------------------------
+function writeUnsignedIntToBits(value, bitCount) {
   var bits = new Array(bitCount);
-  var remaining = intValue;
+  var remaining = value;
   var i = bitCount - 1;
   while (i >= 0) {
     bits[i] = remaining % 2;
@@ -96,36 +135,83 @@ function encodeCoeffToBits(value, coeffRange, bitCount) {
   return bits;
 }
 
-function decodeBitsToCoeff(bits, startIndex, bitCount, coeffRange) {
-  var maxInt = Math.pow(2, bitCount) - 1;
-  var intValue = 0;
+function readUnsignedIntFromBits(bits, startIndex, bitCount) {
+  var value = 0;
   var i = 0;
   while (i < bitCount) {
-    intValue = intValue * 2 + bits[startIndex + i];
+    value = value * 2 + bits[startIndex + i];
     i = i + 1;
   }
-  var ratio = intValue / maxInt; // 0..1
+  return value;
+}
+
+// Zakóduje jeden koeficient do bitů podle zvolené číselné reprezentace.
+// 'integer': přímo celé číslo (posunuté do nezáporného rozsahu) — žádná
+// kvantovací mřížka navíc, dekódovaná hodnota je vždy PŘESNĚ to zaokrouhlené
+// celé číslo. 'fixed'/'float': rovnoměrné kvantování celého rozsahu
+// [-coeffRange, coeffRange] do 2^bitCount kroků — liší se jen počtem bitů
+// (tedy hrubostí kroku), mechanika je stejná jako dřív.
+function encodeCoeffToBits(value, coeffRange, numeric, fixedBits) {
+  var bitCount = bitsForCoeff(coeffRange, numeric, fixedBits);
+
+  if (numeric === 'integer') {
+    var rangeInt = Math.max(1, Math.round(coeffRange));
+    var clampedInt = clampNumber(Math.round(value), -rangeInt, rangeInt);
+    return writeUnsignedIntToBits(clampedInt + rangeInt, bitCount);
+  }
+
+  var maxInt = Math.pow(2, bitCount) - 1;
+  var clamped = clampNumber(value, -coeffRange, coeffRange);
+  var ratio = (clamped + coeffRange) / (2 * coeffRange); // 0..1
+  return writeUnsignedIntToBits(Math.round(ratio * maxInt), bitCount);
+}
+
+function decodeBitsToCoeff(bits, startIndex, coeffRange, numeric, fixedBits) {
+  var bitCount = bitsForCoeff(coeffRange, numeric, fixedBits);
+  var unsignedValue = readUnsignedIntFromBits(bits, startIndex, bitCount);
+
+  if (numeric === 'integer') {
+    var rangeInt = Math.max(1, Math.round(coeffRange));
+    return unsignedValue - rangeInt;
+  }
+
+  var maxInt = Math.pow(2, bitCount) - 1;
+  var ratio = unsignedValue / maxInt; // 0..1
   return -coeffRange + ratio * 2 * coeffRange;
 }
 
-// Zakóduje celý vektor koeficientů do jednoho genomu (pole bitů, jeden blok
-// BITS_PER_COEFF bitů na koeficient, popořadě).
-function encodeGenome(coeffs, coeffRange) {
+// Zakóduje celý vektor koeficientů do jednoho genomu (pole bitů). Šířka
+// bloku se počítá zvlášť pro každý koeficient (coeffRangeForIndex +
+// bitsForCoeff) — u transformace 'normalized' proto mají vyšší řády kratší
+// blok (menší efektivní rozsah = potřeba míň bitů i u stejné číselné
+// reprezentaci). `genomeConfig` je nepovinné (chybí-li, použije se
+// createDefaultGenomeConfig() — 'direct'/'float', tedy přesně dřívější
+// chování před spec 5).
+function encodeGenome(coeffs, coeffRange, genomeConfig) {
+  var config = genomeConfig || createDefaultGenomeConfig();
   var genome = [];
   var i = 0;
   while (i < coeffs.length) {
-    genome = genome.concat(encodeCoeffToBits(coeffs[i], coeffRange, BITS_PER_COEFF));
+    var rangeForThisCoeff = coeffRangeForIndex(coeffRange, i, config.transform);
+    genome = genome.concat(encodeCoeffToBits(coeffs[i], rangeForThisCoeff, config.numeric, config.fixedBits));
     i = i + 1;
   }
   return genome;
 }
 
-// Dekóduje genom zpět na vektor koeficientů (degree+1 hodnot).
-function decodeGenome(genome, degree, coeffRange) {
+// Dekóduje genom zpět na vektor koeficientů (degree+1 hodnot) — musí projít
+// koeficienty ve STEJNÉM pořadí a se STEJNOU konfigurací jako encodeGenome,
+// ať offsety bloků v bitovém poli sedí (šířka bloku může být pro každý
+// koeficient jiná, viz výš).
+function decodeGenome(genome, degree, coeffRange, genomeConfig) {
+  var config = genomeConfig || createDefaultGenomeConfig();
   var coeffs = [];
+  var offset = 0;
   var i = 0;
   while (i <= degree) {
-    coeffs.push(decodeBitsToCoeff(genome, i * BITS_PER_COEFF, BITS_PER_COEFF, coeffRange));
+    var rangeForThisCoeff = coeffRangeForIndex(coeffRange, i, config.transform);
+    coeffs.push(decodeBitsToCoeff(genome, offset, rangeForThisCoeff, config.numeric, config.fixedBits));
+    offset = offset + bitsForCoeff(rangeForThisCoeff, config.numeric, config.fixedBits);
     i = i + 1;
   }
   return coeffs;
@@ -360,61 +446,157 @@ function runModelSelfTests() {
   console.assert(Math.abs(linear - 5) < 1e-9, 'evaluatePolynomial: lineární polynom v pravém okraji');
   testsRun = testsRun + 1;
 
-  // Bitové kódování koeficientu: round-trip pro několik hodnot a rozsahů.
+  // Bitové kódování koeficientu (spec 5.2): round-trip pro 'fixed'/'float' —
+  // rovnoměrné kvantování, tolerance = velikost jednoho kroku mřížky.
   var coeffRangesToTest = [10, 25, 100];
   var valuesToTest = [-100, -25, -10, -1, 0, 0.37, 5, 10, 25, 100];
-  var rangeIndex = 0;
-  while (rangeIndex < coeffRangesToTest.length) {
-    var coeffRange = coeffRangesToTest[rangeIndex];
-    var valueIndex = 0;
-    while (valueIndex < valuesToTest.length) {
-      var original = valuesToTest[valueIndex];
-      var expected = clampNumber(original, -coeffRange, coeffRange);
-      var bits = encodeCoeffToBits(original, coeffRange, BITS_PER_COEFF);
-      var decoded = decodeBitsToCoeff(bits, 0, BITS_PER_COEFF, coeffRange);
-      var tolerance = (2 * coeffRange) / Math.pow(2, BITS_PER_COEFF) + 1e-9;
-      console.assert(
-        Math.abs(decoded - expected) <= tolerance,
-        'encode/decodeCoeff round-trip mimo toleranci pro hodnotu ' + original + ' (rozsah ' + coeffRange + ')'
-      );
-      testsRun = testsRun + 1;
-      valueIndex = valueIndex + 1;
+  var quantizedNumericModes = [
+    { numeric: 'float', fixedBits: undefined },
+    { numeric: 'fixed', fixedBits: 10 }
+  ];
+  var qIndex = 0;
+  while (qIndex < quantizedNumericModes.length) {
+    var qMode = quantizedNumericModes[qIndex];
+    var rangeIndex = 0;
+    while (rangeIndex < coeffRangesToTest.length) {
+      var coeffRange = coeffRangesToTest[rangeIndex];
+      var bitCountForMode = bitsForCoeff(coeffRange, qMode.numeric, qMode.fixedBits);
+      var valueIndex = 0;
+      while (valueIndex < valuesToTest.length) {
+        var original = valuesToTest[valueIndex];
+        var expected = clampNumber(original, -coeffRange, coeffRange);
+        var bits = encodeCoeffToBits(original, coeffRange, qMode.numeric, qMode.fixedBits);
+        console.assert(bits.length === bitCountForMode, 'encodeCoeffToBits: délka bitů neodpovídá bitsForCoeff (' + qMode.numeric + ')');
+        var decoded = decodeBitsToCoeff(bits, 0, coeffRange, qMode.numeric, qMode.fixedBits);
+        var tolerance = (2 * coeffRange) / Math.pow(2, bitCountForMode) + 1e-9;
+        console.assert(
+          Math.abs(decoded - expected) <= tolerance,
+          'encode/decodeCoeff (' + qMode.numeric + ') round-trip mimo toleranci pro hodnotu ' + original + ' (rozsah ' + coeffRange + ')'
+        );
+        testsRun = testsRun + 2;
+        valueIndex = valueIndex + 1;
+      }
+      rangeIndex = rangeIndex + 1;
     }
-    rangeIndex = rangeIndex + 1;
+    qIndex = qIndex + 1;
   }
 
-  // Genom celého vektoru koeficientů: round-trip pro několik stupňů.
-  var degreesToTest = [0, 1, 2, 5];
-  var degreeIndex = 0;
-  while (degreeIndex < degreesToTest.length) {
-    var degree = degreesToTest[degreeIndex];
-    var coeffs = [];
-    var c = 0;
-    while (c <= degree) {
-      coeffs.push((c + 1) * 1.5 - degree); // jen nějaké různorodé hodnoty
-      c = c + 1;
+  // Bitové kódování koeficientu (spec 5.2): 'integer' musí dát PŘESNĚ to
+  // zaokrouhlené celé číslo zpátky, žádná kvantovací tolerance navíc.
+  var integerCoeffRanges = [5, 20, 100];
+  var integerValuesToTest = [-100, -19.6, -5, -0.4, 0, 0.4, 3, 19.6, 100];
+  var irIndex = 0;
+  while (irIndex < integerCoeffRanges.length) {
+    var intRange = integerCoeffRanges[irIndex];
+    var ivIndex = 0;
+    while (ivIndex < integerValuesToTest.length) {
+      var intOriginal = integerValuesToTest[ivIndex];
+      var expectedInt = clampNumber(Math.round(intOriginal), -Math.round(intRange), Math.round(intRange));
+      var intBits = encodeCoeffToBits(intOriginal, intRange, 'integer');
+      var decodedInt = decodeBitsToCoeff(intBits, 0, intRange, 'integer');
+      console.assert(
+        decodedInt === expectedInt,
+        'encode/decodeCoeff (integer) musí dát přesně zaokrouhlené celé číslo pro ' + intOriginal + ' (rozsah ' + intRange + ')'
+      );
+      console.assert(Number.isInteger(decodedInt), 'encode/decodeCoeff (integer): výsledek musí být celé číslo');
+      testsRun = testsRun + 2;
+      ivIndex = ivIndex + 1;
     }
-    var genomeCoeffRange = 20;
-    var genome = encodeGenome(coeffs, genomeCoeffRange);
-    console.assert(
-      genome.length === (degree + 1) * BITS_PER_COEFF,
-      'encodeGenome: délka genomu neodpovídá (degree+1)*BITS_PER_COEFF'
-    );
-    var decodedCoeffs = decodeGenome(genome, degree, genomeCoeffRange);
-    console.assert(decodedCoeffs.length === degree + 1, 'decodeGenome: špatný počet koeficientů');
-    var okIndex = 0;
-    var allClose = true;
-    while (okIndex <= degree) {
-      var clampedOriginal = clampNumber(coeffs[okIndex], -genomeCoeffRange, genomeCoeffRange);
-      if (Math.abs(decodedCoeffs[okIndex] - clampedOriginal) > 0.01) {
-        allClose = false;
-      }
-      okIndex = okIndex + 1;
-    }
-    console.assert(allClose, 'encodeGenome/decodeGenome: round-trip vektoru koeficientů mimo toleranci');
-    testsRun = testsRun + 3;
-    degreeIndex = degreeIndex + 1;
+    irIndex = irIndex + 1;
   }
+
+  // coeffRangeForIndex (spec 5.1): 'direct' nemění rozsah, 'normalized' ho
+  // geometricky zužuje s rostoucím indexem.
+  console.assert(coeffRangeForIndex(30, 0, 'direct') === 30, 'coeffRangeForIndex (direct): index 0 beze změny');
+  console.assert(coeffRangeForIndex(30, 4, 'direct') === 30, 'coeffRangeForIndex (direct): i vyšší index beze změny');
+  console.assert(coeffRangeForIndex(30, 0, 'normalized') === 30, 'coeffRangeForIndex (normalized): index 0 beze změny (DECAY^0 = 1)');
+  console.assert(
+    Math.abs(coeffRangeForIndex(30, 2, 'normalized') - 30 / Math.pow(GENOME_TRANSFORM_DECAY, 2)) < 1e-9,
+    'coeffRangeForIndex (normalized): rozsah se zužuje geometricky s indexem'
+  );
+  testsRun = testsRun + 4;
+
+  // Genom celého vektoru koeficientů (spec 5): round-trip pro několik
+  // stupňů, napříč všemi kombinacemi transformace × číselné reprezentace.
+  var degreesToTest = [0, 1, 2, 5];
+  var genomeConfigsToTest = [
+    { transform: 'direct', numeric: 'float', fixedBits: 16 },
+    { transform: 'direct', numeric: 'fixed', fixedBits: 8 },
+    { transform: 'direct', numeric: 'integer', fixedBits: 8 },
+    { transform: 'normalized', numeric: 'float', fixedBits: 16 },
+    { transform: 'normalized', numeric: 'fixed', fixedBits: 6 },
+    { transform: 'normalized', numeric: 'integer', fixedBits: 8 }
+  ];
+  var configIndex = 0;
+  while (configIndex < genomeConfigsToTest.length) {
+    var genomeConfig = genomeConfigsToTest[configIndex];
+    var degreeIndex = 0;
+    while (degreeIndex < degreesToTest.length) {
+      var degree = degreesToTest[degreeIndex];
+      var coeffs = [];
+      var c = 0;
+      while (c <= degree) {
+        coeffs.push((c + 1) * 1.5 - degree); // jen nějaké různorodé hodnoty
+        c = c + 1;
+      }
+      var genomeCoeffRange = 20;
+      var genome = encodeGenome(coeffs, genomeCoeffRange, genomeConfig);
+
+      var expectedLength = 0;
+      var lenIndex = 0;
+      while (lenIndex <= degree) {
+        expectedLength = expectedLength + bitsForCoeff(
+          coeffRangeForIndex(genomeCoeffRange, lenIndex, genomeConfig.transform),
+          genomeConfig.numeric, genomeConfig.fixedBits
+        );
+        lenIndex = lenIndex + 1;
+      }
+      console.assert(
+        genome.length === expectedLength,
+        'encodeGenome: délka genomu neodpovídá součtu bitsForCoeff napříč koeficienty (' +
+          genomeConfig.transform + '/' + genomeConfig.numeric + ')'
+      );
+
+      var decodedCoeffs = decodeGenome(genome, degree, genomeCoeffRange, genomeConfig);
+      console.assert(decodedCoeffs.length === degree + 1, 'decodeGenome: špatný počet koeficientů');
+      var okIndex = 0;
+      var allClose = true;
+      while (okIndex <= degree) {
+        var effectiveRange = coeffRangeForIndex(genomeCoeffRange, okIndex, genomeConfig.transform);
+        var clampedOriginal = genomeConfig.numeric === 'integer'
+          ? clampNumber(Math.round(coeffs[okIndex]), -Math.round(effectiveRange), Math.round(effectiveRange))
+          : clampNumber(coeffs[okIndex], -effectiveRange, effectiveRange);
+        var coeffTolerance = genomeConfig.numeric === 'integer'
+          ? 1e-9
+          : (2 * effectiveRange) / Math.pow(2, bitsForCoeff(effectiveRange, genomeConfig.numeric, genomeConfig.fixedBits)) + 1e-9;
+        if (Math.abs(decodedCoeffs[okIndex] - clampedOriginal) > coeffTolerance) {
+          allClose = false;
+        }
+        okIndex = okIndex + 1;
+      }
+      console.assert(
+        allClose,
+        'encodeGenome/decodeGenome: round-trip vektoru koeficientů mimo toleranci (' +
+          genomeConfig.transform + '/' + genomeConfig.numeric + ', degree ' + degree + ')'
+      );
+      testsRun = testsRun + 3;
+      degreeIndex = degreeIndex + 1;
+    }
+    configIndex = configIndex + 1;
+  }
+
+  // encodeGenome/decodeGenome bez explicitní konfigurace (genomeConfig
+  // vynechané) se musí chovat přesně jako createDefaultGenomeConfig()
+  // ('direct'/'float') — zpětná kompatibilita se starším voláním.
+  var defaultConfigCoeffs = [3.3, -7.7, 1.1];
+  var defaultConfigRange = 20;
+  var genomeWithDefault = encodeGenome(defaultConfigCoeffs, defaultConfigRange);
+  var genomeWithExplicitDefault = encodeGenome(defaultConfigCoeffs, defaultConfigRange, createDefaultGenomeConfig());
+  console.assert(
+    genomeWithDefault.join(',') === genomeWithExplicitDefault.join(','),
+    'encodeGenome: vynechaný genomeConfig se musí chovat jako createDefaultGenomeConfig()'
+  );
+  testsRun = testsRun + 1;
 
   // computeError: SSE nulové pro přesně sedící body, MAE taky.
   var perfectCoeffs = [1, 2]; // y = 1 + 2u
