@@ -46,6 +46,11 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
 - **Bez fitness grafu a bez save/load (cookie/URL):** CurveFitEA spec je na rozdíl od EvoMice
   nezmiňuje — vynecháno kvůli udržení rozsahu; centralizované defaulty + reset ano (spec 5,
   sdílená 13.5), ukládání/sdílení odkazem ne.
+- **Historie nejlepších — strop na délku (spec 3):** stopa je omezená na posledních 150 generací
+  (`HISTORY_MAX_LENGTH` v main.js), ne neomezená od resetu. Bez stropu by při dlouhém běhu rostlo
+  pole koeficientů bez mezí (a s ním čas překreslení každého snímku — kreslí se všechny záznamy
+  najednou), zatímco přínos "vidět dál do minulosti" je za určitou hranicí prakticky nulový (staré
+  záznamy jsou skoro průhledné). Reset (libovolný) historii vždy vymaže.
 - **Mutace/křížení — sjednocený výběr bit/doménová varianta:** stejně jako EvoMice (jeden
   `mutation-type-select`/`crossover-type-select` nabízející obě rodiny vedle sebe, ne
   samostatný přepínač "reprezentace"), viz spec 4 a EvoMice 6a.
@@ -72,7 +77,7 @@ existuje.
 10. [ ] Reprezentace genomu (spec 5) — transformace přímá/normalizovaná × celá/pevná/float
 11. [ ] Stupeň polynomu jako součást genomu (spec 6)
 12. [ ] Další fitness metriky + vysvětlení v UI (spec 7)
-13. [ ] Historie nejlepších jedinců, blednoucí stopa (spec 3)
+13. [x] Historie nejlepších jedinců, blednoucí stopa (spec 3) — checkbox "Historie nejlepších jedinců" (fieldset Zobrazení), stopa se plní v `stepOnce()` PŘED evolučním krokem (aktuální nejlepší jedinec se zapíše, teprve pak vznikne nová generace) a maže se při libovolném resetu; ověřeno screenshotem (purpurová stopa viditelná mezi modrými křivkami populace, viz zoomovaný výřez)
 14. [x] Přirozená čísla pro souřadnice bodů (spec 2) — ověřeno: `generateInitialPoints` posune y (ať minimum vyjde ≥0) a zaokrouhlí, `clampWorldPoint` (ruční editace myší) zaokrouhluje a ořezává na [0, yMax]/[WORLD_X_MIN, WORLD_X_MAX]; self-testy (200 dílčích ověření v model.js) i JSON dump reálných vygenerovaných bodů v Chromium potvrzují jen celá nezáporná čísla
 
 `[~]` = kód možná existuje, ale NEOVĚŘENO během stránky v prohlížeči — nepovažuj za hotové, dokud

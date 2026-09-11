@@ -33,6 +33,38 @@ var lastCurveSamples = [];
 var lastHighlightedSumOfSquares = null;
 var lastCursorWorld = null; // world souřadnice pod kurzorem, nebo null mimo plochu
 
+// --- Historie nejlepších jedinců (spec bod 3) -------------------------------
+//
+// Stopa nejlepšího jedince z každé generace od posledního resetu — čistě
+// vizuální doplněk (viz drawHistoryTrail v render.js), na evoluci samotnou
+// nemá žádný vliv. Kapacita omezená (na rozdíl od "generace" v EvoMice
+// fitness grafu, kde stačí čísla — tady jde o celé vektory koeficientů a
+// vykreslují se všechny najednou, neomezené pole by časem zpomalovalo
+// překreslení i zahlcovalo obrazovku prakticky neviditelnými starými
+// křivkami) — po překročení meze nejstarší záznamy odpadávají (efekt
+// "blednutí do minulosti" tím není narušen, jen strop na to, jak daleko do
+// minulosti stopa sahá).
+var HISTORY_MAX_LENGTH = 150;
+var bestHistory = [];
+
+function clearBestHistory() {
+  bestHistory = [];
+}
+
+function recordBestToHistory(bestIndividual) {
+  if (bestIndividual === null) {
+    return;
+  }
+  bestHistory.push(bestIndividual.coeffs.slice());
+  if (bestHistory.length > HISTORY_MAX_LENGTH) {
+    bestHistory.shift();
+  }
+}
+
+function isHistoryVisible() {
+  return document.getElementById('history-toggle-checkbox').checked;
+}
+
 function highlightedCurveIndex() {
   if (pinnedCurveIndex !== null) {
     return pinnedCurveIndex;
@@ -62,7 +94,8 @@ function redraw() {
   var fitnessType = document.getElementById('fitness-type-select').value;
   computeFitness(population, points, fitnessType); // vždy čerstvé vůči aktuálním bodům
 
-  var result = drawScene(ctx, population, points, worldConfig, highlightedCurveIndex());
+  var historyToShow = isHistoryVisible() ? bestHistory : [];
+  var result = drawScene(ctx, population, points, worldConfig, highlightedCurveIndex(), historyToShow);
   lastCurveSamples = result.curveSamples;
   lastHighlightedSumOfSquares = result.highlightedSumOfSquares;
 
@@ -194,6 +227,7 @@ function resetPopulationOnly() {
   population = createRandomPopulation(populationSize, degree, coeffRange, rng);
   generationCount = 0;
   clearCurveHighlight();
+  clearBestHistory();
   redraw();
 }
 
@@ -280,11 +314,13 @@ while (conditionalSelectIndex < conditionalControlSelectIds.length) {
 }
 
 document.getElementById('fitness-type-select').addEventListener('change', redraw);
+document.getElementById('history-toggle-checkbox').addEventListener('change', redraw);
 
 // --- Krok evoluce (jedna generace) -----------------------------------
 
 function stepOnce() {
   var params = readParamsFromUI();
+  recordBestToHistory(findBestIndividual()); // stopa PŘED krokem — poslední generace se zapíše do historie, teprve pak vznikne nová
   population = stepGeneration(population, points, params, rng);
   generationCount = generationCount + 1;
   clearCurveHighlight(); // jedinci v nové generaci jsou jiní, staré indexy by mátly

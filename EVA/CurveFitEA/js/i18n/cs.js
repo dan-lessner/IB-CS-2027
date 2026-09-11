@@ -43,6 +43,12 @@ var I18N_CS = {
   population_size_label: 'Velikost populace',
   population_size_label_tooltip: 'Počet kandidátních křivek v jedné generaci. Při hodnotě 1 se deaktivují ovládací prvky křížení a turnajové selekce (nemá s kým soutěžit).',
 
+  // --- Sekce: zobrazení ----------------------------------------------------------
+  section_display_legend: 'Zobrazení',
+  section_display_legend_tooltip: 'Nastavení toho, co se navíc kreslí přes plochu — na evoluci samotnou nemá vliv.',
+  history_toggle_label: 'Historie nejlepších jedinců',
+  history_toggle_label_tooltip: 'Přes plochu se navíc vykreslí nejlepší jedinec z každé předchozí generace (jinou barvou), s postupným blednutím směrem do minulosti.',
+
   // --- Sekce: fitness ----------------------------------------------------------
   section_fitness_legend: 'Fitness (chyba prokládání)',
   section_fitness_legend_tooltip: 'Metrika, podle které se posuzuje, jak dobře křivka sedí na body — nižší chyba = vyšší fitness.',

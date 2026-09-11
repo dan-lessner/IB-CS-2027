@@ -43,6 +43,12 @@ var I18N_EN = {
   population_size_label: 'Population size',
   population_size_label_tooltip: 'Number of candidate curves per generation. At value 1, crossover and tournament selection controls are disabled (nothing to compete with).',
 
+  // --- Section: display -----------------------------------------------------------
+  section_display_legend: 'Display',
+  section_display_legend_tooltip: 'Settings for what gets drawn on the plot area in addition — has no effect on evolution itself.',
+  history_toggle_label: 'Best-individual history',
+  history_toggle_label_tooltip: 'Additionally draws the best individual from every previous generation (in a different colour), fading gradually into the past.',
+
   // --- Section: fitness -----------------------------------------------------------
   section_fitness_legend: 'Fitness (fitting error)',
   section_fitness_legend_tooltip: 'The metric used to judge how well a curve fits the points — lower error means higher fitness.',

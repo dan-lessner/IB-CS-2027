@@ -226,15 +226,47 @@ function drawDeviationSquares(ctx, individual, points, worldConfig) {
   return sumOfSquares;
 }
 
+// --- Historie nejlepších jedinců (spec bod 3) -------------------------------
+//
+// Stopa nejlepšího jedince z každé předchozí generace, jinou barvou než
+// aktuální populace a s postupným blednutím směrem do minulosti (nejnovější
+// nejsytější, nejstarší skoro průhledná) — cíl je vidět, jak se řešení v
+// čase vyvíjelo, ne jen aktuální stav. Kreslí se PŘED populací (spec bod 2:
+// tahle stopa je jen kontext, aktuální populace a body musí zůstat čitelné
+// navrch).
+var COLOR_HISTORY = '#c77dff';
+var MIN_HISTORY_ALPHA = 0.03;
+var MAX_HISTORY_ALPHA = 0.55;
+
+function drawHistoryTrail(ctx, historyCoeffsList, worldConfig) {
+  var count = historyCoeffsList.length;
+  var i = 0;
+  while (i < count) {
+    // i=0 je nejstarší záznam (viz main.js, historie se plní na konec pole)
+    // -> ratio roste směrem k nejnovějšímu, takže ten je nejsytější.
+    var ratio = count === 1 ? 1 : i / (count - 1);
+    var alpha = MIN_HISTORY_ALPHA + ratio * (MAX_HISTORY_ALPHA - MIN_HISTORY_ALPHA);
+    var samples = computeCurvePixelSamples(historyCoeffsList[i], worldConfig);
+    drawCurvePolyline(ctx, samples, colorWithAlpha(COLOR_HISTORY, alpha), 1.5);
+    i = i + 1;
+  }
+}
+
 // --- Hlavní vykreslovací krok ------------------------------------------------
 //
-// Pořadí vrstev: pozadí, osy, populace křivek (nezvýrazněné, pak zvýrazněná
-// navrch), čtverce odchylek zvýrazněné křivky, body úplně navrch (spec bod 2).
-// Vrací pixelové vzorky každé křivky (pro hit-testing v js/input.js) a — je-li
-// nějaká křivka zvýrazněná — součet čtverců jejích odchylek (jinak null).
-function drawScene(ctx, population, points, worldConfig, highlightedIndex) {
+// Pořadí vrstev: pozadí, osy, historie nejlepších (volitelná, spec bod 3),
+// populace křivek (nezvýrazněné, pak zvýrazněná navrch), čtverce odchylek
+// zvýrazněné křivky, body úplně navrch (spec bod 2). Vrací pixelové vzorky
+// každé křivky (pro hit-testing v js/input.js) a — je-li nějaká křivka
+// zvýrazněná — součet čtverců jejích odchylek (jinak null).
+function drawScene(ctx, population, points, worldConfig, highlightedIndex, historyCoeffsList) {
   drawBackground(ctx);
   drawAxes(ctx, worldConfig);
+
+  if (historyCoeffsList !== undefined && historyCoeffsList.length > 0) {
+    drawHistoryTrail(ctx, historyCoeffsList, worldConfig);
+  }
+
   var samplesByIndividual = drawPopulationCurves(ctx, population, worldConfig, highlightedIndex);
 
   var highlightedSumOfSquares = null;

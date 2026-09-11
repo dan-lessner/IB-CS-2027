@@ -27,7 +27,8 @@ var SETTINGS_FIELDS = [
   { id: 'replacement-percent-slider', kind: 'number' },
   { id: 'elite-count-slider', kind: 'number' },
   { id: 'speed-slider', kind: 'number' },
-  { id: 'seed-input', kind: 'number' }
+  { id: 'seed-input', kind: 'number' },
+  { id: 'history-toggle-checkbox', kind: 'checkbox' }
 ];
 
 // Jediné místo v kódu, které definuje výchozí hodnotu každého ovládacího
@@ -51,7 +52,8 @@ var DEFAULT_SETTINGS = {
   'replacement-percent-slider': 50,
   'elite-count-slider': 0,
   'speed-slider': 2,
-  'seed-input': 42
+  'seed-input': 42,
+  'history-toggle-checkbox': false
 };
 
 function applySettingsToUI(settings) {
@@ -60,7 +62,12 @@ function applySettingsToUI(settings) {
     var field = SETTINGS_FIELDS[i];
     var value = settings[field.id];
     if (value !== undefined) {
-      document.getElementById(field.id).value = value;
+      var element = document.getElementById(field.id);
+      if (field.kind === 'checkbox') {
+        element.checked = value;
+      } else {
+        element.value = value;
+      }
     }
     i = i + 1;
   }
