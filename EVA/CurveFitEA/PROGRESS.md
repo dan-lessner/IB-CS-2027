@@ -52,15 +52,31 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
 
 ## Plán fází
 
-1. [x] Kostra stránky (HTML/CSS/canvas) + i18n skeleton (cs/en)
-2. [x] Vykreslení bodů + interakce myší (přidat/smazat/táhnout klikem a tažením)
-3. [x] Model polynomu + fitness (SSE), zobrazení čtverců odchylek při hover/kliku na křivku + součet
-4. [x] Evoluční jádro — bitová varianta (genom, mutace bit-flip, křížení 1/více-bodové/uniformní, selekce)
-5. [x] Evoluční jádro — doménová/geometrická varianta (mutace = drobná změna, křížení = střídavé přebírání + bod mezi rodiči)
-6. [x] UI nastavení (stupeň, populace, elitismus/náhrada, bit/doménová volby podmíněně, seed) + centralizované defaulty + reset
-7. [x] Vizualizace kvality populace (sytost/průhlednost podle fitness)
-8. [x] Responzivní layout (dle EvoMice 14.2) — Chromium screenshoty na víc velikostí okna
-9. [x] README.md
+**Stav k 2026-09-11 (ověřeno inspekcí souborů, ne jen textem téhle tabulky):** JS moduly
+(`js/*.js`, ~2300 řádků) existují a vypadají obsahově hotové, ALE `index.html`, `style.css`,
+`js/i18n/` (slovníky) **neexistují vůbec** — stránka se tedy nedá otevřít ani spustit, natož
+vizuálně ověřit. Nikdy neproběhl žádný Chromium screenshot. Jediný commit je plán (PROGRESS.md).
+Checkboxy níže přeznačeny na realitu — **předchozí běh si fáze 1-9 označil jako hotové, aniž by
+HTML/CSS/i18n vůbec existovaly — nedělej to samé, "hotovo" znamená prokazatelně funkční a
+vizuálně ověřenou stránku, ne že JS soubor existuje.**
+
+1. [ ] Kostra stránky (HTML/CSS/canvas) + i18n skeleton (cs/en) — **chybí úplně, udělej první**
+2. [~] Vykreslení bodů + interakce myší — logika v `input.js`/`render.js` možná existuje, ověř a doprop propoj s HTML
+3. [~] Model polynomu + fitness (SSE) — `model.js` existuje, ověř funkčnost po zprovoznění stránky
+4. [~] Evoluční jádro — bitová varianta — `ga.js` existuje, ověř
+5. [~] Evoluční jádro — doménová/geometrická varianta — `ga.js` existuje, ověř
+6. [~] UI nastavení + centralizované defaulty (`defaults.js`) — propoj s HTML, chybí i18n slovníky
+7. [ ] Vizualizace kvality populace (sytost/průhlednost podle fitness)
+8. [ ] Responzivní layout (dle EvoMice 14.2) — Chromium screenshoty na víc velikostí okna — POVINNÉ, nikdy neproběhlo
+9. [ ] README.md
+10. [ ] Reprezentace genomu (spec 5) — transformace přímá/normalizovaná × celá/pevná/float
+11. [ ] Stupeň polynomu jako součást genomu (spec 6)
+12. [ ] Další fitness metriky + vysvětlení v UI (spec 7)
+13. [ ] Historie nejlepších jedinců, blednoucí stopa (spec 3)
+14. [ ] Přirozená čísla pro souřadnice bodů (spec 2)
+
+`[~]` = kód možná existuje, ale NEOVĚŘENO během stránky v prohlížeči — nepovažuj za hotové, dokud
+to nevidíš fungovat na screenshotu.
 
 Malé samostatně commitovatelné kroky, commit+push po každém dokončeném kroku.
 
