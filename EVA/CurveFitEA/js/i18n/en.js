@@ -33,12 +33,17 @@ var I18N_EN = {
   fitness_hit_count: 'number of missed points',
   stats_line: 'Generation: {gen} | Best individual — {metric}: {error}',
   stats_hit_count_value: '{hits}/{total} hit',
+  stats_degree_suffix: '| degree: {degree}',
 
   // --- Section: polynomial degree --------------------------------------------
   section_degree_legend: 'Polynomial degree',
   section_degree_legend_tooltip: 'The genome of an individual is the set of coefficients of a polynomial of this degree (degree 1 = a line).',
   degree_label: 'Degree',
-  degree_label_tooltip: 'Number of genome coefficients = degree + 1. Changing the degree restarts the population (different genome length), points stay unchanged.',
+  degree_label_tooltip: 'Number of genome coefficients = degree + 1. Changing the degree restarts the population (different genome length), points stay unchanged. With "degree is part of the genome" enabled, this value is a cap (maximum degree), not a fixed value.',
+  degree_evolves_label: 'Degree is part of the genome',
+  degree_evolves_label_tooltip: 'Instead of a fixed degree, evolution chooses and changes it itself (mutation ±1, crossover = inherited from one of the parents) — within 0 up to the Degree slider value (which then acts as a cap).',
+  degree_mutation_rate_label: 'Degree mutation rate',
+  degree_mutation_rate_label_tooltip: "Probability that an individual's degree shifts by ±1 during mutation (independent of mutating the coefficients themselves).",
 
   // --- Section: population -----------------------------------------------------
   section_population_legend: 'Population',

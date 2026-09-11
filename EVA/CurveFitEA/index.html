@@ -100,6 +100,18 @@
           <span id="degree-value">1</span>
           <input type="range" id="degree-slider" min="1" max="8" step="1" value="1">
         </label>
+        <label>
+          <input type="checkbox" id="degree-evolves-checkbox">
+          <span data-i18n="degree_evolves_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="degree_evolves_label_tooltip">?</span>
+        </label>
+        <label for="degree-mutation-rate-slider"
+               data-show-when-checkbox="degree-evolves-checkbox" data-show-when-checked="true">
+          <span data-i18n="degree_mutation_rate_label"></span>
+          <span class="help-icon" tabindex="0" data-i18n-tooltip="degree_mutation_rate_label_tooltip">?</span>
+          <span id="degree-mutation-rate-value">0.1</span>
+          <input type="range" id="degree-mutation-rate-slider" min="0" max="1" step="0.05" value="0.1">
+        </label>
       </fieldset>
 
       <fieldset>

@@ -33,12 +33,17 @@ var I18N_CS = {
   fitness_hit_count: 'počet netrefených bodů',
   stats_line: 'Generace: {gen} | Nejlepší jedinec — {metric}: {error}',
   stats_hit_count_value: '{hits}/{total} trefeno',
+  stats_degree_suffix: '| stupeň: {degree}',
 
   // --- Sekce: stupeň polynomu -------------------------------------------------
   section_degree_legend: 'Stupeň polynomu',
   section_degree_legend_tooltip: 'Genom jedince = koeficienty polynomu tohoto stupně (stupeň 1 = přímka).',
   degree_label: 'Stupeň',
-  degree_label_tooltip: 'Počet koeficientů genomu = stupeň + 1. Změna stupně restartuje populaci (jiná délka genomu), body zůstávají.',
+  degree_label_tooltip: 'Počet koeficientů genomu = stupeň + 1. Změna stupně restartuje populaci (jiná délka genomu), body zůstávají. Se zapnutým "stupeň je součást genomu" je tahle hodnota strop (maximální stupeň), ne pevná hodnota.',
+  degree_evolves_label: 'Stupeň je součást genomu',
+  degree_evolves_label_tooltip: 'Místo pevného stupně si ho evoluce sama volí a mění (mutace ±1, křížení = převzetí od jednoho z rodičů) — v mezích 0 až po hodnotu posuvníku Stupeň (ten pak funguje jako strop).',
+  degree_mutation_rate_label: 'Míra mutace stupně',
+  degree_mutation_rate_label_tooltip: 'Pravděpodobnost, že se při mutaci stupeň jedince posune o ±1 (nezávisle na mutaci samotných koeficientů).',
 
   // --- Sekce: velikost populace ------------------------------------------------
   section_population_legend: 'Populace',

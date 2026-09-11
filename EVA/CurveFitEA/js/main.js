@@ -139,7 +139,14 @@ function updateStatsLine(fitnessType) {
       ? t('stats_hit_count_value', { hits: points.length - best.error, total: points.length })
       : best.error.toFixed(3);
   }
-  statsEl.textContent = t('stats_line', { gen: generationCount, metric: metricLabel, error: bestErrorText });
+  var line = t('stats_line', { gen: generationCount, metric: metricLabel, error: bestErrorText });
+  // Spec 6: když je stupeň součástí genomu, nejlepší jedinec z různých
+  // generací může mít různý stupeň — ukaž ho, ať jde over/underfitting
+  // pozorovat i v textu, ne jen na tvaru křivky.
+  if (isDegreeEvolving() && best !== null) {
+    line = line + ' ' + t('stats_degree_suffix', { degree: best.coeffs.length - 1 });
+  }
+  statsEl.textContent = line;
 }
 
 function updateCursorPositionLine() {
@@ -169,6 +176,8 @@ function readParamsFromUI() {
   var params = createDefaultGaParams();
 
   params.degree = Number(document.getElementById('degree-slider').value);
+  params.degreeEvolves = isDegreeEvolving();
+  params.degreeMutationRate = Number(document.getElementById('degree-mutation-rate-slider').value);
   params.fitnessType = document.getElementById('fitness-type-select').value;
   params.fitnessTolerance = Number(document.getElementById('fitness-tolerance-slider').value);
 
@@ -239,12 +248,16 @@ function resetEverything() {
 // zůstávají beze změny. Používá se po resetEverything() i po změně stupně
 // polynomu (viz PROGRESS.md — změna stupně nemá smysl mazat uživatelovu
 // ruční úpravu bodů).
+function isDegreeEvolving() {
+  return document.getElementById('degree-evolves-checkbox').checked;
+}
+
 function resetPopulationOnly() {
   var degree = Number(document.getElementById('degree-slider').value);
   var populationSize = Number(document.getElementById('population-size-slider').value);
   var coeffRange = computeCoeffRange(points);
 
-  population = createRandomPopulation(populationSize, degree, coeffRange, rng);
+  population = createRandomPopulation(populationSize, degree, coeffRange, rng, isDegreeEvolving());
   generationCount = 0;
   clearCurveHighlight();
   clearBestHistory();
@@ -258,7 +271,17 @@ document.getElementById('reset-btn').addEventListener('click', function () {
 
 document.getElementById('degree-slider').addEventListener('change', function () {
   // Stupeň polynomu mění počet koeficientů (délku genomu) — vyžaduje
-  // restart populace, nejde jen "dopočítat" existující jedince.
+  // restart populace, nejde jen "dopočítat" existující jedince. (Když je
+  // degreeEvolves zapnuté, degree-slider je STROP, viz spec 6 — i tak má
+  // změna smysl jen po restartu populace.)
+  stopRunning();
+  resetPopulationOnly();
+});
+
+// Spec 6: přepnutí "stupeň je součást genomu" mění tvar celé populace
+// (pevná délka koeficientů -> proměnlivá a naopak) — stejný důvod restartu
+// jako u samotné změny stupně výš.
+document.getElementById('degree-evolves-checkbox').addEventListener('change', function () {
   stopRunning();
   resetPopulationOnly();
 });
@@ -267,12 +290,17 @@ function adjustPopulationSize() {
   var targetSize = Number(document.getElementById('population-size-slider').value);
   var degree = Number(document.getElementById('degree-slider').value);
   var coeffRange = computeCoeffRange(points);
+  var degreeEvolves = isDegreeEvolving();
 
   if (targetSize > population.length) {
     var toAdd = targetSize - population.length;
     var i = 0;
     while (i < toAdd) {
-      population.push(createRandomIndividual(degree, coeffRange, rng));
+      population.push(
+        degreeEvolves
+          ? createRandomIndividualVariableDegree(degree, coeffRange, rng)
+          : createRandomIndividual(degree, coeffRange, rng)
+      );
       i = i + 1;
     }
   } else {
@@ -309,16 +337,31 @@ function updatePopulationSizeDependentControls() {
 document.getElementById('population-size-slider').addEventListener('input', updatePopulationSizeDependentControls);
 
 // --- Podmíněné zobrazení parametrů vázaných na konkrétní volbu (stejná ----
-// konvence jako EvoMice 13.8) ------------------------------------------------
-var CONDITIONAL_CONTROL_LABELS = document.querySelectorAll('[data-show-when-select]');
+// konvence jako EvoMice 13.8) — podporuje jak ovládací prvky vázané na
+// hodnotu <select> (data-show-when-select/-value), tak na stav checkboxu
+// (data-show-when-checkbox/-checked, spec 6: slider míry mutace stupně
+// vázaný na "stupeň je součást genomu"). ------------------------------------
+var CONDITIONAL_CONTROL_LABELS = document.querySelectorAll('[data-show-when-select], [data-show-when-checkbox]');
 
 function updateConditionalControlsVisibility() {
   var i = 0;
   while (i < CONDITIONAL_CONTROL_LABELS.length) {
     var label = CONDITIONAL_CONTROL_LABELS[i];
-    var controllingSelect = document.getElementById(label.getAttribute('data-show-when-select'));
-    var requiredValue = label.getAttribute('data-show-when-value');
-    label.style.display = (controllingSelect.value === requiredValue) ? '' : 'none';
+    var visible;
+
+    var selectId = label.getAttribute('data-show-when-select');
+    if (selectId !== null) {
+      var controllingSelect = document.getElementById(selectId);
+      var requiredValue = label.getAttribute('data-show-when-value');
+      visible = controllingSelect.value === requiredValue;
+    } else {
+      var checkboxId = label.getAttribute('data-show-when-checkbox');
+      var controllingCheckbox = document.getElementById(checkboxId);
+      var requiredChecked = label.getAttribute('data-show-when-checked') !== 'false'; // výchozí 'true'
+      visible = controllingCheckbox.checked === requiredChecked;
+    }
+
+    label.style.display = visible ? '' : 'none';
     i = i + 1;
   }
 }
@@ -333,6 +376,8 @@ while (conditionalSelectIndex < conditionalControlSelectIds.length) {
     .addEventListener('change', updateConditionalControlsVisibility);
   conditionalSelectIndex = conditionalSelectIndex + 1;
 }
+
+document.getElementById('degree-evolves-checkbox').addEventListener('change', updateConditionalControlsVisibility);
 
 document.getElementById('fitness-type-select').addEventListener('change', redraw);
 document.getElementById('history-toggle-checkbox').addEventListener('change', redraw);
@@ -449,7 +494,8 @@ var SLIDER_DISPLAY_PAIRS = [
   ['replacement-percent-slider', 'replacement-percent-value'],
   ['elite-count-slider', 'elite-count-value'],
   ['fitness-tolerance-slider', 'fitness-tolerance-value'],
-  ['genome-fixed-bits-slider', 'genome-fixed-bits-value']
+  ['genome-fixed-bits-slider', 'genome-fixed-bits-value'],
+  ['degree-mutation-rate-slider', 'degree-mutation-rate-value']
 ];
 
 function wireSliderDisplay(sliderId, displayId) {

@@ -13,7 +13,9 @@
 
 function createDefaultGaParams() {
   return {
-    degree: 1,                     // stupeň polynomu (spec 1: 1 = přímka, výchozí)
+    degree: 1,                     // stupeň polynomu (spec 1: 1 = přímka, výchozí); s degreeEvolves=true je to STROP (maximální stupeň), ne pevná hodnota (spec 6)
+    degreeEvolves: false,          // spec 6: stupeň je součást genomu (mutuje/dědí se), místo pevné hodnoty
+    degreeMutationRate: 0.1,       // pravděpodobnost, že se při mutaci stupeň posune o ±1 (použito jen pro degreeEvolves)
     fitnessType: 'sse',            // 'sse' (výchozí) | 'mae' | 'max-error' | 'hit-count'
     fitnessTolerance: 1,           // použito jen pro 'hit-count' (spec 7)
 
@@ -239,32 +241,58 @@ function genomeConfigFromParams(params) {
   return { transform: params.genomeTransform, numeric: params.genomeNumeric, fixedBits: params.genomeFixedBits };
 }
 
+// Doplní vektor koeficientů nulami na požadovaný stupeň (jen prodlužuje,
+// nikdy nezkracuje) — potřeba pro křížení dvou rodičů různého stupně, viz
+// spec 6 a crossover() níže.
+function padCoeffsToDegree(coeffs, degree) {
+  var padded = coeffs.slice();
+  while (padded.length <= degree) {
+    padded.push(0);
+  }
+  return padded;
+}
+
+// Spec 6 (stupeň jako součást genomu): když degreeEvolves není zapnuté, oba
+// rodiče mají vždy stejný stupeň (= params.degree) a tahle funkce se chová
+// přesně jako dřív. Když JE zapnuté, rodiče mohou mít různý stupeň — potomek
+// zdědí stupeň od jednoho z nich (spec 6: "křížení stupně = převzetí od
+// jednoho z rodičů"), koeficienty se zkříží na doplněných (vyrovnaných na
+// stejnou délku) vektorech a pak oříznou na zděděný stupeň.
 function crossover(parentA, parentB, params, coeffRange, rng) {
   var genomeConfig = genomeConfigFromParams(params);
 
+  var degreeA = parentA.coeffs.length - 1;
+  var degreeB = parentB.coeffs.length - 1;
+  var maxParentDegree = Math.max(degreeA, degreeB);
+  var childDegree = params.degreeEvolves ? (randomChance(rng, 0.5) ? degreeA : degreeB) : params.degree;
+
+  var coeffsA = padCoeffsToDegree(parentA.coeffs, maxParentDegree);
+  var coeffsB = padCoeffsToDegree(parentB.coeffs, maxParentDegree);
+
+  var childCoeffsFull;
   if (params.crossoverType === 'multi-point') {
-    var genomeA1 = encodeGenome(parentA.coeffs, coeffRange, genomeConfig);
-    var genomeB1 = encodeGenome(parentB.coeffs, coeffRange, genomeConfig);
+    var genomeA1 = encodeGenome(coeffsA, coeffRange, genomeConfig);
+    var genomeB1 = encodeGenome(coeffsB, coeffRange, genomeConfig);
     var childBits1 = crossoverMultiPointBits(genomeA1, genomeB1, params.crossoverPoints, rng);
-    return decodeGenome(childBits1, params.degree, coeffRange, genomeConfig);
-  }
-  if (params.crossoverType === 'uniform') {
-    var genomeA2 = encodeGenome(parentA.coeffs, coeffRange, genomeConfig);
-    var genomeB2 = encodeGenome(parentB.coeffs, coeffRange, genomeConfig);
+    childCoeffsFull = decodeGenome(childBits1, maxParentDegree, coeffRange, genomeConfig);
+  } else if (params.crossoverType === 'uniform') {
+    var genomeA2 = encodeGenome(coeffsA, coeffRange, genomeConfig);
+    var genomeB2 = encodeGenome(coeffsB, coeffRange, genomeConfig);
     var childBits2 = crossoverUniformBits(genomeA2, genomeB2, rng);
-    return decodeGenome(childBits2, params.degree, coeffRange, genomeConfig);
+    childCoeffsFull = decodeGenome(childBits2, maxParentDegree, coeffRange, genomeConfig);
+  } else if (params.crossoverType === 'param-alternate') {
+    childCoeffsFull = crossoverParamAlternate({ coeffs: coeffsA }, { coeffs: coeffsB }, rng);
+  } else if (params.crossoverType === 'line-point') {
+    childCoeffsFull = crossoverLinePoint({ coeffs: coeffsA }, { coeffs: coeffsB }, rng);
+  } else {
+    // výchozí varianta ('one-point'): klasický jednobodový crossover přes bity genomu
+    var genomeA0 = encodeGenome(coeffsA, coeffRange, genomeConfig);
+    var genomeB0 = encodeGenome(coeffsB, coeffRange, genomeConfig);
+    var childBits0 = crossoverOnePointBits(genomeA0, genomeB0, rng);
+    childCoeffsFull = decodeGenome(childBits0, maxParentDegree, coeffRange, genomeConfig);
   }
-  if (params.crossoverType === 'param-alternate') {
-    return crossoverParamAlternate(parentA, parentB, rng);
-  }
-  if (params.crossoverType === 'line-point') {
-    return crossoverLinePoint(parentA, parentB, rng);
-  }
-  // výchozí varianta ('one-point'): klasický jednobodový crossover přes bity genomu
-  var genomeA0 = encodeGenome(parentA.coeffs, coeffRange, genomeConfig);
-  var genomeB0 = encodeGenome(parentB.coeffs, coeffRange, genomeConfig);
-  var childBits0 = crossoverOnePointBits(genomeA0, genomeB0, rng);
-  return decodeGenome(childBits0, params.degree, coeffRange, genomeConfig);
+
+  return childCoeffsFull.slice(0, childDegree + 1);
 }
 
 // Klasický jednobodový crossover přes celý binární řetězec (bity všech
@@ -413,15 +441,28 @@ function crossoverLinePoint(parentA, parentB, rng) {
 // doménová varianta (spec 4.2: "drobná změna" — malý gaussovský posun).
 
 function mutate(coeffs, params, coeffRange, rng) {
-  if (params.mutationType === 'gaussian-jump') {
-    return mutateGaussianJump(coeffs, coeffRange, params.mutationSigma, rng);
+  var mutatedCoeffs = params.mutationType === 'gaussian-jump'
+    ? mutateGaussianJump(coeffs, coeffRange, params.mutationSigma, rng)
+    : mutateBitFlip(coeffs, params, coeffRange, rng); // výchozí ('bit-flip')
+
+  // Spec 6: stupeň jako součást genomu — samostatný "meta-mutace" krok navíc
+  // k mutaci koeficientů výš, nezávislý na tom, jestli je zvolená bitová
+  // nebo doménová varianta (obě mutují jen KOEFICIENTY, ne délku vektoru).
+  if (params.degreeEvolves) {
+    mutatedCoeffs = mutateDegree(mutatedCoeffs, params, coeffRange, rng);
   }
-  // výchozí varianta ('bit-flip'): každý bit genomu se s pravděpodobností p převrátí
-  return mutateBitFlip(coeffs, params, coeffRange, rng);
+  return mutatedCoeffs;
 }
 
+// Bit-flip mutace odvozuje kódovaný stupeň z DÉLKY vektoru koeficientů
+// (coeffs.length - 1), ne z params.degree přímo — když degreeEvolves není
+// zapnuté, jsou to vždycky stejná čísla (populace sdílí jeden stupeň), takže
+// se chování nemění; když JE zapnuté, každý jedinec může mít jiný aktuální
+// stupeň a mutace bitů nesmí měnit DÉLKU genomu (o to se stará mutateDegree
+// jako samostatný krok, viz mutate() výš).
 function mutateBitFlip(coeffs, params, coeffRange, rng) {
   var genomeConfig = genomeConfigFromParams(params);
+  var currentDegree = coeffs.length - 1;
   var genome = encodeGenome(coeffs, coeffRange, genomeConfig);
   var i = 0;
   while (i < genome.length) {
@@ -434,7 +475,30 @@ function mutateBitFlip(coeffs, params, coeffRange, rng) {
     }
     i = i + 1;
   }
-  return decodeGenome(genome, params.degree, coeffRange, genomeConfig);
+  return decodeGenome(genome, currentDegree, coeffRange, genomeConfig);
+}
+
+// Spec 6: mutace "meta-parametru" stupně — s pravděpodobností
+// degreeMutationRate se stupeň posune o ±1 (v rámci [0, params.degree],
+// params.degree je v tomhle režimu STROP, ne pevná hodnota, viz
+// createDefaultGaParams). Růst přidá jeden nový náhodný koeficient
+// nejvyššího řádu, pokles poslední koeficient prostě zahodí.
+function mutateDegree(coeffs, params, coeffRange, rng) {
+  if (!randomChance(rng, params.degreeMutationRate)) {
+    return coeffs;
+  }
+  var currentDegree = coeffs.length - 1;
+  var direction = randomChance(rng, 0.5) ? 1 : -1;
+  var newDegree = clampNumber(currentDegree + direction, 0, params.degree);
+  if (newDegree === currentDegree) {
+    return coeffs;
+  }
+  if (newDegree > currentDegree) {
+    var grownCoeffs = coeffs.slice();
+    grownCoeffs.push(randomRange(rng, -coeffRange, coeffRange));
+    return grownCoeffs;
+  }
+  return coeffs.slice(0, newDegree + 1);
 }
 
 // Každý koeficient se posune o malý náhodný vektor (gaussovské rozdělení,
@@ -462,11 +526,24 @@ function createRandomIndividual(degree, coeffRange, rng) {
   return createIndividual(coeffs);
 }
 
-function createRandomPopulation(size, degree, coeffRange, rng) {
+// Spec 6 (degreeEvolves): počáteční jedinec dostane náhodný stupeň mezi 0 a
+// maxDegree (rovnoměrně) místo pevného stupně — ať populace hned od startu
+// pokrývá celé rozpětí, ne jen jeden stupeň, který by se pak musel teprve
+// "objevit" mutací.
+function createRandomIndividualVariableDegree(maxDegree, coeffRange, rng) {
+  var degree = randomInt(rng, maxDegree + 1); // 0..maxDegree
+  return createRandomIndividual(degree, coeffRange, rng);
+}
+
+function createRandomPopulation(size, degree, coeffRange, rng, degreeEvolves) {
   var population = [];
   var i = 0;
   while (i < size) {
-    population.push(createRandomIndividual(degree, coeffRange, rng));
+    population.push(
+      degreeEvolves
+        ? createRandomIndividualVariableDegree(degree, coeffRange, rng)
+        : createRandomIndividual(degree, coeffRange, rng)
+    );
     i = i + 1;
   }
   return population;
@@ -634,6 +711,112 @@ function runGaSelfTests() {
     si = si + 1;
   }
   console.assert(same, 'random seed: stejný seed musí dát stejnou náhodnou populaci');
+  testsRun = testsRun + 1;
+
+  // --- Spec 6: stupeň jako součást genomu ---------------------------------
+
+  // padCoeffsToDegree: doplní nulami, nikdy nezkrátí.
+  console.assert(
+    padCoeffsToDegree([1, 2], 4).join(',') === '1,2,0,0,0',
+    'padCoeffsToDegree: musí doplnit nulami na požadovaný stupeň'
+  );
+  console.assert(
+    padCoeffsToDegree([1, 2, 3], 1).join(',') === '1,2,3',
+    'padCoeffsToDegree: kratší cílový stupeň než vstup nesmí nic zkrátit'
+  );
+  testsRun = testsRun + 2;
+
+  // createRandomIndividualVariableDegree: stupeň vždy v [0, maxDegree],
+  // napříč mnoha vzorky pokrývá i krajní hodnoty (ne jen prostřední).
+  var variableDegreeRng = createRng(555);
+  var seenDegrees = {};
+  var vTrial = 0;
+  while (vTrial < 200) {
+    var variableIndividual = createRandomIndividualVariableDegree(4, testCoeffRange, variableDegreeRng);
+    var individualDegree = variableIndividual.coeffs.length - 1;
+    console.assert(
+      individualDegree >= 0 && individualDegree <= 4,
+      'createRandomIndividualVariableDegree: stupeň musí být v [0, maxDegree]'
+    );
+    seenDegrees[individualDegree] = true;
+    testsRun = testsRun + 1;
+    vTrial = vTrial + 1;
+  }
+  console.assert(
+    seenDegrees[0] && seenDegrees[4],
+    'createRandomIndividualVariableDegree: 200 vzorků by mělo pokrýt i krajní stupně 0 a maxDegree'
+  );
+  testsRun = testsRun + 1;
+
+  // mutateDegree: s pravděpodobností 1 se stupeň vždy posune o přesně ±1
+  // (v mezích), s pravděpodobností 0 se nikdy nezmění.
+  var degreeMutateParams = createDefaultGaParams();
+  degreeMutateParams.degree = 4; // strop
+  degreeMutateParams.degreeMutationRate = 1;
+  var midDegreeRng = createRng(9001);
+  var midDegreeCoeffs = [1, 2, 3]; // stupeň 2, uprostřed rozsahu [0,4]
+  var dTrial = 0;
+  while (dTrial < 20) {
+    var afterMutation = mutateDegree(midDegreeCoeffs, degreeMutateParams, testCoeffRange, midDegreeRng);
+    console.assert(
+      Math.abs((afterMutation.length - 1) - 2) === 1,
+      'mutateDegree (rate=1): stupeň se musí posunout o přesně ±1'
+    );
+    testsRun = testsRun + 1;
+    dTrial = dTrial + 1;
+  }
+  degreeMutateParams.degreeMutationRate = 0;
+  var neverRng = createRng(9002);
+  var unchanged = mutateDegree(midDegreeCoeffs, degreeMutateParams, testCoeffRange, neverRng);
+  console.assert(unchanged.length === midDegreeCoeffs.length, 'mutateDegree (rate=0): stupeň se nesmí nikdy změnit');
+  testsRun = testsRun + 1;
+
+  // mutateDegree: musí respektovat meze [0, params.degree] (strop i dno).
+  var lowBoundaryParams = createDefaultGaParams();
+  lowBoundaryParams.degree = 4;
+  lowBoundaryParams.degreeMutationRate = 1;
+  var lowBoundaryRng = createRng(123);
+  var atZero = mutateDegree([7], lowBoundaryParams, testCoeffRange, lowBoundaryRng); // stupeň 0, nemůže klesnout níž
+  console.assert(atZero.length - 1 >= 0, 'mutateDegree: stupeň nesmí klesnout pod 0');
+  var highBoundaryRng = createRng(456);
+  var atMax = mutateDegree([1, 2, 3, 4, 5], lowBoundaryParams, testCoeffRange, highBoundaryRng); // stupeň 4 = strop
+  console.assert(atMax.length - 1 <= 4, 'mutateDegree: stupeň nesmí přesáhnout strop (params.degree)');
+  testsRun = testsRun + 2;
+
+  // crossover s degreeEvolves=true: rodiče různého stupně, potomek musí mít
+  // stupeň PŘESNĚ jednoho z rodičů (spec 6: "převzetí od jednoho z rodičů"),
+  // ne nějakou interpolaci/průměr.
+  var shortParent = createIndividual([1, 2]);      // stupeň 1
+  var longParent = createIndividual([3, 4, 5, 6]); // stupeň 3
+  var crossDegreeParams = createDefaultGaParams();
+  crossDegreeParams.degreeEvolves = true;
+  crossDegreeParams.degree = 5; // strop, nesouvisí přímo s testem
+  var crossDegreeRng = createRng(2024);
+  var possibleChildDegrees = {};
+  var cdTrial = 0;
+  while (cdTrial < 40) {
+    var childOfMixedDegree = crossover(shortParent, longParent, crossDegreeParams, testCoeffRange, crossDegreeRng);
+    var childDeg = childOfMixedDegree.length - 1;
+    console.assert(
+      childDeg === 1 || childDeg === 3,
+      'crossover (degreeEvolves): stupeň potomka musí být přesně stupeň jednoho z rodičů (1 nebo 3), ne ' + childDeg
+    );
+    possibleChildDegrees[childDeg] = true;
+    testsRun = testsRun + 1;
+    cdTrial = cdTrial + 1;
+  }
+  console.assert(
+    possibleChildDegrees[1] && possibleChildDegrees[3],
+    'crossover (degreeEvolves): 40 pokusů by mělo vidět oba možné zděděné stupně'
+  );
+  testsRun = testsRun + 1;
+
+  // crossover s degreeEvolves=false (výchozí): i když by coeffs náhodou
+  // měly různou délku, výsledek se řídí params.degree (zpětná kompatibilita).
+  var fixedDegreeParams = createDefaultGaParams();
+  fixedDegreeParams.degree = 2;
+  var fixedDegreeChild = crossover(createIndividual([1, 2, 3]), createIndividual([4, 5, 6]), fixedDegreeParams, testCoeffRange, rng);
+  console.assert(fixedDegreeChild.length === 3, 'crossover (degreeEvolves=false): délka se řídí params.degree');
   testsRun = testsRun + 1;
 
   console.log('CurveFitEA: GA self-test hotov (' + testsRun + ' dílčích ověření). ' +

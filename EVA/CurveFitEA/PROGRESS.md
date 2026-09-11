@@ -66,6 +66,16 @@ Statická stránka, žádný build krok. Otevřít `index.html` přímo v prohl�
   - Obě osy dohromady umožňují extrémní kombinaci (např. vysoký stupeň + "přímá" + "celá čísla")
     demonstrující, že evoluce nenajde dobré řešení kvůli kódování, ne kvůli strategii — přesně
     cíl spec 5.
+- **Stupeň jako součást genomu (spec 6) — konkrétní mechanika:** žádné nové pole "degree" na
+  jedinci — stupeň jedince je odvozený přímo z `coeffs.length - 1` (jednodušší než držet dvě
+  hodnoty, co by musely zůstat synchronní). Existující `degree-slider` se zapnutým checkboxem
+  přeznačí na STROP (max. stupeň), ne na pevnou hodnotu — žádný nový ovládací prvek navíc.
+  Mutace koeficientů (bit-flip i gaussian-jump) proto odvozuje kódovaný/mutovaný stupeň z délky
+  vektoru, ne z `params.degree` přímo (v pevném režimu jsou to vždycky stejná čísla, takže nulová
+  změna chování). Křížení dvou rodičů RŮZNÉHO stupně: oba vektory koeficientů se doplní nulami na
+  stejnou délku (`padCoeffsToDegree`), zkříží se normálně (jakoukoli zvolenou variantou), a teprve
+  výsledek se ořízne na stupeň zděděný od jednoho z rodičů (spec 6 to explicitně žádá — "převzetí
+  od jednoho z rodičů", žádná interpolace stupně).
 - **Historie nejlepších — strop na délku (spec 3):** stopa je omezená na posledních 150 generací
   (`HISTORY_MAX_LENGTH` v main.js), ne neomezená od resetu. Bez stropu by při dlouhém běhu rostlo
   pole koeficientů bez mezí (a s ním čas překreslení každého snímku — kreslí se všechny záznamy
@@ -95,7 +105,7 @@ existuje.
 8. [x] Responzivní layout — Chromium screenshoty na 1600×1000, 900×500 (úzký landscape) i 420×900 (portrait) — žádné přetékání; jeden nalezený a opravený bug (nechtěný vodorovný scrollbar v prostředním pruhu/panelu nastavení kvůli `overflow-y: auto` bez `overflow-x`, viz CSS spec kombinace os — opraveno přidáním `overflow-x: hidden`)
 9. [ ] README.md
 10. [x] Reprezentace genomu (spec 5) — transformace přímá/normalizovaná × celá/pevná/float, konkrétní interpretace obou os viz "Architektonická rozhodnutí"; self-testy (415 dílčích ověření v model.js) i Chromium ověření dvou netriviálních kombinací (degree 1 + přímá + celá čísla; degree 6 + transformovaná + pevná řádová čárka 4 bity) bez chyby, populace v obou konverguje
-11. [ ] Stupeň polynomu jako součást genomu (spec 6)
+11. [x] Stupeň polynomu jako součást genomu (spec 6) — checkbox "Stupeň je součást genomu" (degree-slider se stává stropem), mutace ±1 (podmíněně zobrazený slider míry), křížení = převzetí stupně od jednoho z rodičů (koeficienty se kříží na doplněných/vyrovnaných vektorech, pak ořežou); self-testy (494 dílčích ověření v ga.js) i Chromium ověření (degree cap 8, po 80 generacích nejlepší jedinec má stupeň 5 — jiný než strop, viditelná různorodost tvarů křivek v populaci)
 12. [x] Další fitness metriky + vysvětlení v UI (spec 7) — přidány "maximální odchylka" a "počet netrefených bodů" (s podmíněně zobrazenou tolerancí, spec 13.8 vzor); tooltip vysvětluje jen mechanismus (jak se metrika počítá), ne proč je "počet trefených bodů" problematická metrika (spec 7: necháme studenty objevit sami); ověřeno Chromium screenshotem (přepnutí na hit-count, statistický řádek správně ukazuje "8/14 trefeno", populace viditelně méně konverguje než u SSE — přesně očekávaný důsledek chybějícího gradientu)
 13. [x] Historie nejlepších jedinců, blednoucí stopa (spec 3) — checkbox "Historie nejlepších jedinců" (fieldset Zobrazení), stopa se plní v `stepOnce()` PŘED evolučním krokem (aktuální nejlepší jedinec se zapíše, teprve pak vznikne nová generace) a maže se při libovolném resetu; ověřeno screenshotem (purpurová stopa viditelná mezi modrými křivkami populace, viz zoomovaný výřez)
 14. [x] Přirozená čísla pro souřadnice bodů (spec 2) — ověřeno: `generateInitialPoints` posune y (ať minimum vyjde ≥0) a zaokrouhlí, `clampWorldPoint` (ruční editace myší) zaokrouhluje a ořezává na [0, yMax]/[WORLD_X_MIN, WORLD_X_MAX]; self-testy (200 dílčích ověření v model.js) i JSON dump reálných vygenerovaných bodů v Chromium potvrzují jen celá nezáporná čísla

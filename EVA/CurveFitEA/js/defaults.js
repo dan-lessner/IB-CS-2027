@@ -13,6 +13,8 @@
 
 var SETTINGS_FIELDS = [
   { id: 'degree-slider', kind: 'number' },
+  { id: 'degree-evolves-checkbox', kind: 'checkbox' },
+  { id: 'degree-mutation-rate-slider', kind: 'number' },
   { id: 'population-size-slider', kind: 'number' },
   { id: 'fitness-type-select', kind: 'text' },
   { id: 'fitness-tolerance-slider', kind: 'number' },
@@ -42,6 +44,8 @@ var SETTINGS_FIELDS = [
 // demonstrační bod).
 var DEFAULT_SETTINGS = {
   'degree-slider': 1,
+  'degree-evolves-checkbox': false,
+  'degree-mutation-rate-slider': 0.1,
   'population-size-slider': 60,
   'fitness-type-select': 'sse',
   'fitness-tolerance-slider': 1,
